@@ -42,7 +42,7 @@ actual fun TopBar(userName: String?, onSettingsClick: () -> Unit, onProfileClick
 
     Row(
         modifier = Modifier
-            .background(color = Color(0xFF5270FF))
+            .background(color = Color(0xFF334BBE))
             .fillMaxWidth()
             .height(80.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -114,7 +114,7 @@ actual fun BottomNavigationBar(pagerState: PagerState) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = Color(0xFF5270FF))
+            .background(color = Color(0xFF334BBE))
             .padding(vertical = 12.dp),
             //.shadow(elevation = 8.dp, shape = MaterialTheme.shapes.medium),
         horizontalArrangement = Arrangement.SpaceEvenly,

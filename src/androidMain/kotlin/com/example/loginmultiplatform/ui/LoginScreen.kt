@@ -218,8 +218,8 @@ actual fun LoginScreen(viewModel: LoginViewModel, navController: NavController) 
             ) {
                 Text(
                     text = resources.signIn,
-                    color = Color(41,95,152),
-                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF334BBE),
+                    fontWeight = FontWeight.Black,
                     fontFamily = customFontFamily
                 )
             }

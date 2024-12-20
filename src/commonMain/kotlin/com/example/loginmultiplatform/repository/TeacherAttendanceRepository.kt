@@ -1,6 +1,9 @@
 package com.example.loginmultiplatform.repository
 
+import com.example.loginmultiplatform.model.CourseStatisticsResponse
+import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
+import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.network.ApiClient
 import com.example.loginmultiplatform.network.ApiService
@@ -10,6 +13,36 @@ class TeacherAttendanceRepository {
 
     suspend fun getTeacherClasses(): ResponseWrapper<List<TeacherClassResponse>> {
         val response = apiService.fetchTeacherClasses()
+
+        if (response.success) {
+            return response
+        } else {
+            throw Exception(response.message)
+        }
+    }
+
+    suspend fun getTeacherCourses(teacherId: Int): ResponseWrapper<List<TeacherCourseResponse>> {
+        val response = apiService.fetchTeacherCourses(teacherId)
+
+        if (response.success) {
+            return response
+        } else {
+            throw Exception(response.message)
+        }
+    }
+
+    suspend fun getCourseStatistics(courseId: Int, classId: Int, startDate: String, endDate: String): ResponseWrapper<List<CourseStatisticsResponse>> {
+        val response = apiService.fetchCourseStatistics(courseId, classId, startDate, endDate)
+
+        if (response.success) {
+            return response
+        } else {
+            throw Exception(response.message)
+        }
+    }
+
+    suspend fun saveAttendanceBulk(attendanceList: List<TeacherAttendanceRequest>): ResponseWrapper<Int> {
+        val response = apiService.saveAttendanceBulk(attendanceList)
 
         if (response.success) {
             return response

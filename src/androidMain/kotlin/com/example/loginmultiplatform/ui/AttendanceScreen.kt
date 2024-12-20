@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
@@ -46,14 +48,15 @@ import com.example.loginmultiplatform.utils.CreateAttendancePDF
 val customFontFamily = FontFamily(
     Font(R.font.montserrat_regular, FontWeight.Normal),
     Font(R.font.montserrat_bold, FontWeight.Bold),
-    Font(R.font.montserrat_semibold, FontWeight.Bold)
+    Font(R.font.montserrat_semibold, FontWeight.SemiBold),
+    Font(R.font.montserrat_medium, FontWeight.Medium)
 )
 
 fun formatToReadableDate(dateString: String): String {
     val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val date = inputFormat.parse(dateString)
 
-    val outputFormat = SimpleDateFormat("d MMMM\nEEEE", Locale("tr"))
+    val outputFormat = SimpleDateFormat("d MMMM yyyy\nEEEE", Locale("tr"))
     return outputFormat.format(date)
 }
 
@@ -66,21 +69,40 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
     val attendanceStats by viewModel.attendanceStats.collectAsState()
     val groupedData = attendanceList.groupBy { it.courseId } //derslere göre gruplandırma
     val coursesList by viewModel.studentCourses.collectAsState()
-    val calendar = Calendar.getInstance()
 
+    val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
 
+    val startCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        firstDayOfWeek = Calendar.MONDAY
+        set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        set(Calendar.HOUR_OF_DAY, 12)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
 
-    calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-    val defaultStartDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)) }
-    calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek + 6)
-    val defaultEndDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)) }
+    val defaultStartDate by remember { mutableStateOf(dateFormatter.format(startCalendar.time)) }
+
+    // Haftanın son günü (Pazar) için ayrı bir takvim
+    val endCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        firstDayOfWeek = Calendar.MONDAY
+        set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+        set(Calendar.HOUR_OF_DAY, 12)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val defaultEndDate by remember { mutableStateOf(dateFormatter.format(endCalendar.time)) }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var resetVisible by remember { mutableStateOf(false) }
 
     var startDate by remember { mutableStateOf(defaultStartDate) }
     var endDate by remember { mutableStateOf(defaultEndDate) }
 
-    LaunchedEffect(studentId, classId) {
+    LaunchedEffect(studentId, classId, startDate, endDate) {
         try {
             viewModel.fetchAttendanceStats(studentId, classId)
             viewModel.fetchStudentCourses(studentId)
@@ -114,13 +136,6 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                 item { Legend(context, groupedData, startDate, endDate, statistics = attendanceStats, courses = coursesList, classId = classId) }
 
                 item {
-                    Button(
-                        onClick = { showDatePicker = true},
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5270FF))
-                    ) {
-                        Text("Tarih Aralığı Seç", fontFamily = customFontFamily, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -129,7 +144,19 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
-                        SelectedDateRangeDisplay(startDate = startDate, endDate = endDate)
+                        DateSelectorBox(
+                            label = "Başlangıç Tarihi",
+                            date = startDate,
+                            onClick = { showDatePicker = true; resetVisible = true}
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        DateSelectorBox(
+                            label = "Bitiş Tarihi",
+                            date = endDate,
+                            onClick = { showDatePicker = true; resetVisible = true }
+                        )
 
                         if (resetVisible) {
                             IconButton(
@@ -148,16 +175,12 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                                 )
                             }
                         }
-
-                        //Spacer(modifier = Modifier.width(4.dp))
-                        //println(resetVisible)
-
                     }
-                }
 
-                if (showDatePicker) {
-                    item {
-                        DateRangePicker(
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (showDatePicker) {
+                        DateRangePickerDialog(
                             initialStartDate = startDate,
                             initialEndDate = endDate,
                             onDateRangeSelected = { selectedStartDate, selectedEndDate ->
@@ -165,13 +188,14 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                                 endDate = selectedEndDate
                                 viewModel.fetchAttendance(studentId, startDate, endDate)
                                 showDatePicker = false
-                                resetVisible = true
                             },
-                            onDismiss = { showDatePicker = false }
-
+                            onDismiss = { showDatePicker = false },
+                            dateFormatter = dateFormatter
                         )
                     }
                 }
+
+
 
                 groupedData.forEach { (courseId, attendances) ->
                     val course = coursesList.find { it.id.toLong() == courseId }
@@ -206,99 +230,73 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                         }
                     }
                 }
-
-                /*item {
-                    Button(
-                        onClick = {
-                            CreateAttendancePDF(context = context, groupedData = groupedData, startDate = startDate, endDate = endDate, studentName = "Alice")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5270FF))
-                    ) {
-                        Text(
-                            text = "İndir",
-                            fontFamily = customFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }*/
             }
         }
     }
 }
 
 @Composable
-fun SelectedDateRangeDisplay(startDate: String, endDate: String) {
+fun DateSelectorBox(label: String, date: String, onClick: () -> Unit) {
+    val formattedDate = formatToReadableDate(date)
 
-    // Başlangıç Tarihi
-    Box(
-        modifier = Modifier
-            .background(
-                color = Color(0xFF5270FF),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
     ) {
         Text(
-            text = startDate,
-            style = MaterialTheme.typography.body2.copy(
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontFamily = customFontFamily
-            )
+            text = label,
+            style = MaterialTheme.typography.caption.copy(
+                color = Color.Black,
+                fontFamily = customFontFamily,
+                fontWeight = FontWeight.Bold
+            ),
+            modifier = Modifier.padding(bottom = 4.dp)
         )
+
+        Box(
+            modifier = Modifier
+                .clickable { onClick() }
+                .border(
+                    width = 2.dp,
+                    color = Color(0xFF334BBE),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .width(140.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            //Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formattedDate,
+                style = MaterialTheme.typography.body2.copy(
+                    color = Color(0xFF334BBE),
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = customFontFamily
+                ),
+                textAlign = TextAlign.Center
+            )
+        }
+
     }
 
-    Spacer(modifier = Modifier.width(8.dp))
 
-    Text(
-        text = "-",
-        style = MaterialTheme.typography.body1.copy(
-            color = MaterialTheme.colors.onSurface,
-            fontWeight = FontWeight.Bold,
-            fontFamily = customFontFamily
-        )
-    )
-
-    Spacer(modifier = Modifier.width(8.dp))
-
-    // Bitiş Tarihi
-    Box(
-        modifier = Modifier
-            .background(
-                color = Color(0xFF5270FF),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = endDate,
-            style = MaterialTheme.typography.body2.copy(
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontFamily = customFontFamily
-            )
-        )
-    }
 }
 
-
 @Composable
-fun DateRangePicker(
+fun DateRangePickerDialog(
     initialStartDate: String,
     initialEndDate: String,
     onDateRangeSelected: (String, String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    dateFormatter: SimpleDateFormat
 ) {
     val context = LocalContext.current
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val initialRange = androidx.core.util.Pair(
-        dateFormat.parse(initialStartDate)?.time,
-        dateFormat.parse(initialEndDate)?.time
-    )
+
+    val initialStartMillis = dateFormatter.parse(initialStartDate)?.time ?: 0L
+    val initialEndMillis = dateFormatter.parse(initialEndDate)?.time ?: 0L
+
+    val initialRange = androidx.core.util.Pair(initialStartMillis, initialEndMillis)
+
     val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
         .setTitleText("Tarih Aralığı Seç")
         .setSelection(initialRange)
@@ -308,9 +306,9 @@ fun DateRangePicker(
         val startMillis = range.first
         val endMillis = range.second
 
-        if (startMillis != null && endMillis != null) {
-            val selectedStartDate = dateFormat.format(Date(startMillis))
-            val selectedEndDate = dateFormat.format(Date(endMillis))
+        if(startMillis != null && endMillis != null) {
+            val selectedStartDate = dateFormatter.format(Date(startMillis))
+            val selectedEndDate = dateFormatter.format(Date(endMillis))
             onDateRangeSelected(selectedStartDate, selectedEndDate)
         }
     }
@@ -385,7 +383,7 @@ fun ExpendableTableCard(
                         TableHeaderCell("AÇIKLAMA", Modifier.weight(3f))
                     }
 
-                    Divider(color = Color(0xFF5A5A5A), thickness = 1.dp)
+                    Divider(thickness = 1.dp)
                     Spacer(modifier = Modifier.height(4.dp))
 
                     LazyColumn(
@@ -399,7 +397,7 @@ fun ExpendableTableCard(
                         }
                     }
 
-                    Divider(color = Color(0xFF5A5A5A), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+                    Divider(thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
 
                     filteredStats.forEach { stat ->
                         AttendanceStatsArea(statistics = stat)
@@ -448,7 +446,7 @@ fun DataRow(item: AttendanceResponse) {
         Box(
             modifier = Modifier
                 .size(10.dp)
-                .offset(x = 10.dp)
+                //.offset(x = 2.dp)
                 .background(
                     color = when (item.status) {
                         "ABSENT" -> Color.Red
@@ -532,13 +530,13 @@ fun Legend(context: Context,
             Icon(
                 imageVector = Icons.Default.Download,
                 contentDescription = "İndir",
-                tint = Color(0xFF5270FF)
+                tint = Color(0xFF334BBE)
             )
         }
         Text(
             text = "Rapor İndir",
             fontSize = 14.sp,
-            color = Color(0xFF5270FF),
+            color = Color(0xFF334BBE),
             fontFamily = customFontFamily,
             fontWeight = FontWeight.Bold
         )

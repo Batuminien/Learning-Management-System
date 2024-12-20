@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -24,6 +25,12 @@ actual fun SplashScreen(navController: NavController) {
         targetValue = if (startAnimation) 0.dp else 100.dp,
         animationSpec = tween(durationMillis = 1500, easing = EaseOutCubic),
         label = "logo_offset"
+    )
+
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f, // Opaklık: 1f = tamamen görünür, 0f = tamamen şeffaf
+        animationSpec = tween(durationMillis = 1500, easing = EaseOutCubic),
+        label = "logo_alpha"
     )
 
     // Animasyon başlatıcı
@@ -54,6 +61,7 @@ actual fun SplashScreen(navController: NavController) {
             modifier = Modifier
                 .size(300.dp)
                 .offset(y = logoOffset)
+                .alpha(logoAlpha)
         )
     }
 }
