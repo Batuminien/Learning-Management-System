@@ -1,5 +1,8 @@
 package com.lsm.repository;
 
+import com.lsm.model.entity.enums.Role;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +24,5 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
             "LEFT JOIN FETCH td.courses " +
             "WHERE u.id = :userId")
     Optional<AppUser> findUserWithTeacherDetailsAndClasses(@Param("userId") Long userId);
+    Page<AppUser> findAllByRole(Role role, Pageable pageable);
 }

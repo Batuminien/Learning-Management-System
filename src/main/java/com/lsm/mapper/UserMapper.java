@@ -1,16 +1,26 @@
 package com.lsm.mapper;
 
+import com.lsm.model.DTOs.StudentResponseDTO;
+import com.lsm.model.DTOs.TeacherResponseDTO;
+import com.lsm.model.DTOs.UserResponseDTO;
 import com.lsm.model.DTOs.auth.LoginResponseDTO;
 import com.lsm.model.DTOs.auth.RegisterResponseDTO;
+import com.lsm.model.entity.ClassEntity;
+import com.lsm.model.entity.Course;
+import com.lsm.model.entity.StudentDetails;
+import com.lsm.model.entity.TeacherDetails;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class UserMapper {
     public LoginResponseDTO toLoginResponse(AppUser user, String accessToken, String refreshToken, Long expiresIn) {
         return LoginResponseDTO.builder()
@@ -38,6 +48,65 @@ public class UserMapper {
                 .message("Registration successful")
                 .registeredAt(Instant.now())
                 .nextSteps(getNextSteps(user))
+                .build();
+    }
+
+    public UserResponseDTO toUserResponse(AppUser user) {
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getName())
+                .lastName(user.getSurname())
+                .role(user.getRole())
+                .build();
+    }
+
+    public StudentResponseDTO toStudentResponse(AppUser user) {
+        StudentDetails details = user.getStudentDetails();
+        if (details == null) {
+            throw new IllegalStateException("Student details not found");
+        }
+
+        return StudentResponseDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getName())
+                .lastName(user.getSurname())
+                .role(user.getRole())
+                .phone(details.getPhone())
+                .tc(details.getTc())
+                .birthDate(details.getBirthDate())
+                .registrationDate(details.getRegistrationDate())
+                .parentName(details.getParentName())
+                .parentPhone(details.getParentPhone())
+                .classId(details.getClassEntity())
+                .build();
+    }
+
+    public TeacherResponseDTO toTeacherResponse(AppUser user) {
+        TeacherDetails details = user.getTeacherDetails();
+        if (details == null) {
+            throw new IllegalStateException("Teacher details not found");
+        }
+
+        return TeacherResponseDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getName())
+                .lastName(user.getSurname())
+                .role(user.getRole())
+                .phone(details.getPhone())
+                .tc(details.getTc())
+                .birthDate(details.getBirthDate())
+                .classIds(details.getClasses().stream()
+                        .map(ClassEntity::getId)
+                        .collect(Collectors.toList()))
+                .courseIds(details.getCourses().stream()
+                        .map(Course::getId)
+                        .collect(Collectors.toList()))
                 .build();
     }
 
