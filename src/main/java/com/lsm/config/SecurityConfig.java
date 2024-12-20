@@ -180,6 +180,8 @@ public class SecurityConfig {
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/announcements/{id}")
                             .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
 
+                    // TODO: user operations
+
 
                     // Default policy
                     registry.anyRequest().authenticated();
