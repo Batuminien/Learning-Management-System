@@ -25,14 +25,16 @@ import java.util.Date
 import java.util.DoubleSummaryStatistics
 import java.util.Locale
 
-fun CreateAttendancePDF(
+fun CreateAttendancePDFforTeacher(
     context: Context,
     groupedData: Map<Long, List<AttendanceResponse>>,
     startDate: String,
     endDate: String,
     statistics: List<AttendanceStats>,
     courses: List<StudentCourseResponse>,
-    classId: Int) {
+    classId: Int,
+    courseId: Int
+) {
 
     val pdfDocument = PdfDocument()
     val pageWidth = 595
@@ -73,7 +75,7 @@ fun CreateAttendancePDF(
     paint.textSize = 30f
     paint.color = Color.WHITE
     paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_bold)
-    val studentName = statistics[0].studentName
+    val studentName = statistics.firstOrNull()?.studentName ?: "Öğrenci Adı Bulunamadı"
     val studentNameWidth = paint.measureText(studentName)
     canvas.drawText(studentName, pageWidth - studentNameWidth - 20f, 65f, paint)
 
@@ -112,16 +114,18 @@ fun CreateAttendancePDF(
     val tableHeaderHeight = 30f
 
     // Her bir ders için tablo çizelim
-    // Örnek sabit değerler, isteğe göre veri setinize göre bunları dinamikleştirin.
     // Yazı tiplerini tablo için normal, başlık için bold yapabiliriz.
-    groupedData.forEach { (courseId, attendances ) ->
+    groupedData.forEach { (courseIdKey, attendanceList ) ->
         // Ders başlığı
         paint.color = darkTextColor
         paint.textSize = 16f
         paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_black)
-        val dersTitle = courses.find { it.id.toLong() == courseId }
+
+        val dersTitle = courses.find { it.id == courseIdKey.toInt() }
         if (dersTitle != null) {
             canvas.drawText(dersTitle.name, 20f, yOffset, paint)
+        } else {
+            canvas.drawText("Kurs Bulunamadı", 20f, yOffset, paint)
         }
         yOffset += 15f
 
@@ -150,7 +154,7 @@ fun CreateAttendancePDF(
 
         // Tablo satırları
         paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_medium)
-        attendances.forEachIndexed { index, attendance ->
+        attendanceList.forEachIndexed { index, attendance ->
             if (attendance.status != "PRESENT") {
                 val rowHeight = 30f
                 val top = yOffset
@@ -158,7 +162,8 @@ fun CreateAttendancePDF(
 
                 // Satır arka plan rengi alternatifi
                 paint.style = Paint.Style.FILL
-                paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
+                //paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
+                paint.color = tableRowColor1
                 canvas.drawRect(tableLeft, top, tableRight, bottom, paint)
 
                 paint.style = Paint.Style.STROKE
@@ -169,7 +174,8 @@ fun CreateAttendancePDF(
                 paint.style = Paint.Style.FILL
 
                 // Metinler
-                paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
+                //paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
+                paint.color = Color.BLACK
                 paint.textSize = 12f
                 val attendanceDate =
                     SimpleDateFormat("yyyy-MM-dd", Locale("tr")).parse(attendance.date)
@@ -195,7 +201,7 @@ fun CreateAttendancePDF(
         yOffset += 20f
 
         // İlgili dersin istatistikleri (Sadece bu dersin istatistikleri)
-        val filteredStats = statistics.filter { it.classId == classId && it.courseId.toLong() == courseId }
+        val filteredStats = statistics.filter { it.classId == classId && it.courseId == courseIdKey.toInt() }
         if (filteredStats.isNotEmpty()) {
             val stats = filteredStats.first() // Her ders için tek bir istatistik kabul ediyoruz
 
@@ -219,6 +225,7 @@ fun CreateAttendancePDF(
 
     // Dosyayı yazma ve açma
     val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    //val file = File(downloadDir, "${studentName}_${SimpleDateFormat("d_MMMM_yyyy", Locale("tr")).format(Date())}.pdf")
     val file = File(downloadDir, "${studentName}_${SimpleDateFormat("d_MMMM_yyyy", Locale("tr")).format(Date())}.pdf")
 
     try {
@@ -228,24 +235,5 @@ fun CreateAttendancePDF(
     } catch (e: Exception) {
         e.printStackTrace()
         Toast.makeText(context, "PDF Oluşturulurken Hata Oluştu.", Toast.LENGTH_LONG).show()
-    }
-}
-
-fun openOrSharePDF(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        file
-    )
-
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/pdf")
-        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-    }
-
-    try {
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        Toast.makeText(context, "PDF Dosyası Açılamadı.", Toast.LENGTH_LONG).show()
     }
 }
