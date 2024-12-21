@@ -101,6 +101,15 @@ public class UserService {
         if (updateRequest.getPhone() != null && !updateRequest.getPhone().isBlank()) {
             details.setPhone(updateRequest.getPhone());
         }
+        if (updateRequest.getTc() != null && !updateRequest.getTc().isBlank()) {
+            details.setTc(updateRequest.getTc());
+        }
+        if (updateRequest.getBirthDate() != null) {
+            details.setBirthDate(updateRequest.getBirthDate());
+        }
+        if (updateRequest.getRegistrationDate() != null) {
+            details.setRegistrationDate(updateRequest.getRegistrationDate());
+        }
         if (updateRequest.getParentName() != null && !updateRequest.getParentName().isBlank()) {
             details.setParentName(updateRequest.getParentName());
         }
@@ -136,6 +145,14 @@ public class UserService {
 
         if (updateRequest.getPhone() != null && !updateRequest.getPhone().isBlank()) {
             details.setPhone(updateRequest.getPhone());
+        }
+
+        if (updateRequest.getTc() != null && !updateRequest.getTc().isBlank()) {
+            details.setTc(updateRequest.getTc());
+        }
+
+        if (updateRequest.getBirthDate() != null) {
+            details.setBirthDate(updateRequest.getBirthDate());
         }
 
         // Update classes if provided
