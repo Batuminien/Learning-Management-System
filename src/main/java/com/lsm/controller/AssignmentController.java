@@ -1,15 +1,21 @@
 package com.lsm.controller;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.lsm.config.ClientType;
+import com.lsm.config.ClientTypeInterceptor;
 import com.lsm.mapper.AssignmentDocumentMapper;
 import com.lsm.model.DTOs.*;
 import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.AssignmentDocument;
+import com.lsm.model.entity.DeviceToken;
 import com.lsm.model.entity.StudentSubmission;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
+import com.lsm.repository.DeviceTokenRepository;
 import com.lsm.service.AssignmentDocumentService;
 import com.lsm.service.AssignmentService;
 
+import com.lsm.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -57,6 +63,8 @@ public class AssignmentController {
     private final AssignmentService assignmentService;
     private final AssignmentDocumentService documentService;
     private final AssignmentDocumentMapper assignmentDocumentMapper;
+    private final NotificationService notificationService;
+    private final DeviceTokenRepository deviceTokenRepository;
 
     @Operation(
             summary = "Create a new assignment",
@@ -547,6 +555,159 @@ public class AssignmentController {
         } catch (Exception e) {
             log.error("Error while un-submitting the assignment: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Error: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Send new assignment notification",
+            description = "Sends push notifications about a new assignment to all students in the class (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/notify/created")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentCreated(
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication
+    ) {
+        try {
+            // Verify this is a mobile client
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            // Verify the user is the assignment creator
+            if (!assignment.getAssignedBy().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Only the assignment creator can send notifications");
+            }
+
+            List<String> deviceTokens = deviceTokenRepository.findTokensByClassId(assignment.getClassEntity().getId());
+            for (String token : deviceTokens) {
+                try {
+                    notificationService.sendNotification(
+                            token,
+                            "New Assignment",
+                            "A new assignment has been posted: " + assignment.getTitle()
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to token {}: {}", token, e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Notifications sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending notifications: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send notifications: " + e.getMessage()
+            );
+        }
+    }
+
+    @Operation(
+            summary = "Send grade notification",
+            description = "Sends push notification about graded assignment to the student (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/students/{studentId}/notify/graded")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentGraded(
+            @PathVariable @Positive Long assignmentId,
+            @PathVariable @Positive Long studentId,
+            Authentication authentication
+    ) {
+        try {
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            // Verify the user is the assignment creator
+            if (!assignment.getAssignedBy().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Only the assignment creator can send notifications");
+            }
+
+            List<DeviceToken> tokens = deviceTokenRepository.findByUserId(studentId);
+            for (DeviceToken token : tokens) {
+                try {
+                    notificationService.sendNotification(
+                            token.getDeviceToken(),
+                            "Assignment Graded",
+                            "Your assignment '" + assignment.getTitle() + "' has been graded"
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to student {}: {}", studentId, e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Grade notification sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending grade notification: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send grade notification: " + e.getMessage()
+            );
+        }
+    }
+
+    @Operation(
+            summary = "Send submission notification",
+            description = "Sends push notification about assignment submission to the teacher (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/notify/submitted")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentSubmitted(
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication
+    ) {
+        try {
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            List<DeviceToken> tokens = deviceTokenRepository.findByUserId(assignment.getAssignedBy().getId());
+            for (DeviceToken token : tokens) {
+                try {
+                    notificationService.sendNotification(
+                            token.getDeviceToken(),
+                            "Assignment Submitted",
+                            "Student " + currentUser.getUsername() + " has submitted assignment: " + assignment.getTitle()
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to teacher: {}", e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Submission notification sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending submission notification: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send submission notification: " + e.getMessage()
+            );
         }
     }
 
