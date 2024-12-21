@@ -63,6 +63,21 @@ kotlin {
                 implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.3")
                 implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.3") // Loglama için
                 //implementation("dev.icerock.moko:resources:0.23.0")
+
+
+
+                // DatePicker (Melikşah)
+                implementation("androidx.activity:activity-compose:1.7.2")
+                implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+                implementation("androidx.compose.ui:ui")
+                implementation("androidx.compose.ui:ui-graphics")
+                implementation("androidx.compose.ui:ui-tooling-preview")
+                implementation("androidx.compose.material3:material3")
+
+                implementation("com.mohamedrejeb.calf:calf-file-picker:0.5.3")
+                implementation("com.mohamedrejeb.calf:calf-file-picker-coil:0.5.1")
+                implementation("io.coil-kt.coil3:coil-compose:3.0.0-alpha08")
+
             }
         }
         val commonTest by getting {
@@ -107,6 +122,21 @@ kotlin {
                 implementation(compose.foundation)
                 implementation(compose.material)
                 //kotlin.srcDirs("build/generated/moko/androidMain/src")
+
+
+                // DatePicker (Melikşah)
+                implementation("androidx.activity:activity-compose:1.7.2")
+                implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+                implementation("androidx.compose.ui:ui")
+                implementation("androidx.compose.ui:ui-graphics")
+                implementation("androidx.compose.ui:ui-tooling-preview")
+                implementation("androidx.compose.material3:material3")
+
+                implementation("com.mohamedrejeb.calf:calf-file-picker:0.5.3")
+                implementation("com.mohamedrejeb.calf:calf-file-picker-coil:0.5.1")
+                implementation("io.coil-kt.coil3:coil-compose:3.0.0-alpha08")
+
+
             }
         }
         

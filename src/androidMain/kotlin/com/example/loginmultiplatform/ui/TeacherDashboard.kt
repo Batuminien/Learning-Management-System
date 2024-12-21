@@ -65,7 +65,7 @@ fun TeacherDashboardPage(username: String) {
     }
 }
 
-@Composable
+/*@Composable
 fun TeacherHomeworkPage(title: String) {
     Box(
         modifier = Modifier
@@ -81,3 +81,4 @@ fun TeacherHomeworkPage(title: String) {
         )
     }
 }
+*/
