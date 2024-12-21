@@ -14,6 +14,19 @@ import kotlinx.coroutines.launch
 class AttendanceViewModel : ViewModel() {
     private val repository = AttendanceRepository()
 
+    private val _attendanceMap = MutableStateFlow<Map<Int, List<AttendanceResponse>>>(emptyMap())
+    val attendanceMap: StateFlow<Map<Int, List<AttendanceResponse>>> = _attendanceMap
+
+    private val _attendanceStatsMap = MutableStateFlow<Map<Pair<Int, Int>, List<AttendanceStats>>>(
+        emptyMap()
+    )
+    val attendanceStatsMap: StateFlow<Map<Pair<Int, Int>, List<AttendanceStats>>> = _attendanceStatsMap
+
+    private val _studentCoursesMap = MutableStateFlow<Map<Int, List<StudentCourseResponse>>>(
+        emptyMap()
+    )
+    val studentCoursesMap: StateFlow<Map<Int, List<StudentCourseResponse>>> = _studentCoursesMap
+
     private val _attendanceList = MutableStateFlow<List<AttendanceResponse>>(emptyList())
     val attendanceList: StateFlow<List<AttendanceResponse>> = _attendanceList
 
@@ -37,6 +50,10 @@ class AttendanceViewModel : ViewModel() {
             try {
                 val attendance = repository.fetchAttendance(studentId, startDate, endDate)
                 _attendanceList.value = attendance
+
+                val currentMap = _attendanceMap.value.toMutableMap()
+                currentMap[studentId] = attendance
+                _attendanceMap.value = currentMap
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Unknown error occured"
             } finally {
@@ -51,6 +68,11 @@ class AttendanceViewModel : ViewModel() {
             try {
                 val response = repository.getStudentCourses(studentId)
                 _studentCourses.value = response
+
+                val currentMap = _studentCoursesMap.value.toMutableMap()
+                currentMap[studentId] = response
+                _studentCoursesMap.value = currentMap
+
                 _errorMessage.value = null
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -69,6 +91,11 @@ class AttendanceViewModel : ViewModel() {
             try {
                 val stats = repository.fetchAttendanceStats(studentId, classId)
                 _attendanceStats.value = stats
+
+                val currentMap = _attendanceStatsMap.value.toMutableMap()
+                currentMap[studentId to classId] = stats
+                _attendanceStatsMap.value = currentMap
+
             } catch (e: Exception) {
                 _errorMessage.value = "Bir hata oluştu: ${e.message}"
             } finally {

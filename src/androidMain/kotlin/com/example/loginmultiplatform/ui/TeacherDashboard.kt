@@ -19,12 +19,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.loginmultiplatform.ui.components.BottomNavigationBar
 import com.example.loginmultiplatform.ui.components.TopBar
+import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-actual fun TeacherDashboard(loginViewModel: LoginViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, navController: NavController) {
+actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, navController: NavController) {
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     //val studentId by viewModel.studentId.collectAsState()
     val username by loginViewModel.username.collectAsState()
@@ -40,7 +41,7 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, teacherAttendanceVie
                 .padding(paddingValues)
         ) { page ->
             when (page) {
-                0 -> TeacherAttendanceScreen(teacherAttendanceViewModel, navController)
+                0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController)
                 1 -> TeacherDashboardPage(username ?: "-")
                 2 -> TeacherHomeworkPage("TEACHER HOMEWORK PAGE")
             }
