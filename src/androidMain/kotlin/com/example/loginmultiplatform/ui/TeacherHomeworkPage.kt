@@ -211,10 +211,12 @@ fun TeacherHomeworkPage (title: String) {
         Card (
             modifier = Modifier.
                 fillMaxWidth().
-                height(80.dp),
+                height(80.dp).
+                padding(4.dp),
 
             elevation = 6.dp,
-            backgroundColor = Color.White
+            backgroundColor = Color.White,
+            shape = RoundedCornerShape(8.dp)
         ) {
             Row (
                 modifier = Modifier.
@@ -233,273 +235,280 @@ fun TeacherHomeworkPage (title: String) {
             }
         }
 
-        LazyColumn (
-            modifier = Modifier.fillMaxSize().offset(y = 85.dp)
-        ) {
-            item {
-
-                Card (
-                    modifier = Modifier.fillMaxWidth().height(800.dp).
-                    padding( bottom = 5.dp),
-                    backgroundColor = Color.White,
-                    elevation = 6.dp
-
+        if (content_of_assignment.value == 0){
+            Card (
+                modifier = Modifier.offset(y = 85.dp).fillMaxSize().padding(4.dp).padding(bottom = 88.dp),
+                backgroundColor = Color.White,
+                shape = RoundedCornerShape(8.dp),
+                elevation = 6.dp
+            ){
+                LazyColumn (
+                    modifier = Modifier.fillMaxSize()
                 ) {
-
-
-
-                    Box (
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-
-                        Button (
-                            modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(50.dp),
-                            onClick = {
-                                pickerLauncher.launch()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = Color.Transparent
-                            )
-                        ){
-                            Text("press")
-                        }
+                    item {
 
                         Box (
-                            modifier = Modifier.fillMaxWidth().height(100.dp).offset(y = 450.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
-                        ){
-                            BasicTextField(
-                                value = description,
-                                onValueChange = { description = it },
-                                modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
-                                    .focusRequester(focusRequesterDesc).onFocusChanged { focusState: FocusState ->
-                                        isFocusedDesc = focusState.isFocused
-                                        if (isFocusedDesc && description == "Açıklama giriniz") {
-                                            description = "" // Clear placeholder text when focused
-                                        }
-                                    }
-                            )
-                        }
-
-                        Text (
-                            text = "   Açıklama",
-                            modifier = Modifier.offset(y = 430.dp).fillMaxWidth().height(20.dp)
-                        )
-
-
-
-
-
-                        Box (
-                            modifier = Modifier.fillMaxWidth().height(50.dp).offset(y = 350.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
-                        ){
-                            BasicTextField(
-                                value = title,
-                                onValueChange = { title = it },
-                                modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
-                                    .focusRequester(focusRequesterTitle).onFocusChanged { focusState: FocusState ->
-                                        isFocusedTitle = focusState.isFocused
-                                        if (isFocusedTitle && title == "Başlık giriniz") {
-                                            title = "" // Clear placeholder text when focused
-                                        }
-                                    }
-                            )
-                        }
-
-                        Text (
-                            text = "   Başlık",
-                            modifier = Modifier.offset(y = 330.dp).fillMaxWidth().height(20.dp)
-                        )
-
-
-
-
-
-                        Box(
-                            modifier = Modifier
-                                .offset(y = 250.dp)
-                                .fillMaxWidth()
-                                .clickable { dateExpanded = !dateExpanded }
-                                .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                .padding(12.dp)
-
+                            modifier = Modifier.fillMaxWidth().height(800.dp)
                         ) {
-                            Text(text = if (checkedDate) selectedDateLast else "Bitiş tarihini seçiniz", color = Color.Black)
-                        }
 
-                        Text (
-                            text = "Bankaiiiii",
-                            modifier = Modifier.offset(y = 295.dp)
-                        )
-
-                        if (dateExpanded){
-
-                            DatePickerDialog(
-                                onDismissRequest = { /*TODO*/  },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            val dateFormatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-                                            val selectedDate = Calendar.getInstance().apply {
-                                                timeInMillis = datePickerState.selectedDateMillis!!
-                                            }
-                                            if (selectedDate.after(Calendar.getInstance())) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                selectedDateLast = dateFormatter.format(selectedDate.time)
-                                                dateExpanded = false
-                                                checkedDate = true
-                                            } else {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Seçilen tarih geçmemiş bir tarih olmalı lütfen başka bir tarih seçiniz",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                    ) { Text("Tamam") }
+                            Button (
+                                modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(50.dp),
+                                onClick = {
+                                    pickerLauncher.launch()
                                 },
-                                dismissButton = {
-                                    TextButton(
-                                        onClick = {
-                                            dateExpanded= false
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color.Transparent
+                                )
+                            ){
+                                Text("press")
+                            }
+
+                            Box (
+                                modifier = Modifier.fillMaxWidth().height(100.dp).offset(y = 450.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                            ){
+                                BasicTextField(
+                                    value = description,
+                                    onValueChange = { description = it },
+                                    modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                        .focusRequester(focusRequesterDesc).onFocusChanged { focusState: FocusState ->
+                                            isFocusedDesc = focusState.isFocused
+                                            if (isFocusedDesc && description == "Açıklama giriniz") {
+                                                description = "" // Clear placeholder text when focused
+                                            }
                                         }
-                                    ) { Text("İptal") }
-                                }
+                                )
+                            }
+
+                            Text (
+                                text = "   Açıklama",
+                                modifier = Modifier.offset(y = 430.dp).fillMaxWidth().height(20.dp)
                             )
-                            {
-                                DatePicker(state = datePickerState)
+
+
+
+
+
+                            Box (
+                                modifier = Modifier.fillMaxWidth().height(50.dp).offset(y = 350.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                            ){
+                                BasicTextField(
+                                    value = title,
+                                    onValueChange = { title = it },
+                                    modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                        .focusRequester(focusRequesterTitle).onFocusChanged { focusState: FocusState ->
+                                            isFocusedTitle = focusState.isFocused
+                                            if (isFocusedTitle && title == "Başlık giriniz") {
+                                                title = "" // Clear placeholder text when focused
+                                            }
+                                        }
+                                )
                             }
 
-                        }
-
-                        Text (
-                            text = "   Bitiş Tarihi",
-                            modifier = Modifier.offset(y = 230.dp).fillMaxWidth().height(20.dp)
-                        )
+                            Text (
+                                text = "   Başlık",
+                                modifier = Modifier.offset(y = 330.dp).fillMaxWidth().height(20.dp)
+                            )
 
 
 
 
-                        Box(
-                            modifier = Modifier
-                                .offset(y = 150.dp)
-                                .fillMaxWidth()
-                                .clickable { if (selectedClass != "Sınıf Seçiniz") courseexpanded = !courseexpanded }
-                                .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                .padding(12.dp)
 
-                        ) {
-                            Text(text = selectedCourse, color = Color.Black)
-                        }
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 250.dp)
+                                    .fillMaxWidth()
+                                    .clickable { dateExpanded = !dateExpanded }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
 
-                        Text (
-                            text = "Bankaiiiii",
-                            modifier = Modifier.offset(y = 195.dp)
-                        )
+                            ) {
+                                Text(text = if (checkedDate) selectedDateLast else "Bitiş tarihini seçiniz", color = Color.Black)
+                            }
 
-                        if (courseexpanded){
-                            LazyColumn (
-                                modifier = Modifier.fillMaxWidth().height(130.dp ).
-                                background(Color.Transparent).
-                                offset(y = 195.dp)
-                            ){
-                                courseoptions.forEach { option ->
-                                    item {
-                                        Row (
-                                            modifier = Modifier.fillMaxWidth().height(40.dp).
-                                            clickable(
-                                                onClick = {
-                                                    selectedCourse = option
-                                                    courseexpanded = false
-                                                    print("Clicked\n")
+                            Text (
+                                text = "Bankaiiiii",
+                                modifier = Modifier.offset(y = 295.dp)
+                            )
+
+                            if (dateExpanded){
+
+                                DatePickerDialog(
+                                    onDismissRequest = { /*TODO*/  },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                val dateFormatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                                                val selectedDate = Calendar.getInstance().apply {
+                                                    timeInMillis = datePickerState.selectedDateMillis!!
                                                 }
-                                            ).background(color = Color.White)
-                                        ){
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Text(
-                                                text = option
-                                            )
-                                        }
+                                                if (selectedDate.after(Calendar.getInstance())) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    selectedDateLast = dateFormatter.format(selectedDate.time)
+                                                    dateExpanded = false
+                                                    checkedDate = true
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Seçilen tarih geçmemiş bir tarih olmalı lütfen başka bir tarih seçiniz",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        ) { Text("Tamam") }
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                dateExpanded= false
+                                            }
+                                        ) { Text("İptal") }
+                                    }
+                                )
+                                {
+                                    DatePicker(state = datePickerState)
+                                }
 
+                            }
+
+                            Text (
+                                text = "   Bitiş Tarihi",
+                                modifier = Modifier.offset(y = 230.dp).fillMaxWidth().height(20.dp)
+                            )
+
+
+
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 150.dp)
+                                    .fillMaxWidth()
+                                    .clickable { if (selectedClass != "Sınıf Seçiniz") courseexpanded = !courseexpanded }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
+
+                            ) {
+                                Text(text = selectedCourse, color = Color.Black)
+                            }
+
+                            Text (
+                                text = "Bankaiiiii",
+                                modifier = Modifier.offset(y = 195.dp)
+                            )
+
+                            if (courseexpanded){
+                                LazyColumn (
+                                    modifier = Modifier.fillMaxWidth().height(130.dp ).
+                                    background(Color.Transparent).
+                                    offset(y = 195.dp)
+                                ){
+                                    courseoptions.forEach { option ->
+                                        item {
+                                            Row (
+                                                modifier = Modifier.fillMaxWidth().height(40.dp).
+                                                clickable(
+                                                    onClick = {
+                                                        selectedCourse = option
+                                                        courseexpanded = false
+                                                        print("Clicked\n")
+                                                    }
+                                                ).background(color = Color.White)
+                                            ){
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    text = option
+                                                )
+                                            }
+
+                                        }
                                     }
                                 }
                             }
-                        }
 
 
-                        Text (
-                            text = "   Ders Adı",
-                            modifier = Modifier.offset(y = 130.dp).fillMaxWidth().height(20.dp)
-                        )
-
-
+                            Text (
+                                text = "   Ders Adı",
+                                modifier = Modifier.offset(y = 130.dp).fillMaxWidth().height(20.dp)
+                            )
 
 
 
-                        Box(
-                            modifier = Modifier
-                                .offset(y = 50.dp)
-                                .fillMaxWidth()
-                                .clickable { classexpanded = !classexpanded }
-                                .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                .padding(12.dp)
 
-                        ) {
-                            Text(text = selectedClass, color = Color.Black)
-                        }
 
-                        Text (
-                            text = "Bankaiiiii",
-                            modifier = Modifier.offset(y = 95.dp)
-                        )
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 50.dp)
+                                    .fillMaxWidth()
+                                    .clickable { classexpanded = !classexpanded }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
 
-                        if (classexpanded){
-                            LazyColumn (
-                                modifier = Modifier.fillMaxWidth().height( 130.dp ).
-                                background(Color.Transparent).
-                                offset(y = 95.dp)
-                            ){
-                                classoptions.forEach { option ->
-                                    item {
-                                        Row (
-                                            modifier = Modifier.fillMaxWidth().height(40.dp).
-                                            clickable(
-                                                onClick = {
-                                                    selectedClass = option
-                                                    classexpanded = false
-                                                    print("Clicked\n")
-                                                }
-                                            ).background(color = Color.White)
-                                        ){
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Text(
-                                                text = option
-                                            )
+                            ) {
+                                Text(text = selectedClass, color = Color.Black)
+                            }
+
+                            Text (
+                                text = "Bankaiiiii",
+                                modifier = Modifier.offset(y = 95.dp)
+                            )
+
+                            if (classexpanded){
+                                LazyColumn (
+                                    modifier = Modifier.fillMaxWidth().height( 130.dp ).
+                                    background(Color.Transparent).
+                                    offset(y = 95.dp)
+                                ){
+                                    classoptions.forEach { option ->
+                                        item {
+                                            Row (
+                                                modifier = Modifier.fillMaxWidth().height(40.dp).
+                                                clickable(
+                                                    onClick = {
+                                                        selectedClass = option
+                                                        classexpanded = false
+                                                        print("Clicked\n")
+                                                    }
+                                                ).background(color = Color.White)
+                                            ){
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    text = option
+                                                )
+                                            }
+
                                         }
-
                                     }
                                 }
                             }
+
+
+                            Text (
+                                text = "   Sınıf Adı",
+                                modifier = Modifier.offset(y = 30.dp).fillMaxWidth().height(20.dp)
+                            )
+
+
                         }
-
-
-                        Text (
-                            text = "   Sınıf Adı",
-                            modifier = Modifier.offset(y = 30.dp).fillMaxWidth().height(20.dp)
-                        )
-
 
                     }
+
+
+
+
                 }
             }
 
-
-
-
         }
 
+
     }
+}
+
+// Burayı halledeceğim bir şekil
+@Composable
+fun AddingHomework() {
+
 }
