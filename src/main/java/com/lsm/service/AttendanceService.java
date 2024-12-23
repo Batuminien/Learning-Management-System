@@ -151,6 +151,49 @@ public class AttendanceService {
         return processAttendances(attendances, null, classEntity, course);
     }
 
+    @Transactional
+    public Attendance updateAttendance(AppUser loggedInUser, Long attendanceId, AttendanceRequestDTO attendanceRequest)
+            throws AccessDeniedException {
+        // Check if the user is a student
+        if (loggedInUser.getRole().equals(Role.ROLE_STUDENT)) {
+            throw new AccessDeniedException("Students can't update attendance records");
+        }
+
+        // Find the existing attendance record
+        Attendance existingAttendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Attendance record with ID %d not found.", attendanceId)
+                ));
+
+        // If user is a teacher, verify they have access to the course
+        if (loggedInUser.getRole().equals(Role.ROLE_TEACHER)) {
+            AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
+            boolean hasAccess = user.getTeacherDetails().getClasses().stream()
+                    .flatMap(classEntity -> classEntity.getCourses().stream())
+                    .anyMatch(courseEntity -> courseEntity.getId().equals(existingAttendance.getCourseId()));
+
+            if (!hasAccess) {
+                throw new AccessDeniedException("Teachers can only update attendance for their courses");
+            }
+        }
+
+        // Verify the student exists
+        AppUser student = appUserRepository.findById(attendanceRequest.getStudentId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Student with ID %d not found.", attendanceRequest.getStudentId())
+                ));
+
+        // Update the attendance record
+        existingAttendance.setStudent(student);
+        existingAttendance.setDate(attendanceRequest.getDate());
+        existingAttendance.setStatus(attendanceRequest.getStatus());
+        existingAttendance.setComment(attendanceRequest.getComment());
+        existingAttendance.setClassId(attendanceRequest.getClassId());
+        existingAttendance.setCourseId(attendanceRequest.getCourseId());
+
+        return attendanceRepository.save(existingAttendance);
+    }
+
     private List<Attendance> getAttendancesByStudent(Long studentId, Long classId) {
         if (classId != null) {
             return attendanceRepository.findByStudentIdAndClassId(studentId, classId);

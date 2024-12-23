@@ -215,4 +215,39 @@ public class AttendanceController {
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         }
     }
+
+    @Operation(
+            summary = "Update student attendance",
+            description = "Allows teachers and administrators to update an existing attendance record"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Attendance updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Attendance record not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @PutMapping("/{attendanceId}")
+    public ResponseEntity<ApiResponse_<AttendanceDTO>> updateAttendance(
+            @Parameter(description = "ID of the attendance record", required = true)
+            @PathVariable @Positive Long attendanceId,
+            @Valid @RequestBody AttendanceRequestDTO attendanceRequest,
+            Authentication authentication
+    ) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            Attendance updatedAttendance = attendanceService.updateAttendance(loggedInUser, attendanceId, attendanceRequest);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Attendance updated successfully",
+                    new AttendanceDTO(updatedAttendance, "")
+            ));
+        } catch (AccessDeniedException e) {
+            log.error("Access denied while updating attendance: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Error updating attendance: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
 }
