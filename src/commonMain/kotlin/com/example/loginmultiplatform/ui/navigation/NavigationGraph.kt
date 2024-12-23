@@ -10,11 +10,13 @@ import com.example.loginmultiplatform.ui.*
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
+import kotlin.math.log
 
 @Composable
 fun NavigationGraph(
     loginViewModel: LoginViewModel,
-    attendanceViewModel: AttendanceViewModel
+    attendanceViewModel: AttendanceViewModel,
+    teacherAttendanceViewModel: TeacherAttendanceViewModel
 ) {
     val navController = rememberNavController()
 
@@ -29,12 +31,20 @@ fun NavigationGraph(
             LoginScreen(viewModel = loginViewModel, navController = navController)
         }
 
+        composable("admin_dashboard") {
+            AdminDashboard(loginViewModel = loginViewModel, studentViewModel = attendanceViewModel, teacherAttendanceViewModel = teacherAttendanceViewModel, navController = navController)
+        }
+
         composable("teacher_dashboard") {
             TeacherDashboard(loginViewModel = loginViewModel, teacherAttendanceViewModel = TeacherAttendanceViewModel(), navController = navController)
         }
 
         composable("student_dashboard") {
             StudentDashboard(navController = navController, attendanceViewModel = attendanceViewModel, loginViewModel = loginViewModel)
+        }
+
+        composable("coordinator_dashboard") {
+            CoordinatorDashboard(studentViewModel = attendanceViewModel, teacherAttendanceViewModel = teacherAttendanceViewModel, loginViewModel = loginViewModel, navController = navController)
         }
 
         composable("attendance_screen/{studentId}/{classId}",

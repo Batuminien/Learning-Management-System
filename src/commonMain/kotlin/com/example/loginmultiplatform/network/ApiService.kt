@@ -12,6 +12,7 @@ import com.example.loginmultiplatform.model.TeacherClassResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -57,5 +58,17 @@ interface ApiService {
     suspend fun saveAttendanceBulk(
         @Body attendanceList: List<TeacherAttendanceRequest>
     ): ResponseWrapper<Int>
+
+    @GET("/api/v1/courses")
+    suspend fun fetchAllCourses() : ResponseWrapper<List<StudentCourseResponse>>
+
+    @GET("/api/v1/classes")
+    suspend fun fetchAllClasses() : ResponseWrapper<List<TeacherClassResponse>>
+
+    @PUT("/api/v1/attendance/{attendanceId}")
+    suspend fun updateAttendance(
+        @Path("attendanceId") attendanceId: Int,
+        @Body attendanceList: TeacherAttendanceRequest
+    ): ResponseWrapper<AttendanceResponse>
 }
 

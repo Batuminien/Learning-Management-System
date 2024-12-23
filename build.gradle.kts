@@ -92,6 +92,7 @@ kotlin {
                 // AspectJ
                 /*implementation("org.aspectj:aspectjrt:1.9.20")
                 implementation("org.aspectj:aspectjweaver:1.9.20")*/
+                //implementation("androidx.compose.material3:material3-android:1.3.1")
                 implementation("androidx.compose.foundation:foundation:1.5.1")
                 // SLF4J
                 //implementation("org.slf4j:slf4j-api:2.0.9")

@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.loginmultiplatform.ui.navigation.NavigationGraph
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,10 +20,12 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val loginViewModel = LoginViewModel()
             val attendanceViewModel = AttendanceViewModel()
+            val teacherAttendanceViewModel = TeacherAttendanceViewModel()
 
             NavigationGraph(
                 loginViewModel = loginViewModel,
-                attendanceViewModel = attendanceViewModel
+                attendanceViewModel = attendanceViewModel,
+                teacherAttendanceViewModel = teacherAttendanceViewModel
             )
         }
     }

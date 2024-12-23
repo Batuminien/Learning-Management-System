@@ -50,3 +50,4 @@ gradlew.bat
 LICENSE
 lsm_database_dump.sql
 README.md
+local.properties

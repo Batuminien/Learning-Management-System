@@ -2,8 +2,6 @@
 
 package com.example.loginmultiplatform
 
-import androidx.compose.ui.viewinterop.InteropView
-
 interface ResourceContainer {
     val lighthouse: Int
     val appLogo: Int

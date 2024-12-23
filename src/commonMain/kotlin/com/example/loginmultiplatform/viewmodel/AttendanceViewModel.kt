@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
-import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.StudentCourseResponse
 import com.example.loginmultiplatform.repository.AttendanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +15,11 @@ class AttendanceViewModel : ViewModel() {
 
     private val _attendanceMap = MutableStateFlow<Map<Int, List<AttendanceResponse>>>(emptyMap())
     val attendanceMap: StateFlow<Map<Int, List<AttendanceResponse>>> = _attendanceMap
+
+    private val _attendanceMapSingular = MutableStateFlow<Map<Int, List<AttendanceResponse>>>(
+        emptyMap()
+    )
+    val attendanceMapSingular: StateFlow<Map<Int, List<AttendanceResponse>>> = _attendanceMapSingular
 
     private val _attendanceStatsMap = MutableStateFlow<Map<Pair<Int, Int>, List<AttendanceStats>>>(
         emptyMap()
@@ -54,6 +58,26 @@ class AttendanceViewModel : ViewModel() {
                 val currentMap = _attendanceMap.value.toMutableMap()
                 currentMap[studentId] = attendance
                 _attendanceMap.value = currentMap
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Unknown error occured"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun fetchAttendanceSingular(studentId: Int, startDate: String, endDate: String) {
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        viewModelScope.launch {
+            try {
+                val attendance = repository.fetchAttendanceSingular(studentId, startDate, endDate)
+                _attendanceList.value = attendance
+
+                val currentMap = _attendanceMapSingular.value.toMutableMap()
+                currentMap[studentId] = attendance
+                _attendanceMapSingular.value = currentMap
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Unknown error occured"
             } finally {
@@ -103,4 +127,6 @@ class AttendanceViewModel : ViewModel() {
             }
         }
     }
+
+
 }

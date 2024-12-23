@@ -25,6 +25,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextFieldDefaults
@@ -105,7 +106,7 @@ fun mapAttendanceStatusforFrontend(status: String): String {
         "PRESENT" -> "Katıldı"
         "ABSENT" -> "Katılmadı"
         "EXCUSED" -> "Geç Geldi"
-        else -> "Veri yok"
+        else -> "Veri Yok"
     }
 }
 
@@ -160,7 +161,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     //seçili durumlar
     val attendanceStates = remember {
         mutableStateMapOf<Int, String>().apply {
-            classes.flatMap { it.studentIdAndNames.entries }.forEach { (studentIdStr, studentName) ->
+            classes.flatMap { it.studentIdAndNames.entries }.forEach { (studentIdStr, _) ->
                 val studentId = studentIdStr.toInt()
                 this[studentId] = "Katıldı"
             }
@@ -276,15 +277,11 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     }
 
     if(showStudentId != null) {
-        val relevantClass = classes.firstOrNull { classItem ->
-            classItem.studentIdAndNames.containsKey(showStudentId.toString())
-        }
 
         StudentAttendanceDetailDialog(
             studentId = showStudentId!!,
             onDismiss = { showStudentId = null },
             stats = stats,
-            studentIdAnNames = relevantClass?.studentIdAndNames ?: emptyMap()
         )
     }
 }
@@ -314,6 +311,8 @@ fun ExpendableClassCard(
 
     var expanded by remember { mutableStateOf(false) }
     var expandedDropdown by remember { mutableStateOf(false) }
+    val bulkOperationStatus by teacherViewModel.bulkOperationStatus.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Card(
         modifier = Modifier
@@ -567,6 +566,12 @@ fun ExpendableClassCard(
                                 )
                             }
 
+                            LaunchedEffect(bulkOperationStatus) {
+                                bulkOperationStatus?.let { message ->
+                                    snackbarHostState.showSnackbar(message)
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
@@ -574,6 +579,7 @@ fun ExpendableClassCard(
             }
         }
     }
+    CustomSnackbar(snackbarHostState = snackbarHostState)
 }
 
 @Composable
@@ -581,7 +587,7 @@ fun StudentAttendanceDetailDialog(
     studentId: Int,
     onDismiss: () -> Unit,
     stats: List<CourseStatisticsResponse>,
-    studentIdAnNames: Map<String, String>) {
+    ) {
 
     // Öğrenci detaylarını gösteren dialog
     AlertDialog(

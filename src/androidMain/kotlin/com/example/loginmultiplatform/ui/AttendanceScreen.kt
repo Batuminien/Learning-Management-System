@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
@@ -201,13 +200,13 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                     val course = coursesList.find { it.id.toLong() == courseId }
                     if (course != null) {
                         val sortedAttendances = attendances.sortedByDescending { it.date }
-                        val filteredAttendances = sortedAttendances.filter { it.status != "PRESENT" }
+                        //val filteredAttendances = sortedAttendances.filter { it.status != "PRESENT" }
 
-                        if (filteredAttendances.isNotEmpty()) {
+                        if (sortedAttendances.isNotEmpty()) {
                             item {
                                 ExpendableTableCard(
                                     lessonName = course.name,
-                                    attendances = filteredAttendances,
+                                    attendances = sortedAttendances,
                                     statistics = attendanceStats,
                                     classId = classId,
                                     courseId = courseId.toInt()
@@ -451,6 +450,7 @@ fun DataRow(item: AttendanceResponse) {
                     color = when (item.status) {
                         "ABSENT" -> Color.Red
                         "EXCUSED" -> Color(0xFFFFA500)
+                        "PRESENT" -> Color(0xFF12BA00)
                         else -> Color.Transparent
                     },
                     shape = CircleShape
@@ -513,8 +513,9 @@ fun Legend(context: Context,
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LegendItem(color = Color.Red, text = "Gelmedi")
+        LegendItem(color = Color.Red, text = "Katılmadı")
         LegendItem(color = Color(0xFFFFA500), text = "Geç Geldi")
+        LegendItem(color = Color(0xFF12BA00), text = "Katıldı")
     }
 
     Row(

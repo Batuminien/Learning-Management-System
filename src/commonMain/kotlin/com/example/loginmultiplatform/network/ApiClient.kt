@@ -1,8 +1,5 @@
 package com.example.loginmultiplatform.network
 
-import com.example.loginmultiplatform.utils.LocalDateAdapter
-import com.google.gson.GsonBuilder
-import kotlinx.datetime.LocalDate
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,10 +7,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
     private const val BASE_URL = "http://185.8.129.201:8080/"
-
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(LocalDate::class.java, LocalDateAdapter())
-        .create()
 
     private val client: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {

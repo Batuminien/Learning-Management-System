@@ -1,7 +1,5 @@
 package com.example.loginmultiplatform.model
 
-import kotlinx.datetime.LocalDate
-
 data class ResponseWrapper<T>(
     val success: Boolean,
     val message: String,
@@ -9,7 +7,7 @@ data class ResponseWrapper<T>(
 )
 
 data class AttendanceResponse(
-    val id: Long,
+    val attendanceId: Long,
     val studentId: Long,
     val studentName: String,
     val studentSurname: String,
