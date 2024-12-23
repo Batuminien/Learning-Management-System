@@ -38,7 +38,7 @@ INSERT INTO app_users (id, username, name, surname, email, password, role,
                                                                                          '5551234567', '12345678901', '2008-01-15', '2023-09-01', 'Robert Brown', '5551234568', 1),
                                                                                         (nextval('app_users_seq'), 'student2', 'Bob', 'Wilson', 'bob.wilson@lms.com',
                                                                                          '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
-                                                                                         '5552345678', '12345678902', '2007-03-20', '2023-09-01', 'Sarah Wilson', '5552345679', 1);
+                                                                                         '5552345678', '12345678902', '2007-03-20', '2023-09-01', 'Sarah Wilson', '5552345679', 2);
 
 -- Insert Courses
 INSERT INTO courses (id, name, description, code, credits, teacher_id) VALUES
