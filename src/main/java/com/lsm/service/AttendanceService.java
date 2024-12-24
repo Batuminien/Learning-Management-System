@@ -13,7 +13,7 @@ import com.lsm.repository.AttendanceRepository;
 import com.lsm.repository.AppUserRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.repository.CourseRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;

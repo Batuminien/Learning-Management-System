@@ -28,7 +28,7 @@ import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.validation.annotation.Validated;
 
@@ -244,9 +244,17 @@ public class AssignmentService {
             assignmentDocumentRepository.delete(teacherDoc);
         }
 
-        // Clear student submissions
+        // Clear student submissions and their documents
         if (!assignment.getStudentSubmissions().isEmpty()) {
             assignment.getStudentSubmissions().forEach(submission -> {
+                // Clear document reference and delete document first
+                if (submission.getDocument() != null) {
+                    AssignmentDocument doc = submission.getDocument();
+                    submission.setDocument(null);
+                    studentSubmissionRepository.save(submission);
+                    assignmentDocumentRepository.delete(doc);
+                }
+                // Then delete the submission
                 submission.setAssignment(null);
                 studentSubmissionRepository.delete(submission);
             });

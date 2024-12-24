@@ -9,7 +9,7 @@ import com.lsm.repository.AnnouncementRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,20 @@
--- Clear existing data and reset sequences
-TRUNCATE TABLE student_submissions, class_courses, class_students, assignments, classes, courses, app_users,
-           refresh_tokens, assignment_documents, teacher_classes, teacher_courses, attendance CASCADE;
+-- First, disable foreign key checks to allow truncation
+SET CONSTRAINTS ALL DEFERRED;
+
+-- Clear existing data in correct order
+TRUNCATE TABLE
+    attendance,
+    student_submissions,
+    assignment_documents,
+    assignments,
+    class_courses,
+    class_students,
+    teacher_classes,
+    classes,
+    courses,
+    refresh_tokens,
+    app_users
+CASCADE;
 
 -- Reset sequences
 ALTER SEQUENCE app_users_seq RESTART WITH 1;
@@ -29,7 +43,14 @@ INSERT INTO app_users (id, username, name, surname, email, password, role,
                                                                            '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
                                                                            '5551112234', '12345678908', '1982-08-20');
 
--- Insert Students with StudentDetails
+-- Insert Classes first (before students)
+INSERT INTO classes (id, name, description, teacher_id) VALUES
+                                                            (nextval('classes_id_seq'), '11-A-MF', '11-A MF',
+                                                             (SELECT id FROM app_users WHERE username = 'teacher1')),
+                                                            (nextval('classes_id_seq'), '11-B-TM', '11-B TM',
+                                                             (SELECT id FROM app_users WHERE username = 'teacher2'));
+
+-- Now insert Students with StudentDetails (after classes exist)
 INSERT INTO app_users (id, username, name, surname, email, password, role,
                        student_phone, student_tc, student_birth_date, student_registration_date,
                        student_parent_name, student_parent_phone, class_id_student) VALUES
@@ -48,66 +69,24 @@ INSERT INTO courses (id, name, description, code, credits, teacher_id) VALUES
                                                                             (SELECT id FROM app_users WHERE username = 'teacher2')),
                                                                            (nextval('courses_seq'), 'AYT-Literacy', 'Basic turkish literacy concepts', 'EDB-1', 4,
                                                                             (SELECT id FROM app_users WHERE username = 'teacher2'));
--- Insert Classes
-INSERT INTO classes (id, name, description, teacher_id) VALUES
-                                                            (nextval('classes_id_seq'), '11-A-MF', '11-A MF',
-                                                             (SELECT id FROM app_users WHERE username = 'teacher1')),
-                                                            (nextval('classes_id_seq'), '11-B-TM', '11-B TM',
-                                                             (SELECT id FROM app_users WHERE username = 'teacher2'));
 
--- Link Classes with Courses
-INSERT INTO class_courses (class_id, course_id) VALUES
-                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                     (SELECT id FROM courses WHERE code = 'MAT-1')),
-                                                    ((SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                     (SELECT id FROM courses WHERE code = 'FIZ-1')),
-                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                     (SELECT id FROM courses WHERE code = 'FIZ-1')),
-                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                     (SELECT id FROM courses WHERE code = 'EDB-1'));
-
--- Insert Teacher-Class Relationships
-INSERT INTO teacher_classes (user_id, class_id) VALUES
-                                                    ((SELECT id FROM app_users WHERE username = 'teacher1'),
-                                                     (SELECT id FROM classes WHERE name = '11-A-MF')),
-                                                    ((SELECT id FROM app_users WHERE username = 'teacher2'),
-                                                     (SELECT id FROM classes WHERE name = '11-B-TM'));
-
--- Assign Students to Classes
-INSERT INTO class_students (class_id, student_id) VALUES
-                                                      ((SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                       (SELECT id FROM app_users WHERE username = 'student1')),
-                                                      ((SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                       (SELECT id FROM app_users WHERE username = 'student2'));
-
-UPDATE app_users
-SET class_id_student = (
-    SELECT class_id
-    FROM class_students
-    WHERE student_id = app_users.id
-)
-WHERE role = 'ROLE_STUDENT';
-
--- Create Assignments
+-- Create Assignments (before documents)
 INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_id,
-                         last_modified_by_id, class_id, course_id, assignment_date, last_modified_date,
-                         teacher_document_id) VALUES
-                                                  (nextval('assignments_seq'), 'Math Homework 1', 'Complete exercises 1-10', CURRENT_DATE + INTERVAL '7 days',
-                                                   (SELECT id FROM app_users WHERE username = 'teacher1'),
-                                                   (SELECT id FROM app_users WHERE username = 'teacher1'),
-                                                   (SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                   (SELECT id FROM courses WHERE code = 'MAT-1'),
-                                                   CURRENT_DATE,
-                                                   CURRENT_DATE,
-                                                   (SELECT id FROM assignment_documents WHERE file_name = 'math_homework.pdf')),
-                                                  (nextval('assignments_seq'), 'Literacy Report', 'Write report on turkish literacy', CURRENT_DATE + INTERVAL '10 days',
-                                                   (SELECT id FROM app_users WHERE username = 'teacher2'),
-                                                   (SELECT id FROM app_users WHERE username = 'teacher2'),
-                                                   (SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                   (SELECT id FROM courses WHERE code = 'EDB-1'),
-                                                   CURRENT_DATE,
-                                                   CURRENT_DATE,
-                                                   (SELECT id FROM assignment_documents WHERE file_name = 'literature_hw.pdf'));
+                         last_modified_by_id, class_id, course_id, assignment_date, last_modified_date) VALUES
+                                                                                                            (nextval('assignments_seq'), 'Math Homework 1', 'Complete exercises 1-10', CURRENT_DATE + INTERVAL '7 days',
+                                                                                                             (SELECT id FROM app_users WHERE username = 'teacher1'),
+                                                                                                             (SELECT id FROM app_users WHERE username = 'teacher1'),
+                                                                                                             (SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                                                                             (SELECT id FROM courses WHERE code = 'MAT-1'),
+                                                                                                             CURRENT_DATE,
+                                                                                                             CURRENT_DATE),
+                                                                                                            (nextval('assignments_seq'), 'Literacy Report', 'Write report on turkish literacy', CURRENT_DATE + INTERVAL '10 days',
+                                                                                                             (SELECT id FROM app_users WHERE username = 'teacher2'),
+                                                                                                             (SELECT id FROM app_users WHERE username = 'teacher2'),
+                                                                                                             (SELECT id FROM classes WHERE name = '11-B-TM'),
+                                                                                                             (SELECT id FROM courses WHERE code = 'EDB-1'),
+                                                                                                             CURRENT_DATE,
+                                                                                                             CURRENT_DATE);
 
 -- Create Teacher Assignment Documents
 INSERT INTO assignment_documents (id, file_name, file_path, upload_time, file_type, file_size,
@@ -129,15 +108,7 @@ INSERT INTO assignment_documents (id, file_name, file_path, upload_time, file_ty
                                                                    (SELECT id FROM app_users WHERE username = 'teacher2'),
                                                                    (SELECT id FROM assignments WHERE title = 'Literacy Report'));
 
--- Update assignments with teacher documents
-UPDATE assignments
-SET teacher_document_id = (
-    SELECT id FROM assignment_documents
-    WHERE assignment_id = assignments.id
-    LIMIT 1
-    );
-
--- Create Student Submissions
+-- Create Student Submissions (before their documents)
 INSERT INTO student_submissions (id, student_id, status, assignment_id, submission_date, submission_comment) VALUES
                                                                                                                  (nextval('submissions_seq'),
                                                                                                                   (SELECT id FROM app_users WHERE username = 'student1'),
@@ -164,6 +135,14 @@ INSERT INTO assignment_documents (id, file_name, file_path, upload_time, file_ty
      (SELECT id FROM app_users WHERE username = 'student1'),
      (SELECT id FROM assignments WHERE title = 'Math Homework 1'));
 
+-- Update assignments with teacher documents
+UPDATE assignments
+SET teacher_document_id = (
+    SELECT id FROM assignment_documents
+    WHERE assignment_id = assignments.id
+    LIMIT 1
+    );
+
 -- Link submission document to student submission
 UPDATE student_submissions
 SET document_id = (
@@ -174,58 +153,47 @@ SET document_id = (
     )
 WHERE status = 'SUBMITTED';
 
-INSERT INTO attendance (id, student_id, date_a, attendance, comment, class_id, course_id) VALUES
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student1'),
-                                                                                               '2024-11-24',
-                                                                                               'PRESENT',
-                                                                                               'Participated actively in class',
-                                                                                               (SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                                                               (SELECT id FROM courses WHERE code = 'MAT-1')),
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student1'),
-                                                                                               '2024-11-25',
-                                                                                               'EXCUSED',
-                                                                                               'Doctor appointment - note provided',
-                                                                                               (SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                                                               (SELECT id FROM courses WHERE code = 'MAT-1')),
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student1'),
-                                                                                               '2024-11-26',
-                                                                                               'PRESENT',
-                                                                                               NULL,
-                                                                                               (SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                                                               (SELECT id FROM courses WHERE code = 'MAT-1'));
+-- Link Classes with Courses
+INSERT INTO class_courses (class_id, course_id) VALUES
+                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                     (SELECT id FROM courses WHERE code = 'MAT-1')),
+                                                    ((SELECT id FROM classes WHERE name = '11-B-TM'),
+                                                     (SELECT id FROM courses WHERE code = 'FIZ-1')),
+                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                     (SELECT id FROM courses WHERE code = 'FIZ-1')),
+                                                    ((SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                     (SELECT id FROM courses WHERE code = 'EDB-1'));
 
--- Reinsert attendance records for student2 (now only for 11-B-TM class)
+-- Insert Teacher-Class Relationships
+INSERT INTO teacher_classes (user_id, class_id) VALUES
+                                                    ((SELECT id FROM app_users WHERE username = 'teacher1'),
+                                                     (SELECT id FROM classes WHERE name = '11-A-MF')),
+                                                    ((SELECT id FROM app_users WHERE username = 'teacher2'),
+                                                     (SELECT id FROM classes WHERE name = '11-B-TM'));
+
+-- Assign Students to Classes
+INSERT INTO class_students (class_id, student_id) VALUES
+                                                      ((SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                       (SELECT id FROM app_users WHERE username = 'student1')),
+                                                      ((SELECT id FROM classes WHERE name = '11-B-TM'),
+                                                       (SELECT id FROM app_users WHERE username = 'student2'));
+
+-- Insert Attendance Records
 INSERT INTO attendance (id, student_id, date_a, attendance, comment, class_id, course_id) VALUES
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student2'),
-                                                                                               '2024-11-24',
-                                                                                               'PRESENT',
-                                                                                               'Good participation',
-                                                                                               (SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                                                               (SELECT id FROM courses WHERE code = 'FIZ-1')),
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student2'),
-                                                                                               '2024-11-25',
-                                                                                               'ABSENT',
-                                                                                               'No notification received',
-                                                                                               (SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                                                               (SELECT id FROM courses WHERE code = 'FIZ-1')),
-                                                                                              (nextval('attendance_id_seq'),
-                                                                                               (SELECT id FROM app_users WHERE username = 'student2'),
-                                                                                               '2024-11-26',
-                                                                                               'PRESENT',
-                                                                                               NULL,
-                                                                                               (SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                                                               (SELECT id FROM courses WHERE code = 'FIZ-1'));
--- Update sequences
+    (nextval('attendance_id_seq'),
+     (SELECT id FROM app_users WHERE username = 'student1'),
+     '2024-11-24',
+     'PRESENT',
+     'Participated actively in class',
+     (SELECT id FROM classes WHERE name = '11-A-MF'),
+     (SELECT id FROM courses WHERE code = 'MAT-1'));
+
+-- Update sequences to current max values
 SELECT setval('app_users_seq', (SELECT MAX(id) FROM app_users));
 SELECT setval('classes_id_seq', (SELECT MAX(id) FROM classes));
 SELECT setval('assignments_seq', (SELECT MAX(id) FROM assignments));
 SELECT setval('courses_seq', (SELECT MAX(id) FROM courses));
-SELECT setval('refresh_token_seq', (SELECT MAX(id) FROM refresh_tokens));
+SELECT setval('refresh_token_seq', COALESCE((SELECT MAX(id) FROM refresh_tokens), 1));
 SELECT setval('assignment_docs_seq', (SELECT MAX(id) FROM assignment_documents));
 SELECT setval('submissions_seq', (SELECT MAX(id) FROM student_submissions));
 SELECT setval('attendance_id_seq', (SELECT MAX(id) FROM attendance));

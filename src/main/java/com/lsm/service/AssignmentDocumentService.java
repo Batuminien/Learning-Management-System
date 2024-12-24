@@ -6,7 +6,7 @@ import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AssignmentDocumentRepository;
 import com.lsm.repository.AssignmentRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
