@@ -11,7 +11,7 @@ object TokenManager {
         return token
     }
 
-    fun clearToken() {
+    /*fun clearToken() {
         token = null
-    }
+    }*/
 }

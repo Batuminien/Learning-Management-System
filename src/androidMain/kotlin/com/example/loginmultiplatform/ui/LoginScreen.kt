@@ -95,7 +95,6 @@ actual fun LoginScreen(viewModel: LoginViewModel, navController: NavController) 
                 label = { Text(text = resources.emailPlaceholder, color=Color.White, fontFamily = customFontFamily, fontWeight = FontWeight.Normal) },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(color = Color(234,228,221)),
-                //textFontFamily = customFontFamily,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedBorderColor = Color.White,
