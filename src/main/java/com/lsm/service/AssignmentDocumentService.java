@@ -194,28 +194,51 @@ public class AssignmentDocumentService {
     }
 
     private void validateDownloadAccess(AssignmentDocument document, AppUser currentUser) throws AccessDeniedException {
+        // Admin and coordinator have full access
         if (currentUser.getRole() == Role.ROLE_ADMIN ||
                 currentUser.getRole() == Role.ROLE_COORDINATOR) {
             return;
         }
 
+        Assignment assignment = document.getAssignment();
+
         if (currentUser.getRole() == Role.ROLE_TEACHER) {
-            // Allow teachers to download:
+            // Teachers can download:
             // 1. Their own assignment documents
             // 2. Student submissions for their assignments
-            boolean isTeacherDocument = document.equals(document.getAssignment().getTeacherDocument());
-            boolean isAssignmentCreator = currentUser.getId().equals(document.getAssignment().getAssignedBy().getId());
+            boolean isAssignmentCreator = currentUser.getId().equals(assignment.getAssignedBy().getId());
 
-            if (isTeacherDocument && !isAssignmentCreator) {
+            if (!isAssignmentCreator && document.equals(assignment.getTeacherDocument())) {
                 throw new AccessDeniedException("Teachers can only access their own assignment documents");
             }
             return;
         }
 
-        if (currentUser.getRole() == Role.ROLE_STUDENT &&
-                document.getAssignment().getClassEntity().getStudents().stream()
-                        .noneMatch(s -> s.getId().equals(currentUser.getId()))) {
-            throw new AccessDeniedException("Students can only access documents for their assignments");
+        if (currentUser.getRole() == Role.ROLE_STUDENT) {
+            // Students can download:
+            // 1. Teacher documents for their assignments
+            // 2. Their own submissions
+            boolean isStudentInClass = assignment.getClassEntity().getStudents().stream()
+                    .anyMatch(s -> s.getId().equals(currentUser.getId()));
+
+            if (!isStudentInClass) {
+                throw new AccessDeniedException("Students can only access documents for their assignments");
+            }
+
+            // If it's a submission document, verify it belongs to the student
+            if (!document.equals(assignment.getTeacherDocument())) {
+                boolean isOwnSubmission = assignment.getStudentSubmissions().stream()
+                        .anyMatch(submission ->
+                                submission.getStudent().getId().equals(currentUser.getId()) &&
+                                        submission.getDocument() != null &&
+                                        submission.getDocument().getId().equals(document.getId())
+                        );
+
+                if (!isOwnSubmission) {
+                    throw new AccessDeniedException("Students can only download their own submissions");
+                }
+            }
+            return;
         }
     }
 }

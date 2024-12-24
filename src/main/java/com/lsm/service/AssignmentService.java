@@ -246,7 +246,7 @@ public class AssignmentService {
 
         // Clear student submissions and their documents
         if (!assignment.getStudentSubmissions().isEmpty()) {
-            assignment.getStudentSubmissions().forEach(submission -> {
+            for (StudentSubmission submission : new ArrayList<>(assignment.getStudentSubmissions())) {
                 // Clear document reference and delete document first
                 if (submission.getDocument() != null) {
                     AssignmentDocument doc = submission.getDocument();
@@ -255,26 +255,24 @@ public class AssignmentService {
                     assignmentDocumentRepository.delete(doc);
                 }
                 // Then delete the submission
-                submission.setAssignment(null);
                 studentSubmissionRepository.delete(submission);
-            });
+            }
             assignment.getStudentSubmissions().clear();
         }
 
-        // Remove assignment from class entities
-        List<Long> classIds = user.getTeacherDetails().getClasses().stream()
-                .map(ClassEntity::getId)
-                .collect(Collectors.toList());
+        // Remove assignment from class entity
+        ClassEntity classEntity = assignment.getClassEntity();
+        classEntity.getAssignments().remove(assignment);
+        classEntityRepository.save(classEntity);
 
-        Set<ClassEntity> classEntities = classEntityRepository.findAllByIdIn(classIds);
-
-        classEntities.forEach(classEntity -> {
-            classEntity.getAssignments().remove(assignment);
-            classEntityRepository.save(classEntity);
-        });
+        // Remove assignment from course
+        Course course = assignment.getCourse();
+        course.getAssignments().remove(assignment);
+        courseRepository.save(course);
 
         // Finally delete the assignment
         assignmentRepository.delete(assignment);
+        assignmentRepository.flush(); // Force immediate database synchronization
     }
 
     @Transactional
