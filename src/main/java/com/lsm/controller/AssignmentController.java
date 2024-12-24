@@ -388,6 +388,41 @@ public class AssignmentController {
     }
 
     @Operation(
+            summary = "Bulk download student submissions",
+            description = "Downloads all student submissions for an assignment as a zip file"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Submissions downloaded successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @GetMapping("/{assignmentId}/submissions/download")
+    public ResponseEntity<Resource> bulkDownloadSubmissions(
+            @Parameter(description = "ID of the assignment", required = true)
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication) {
+        try {
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Resource zipResource = documentService.bulkDownloadSubmissions(assignmentId, currentUser);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"submissions.zip\"")
+                    .body(zipResource);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied while downloading submissions: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Access denied: " + e.getMessage());
+        } catch (IOException e) {
+            log.error("Error creating zip file: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error creating zip file: " + e.getMessage());
+        }
+    }
+
+    @Operation(
             summary = "Grade an assignment",
             description = "Allows teachers to grade submitted assignments and provide feedback"
     )
