@@ -18,6 +18,9 @@ class LoginViewModel : ViewModel() {
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> get() = _username
 
+    private val _id = MutableStateFlow<Int?>(null)
+    val id: StateFlow<Int?> get() = _id
+
     fun login(
         username: String,
         password: String,
@@ -31,6 +34,7 @@ class LoginViewModel : ViewModel() {
                 if (response.accessToken.isNotBlank() && response.role.isNotEmpty()) {
                     _studentId.value = response.id
                     _username.value = response.name
+                    _id.value = response.id
                     onSuccess(response)
                 } else {
                     onError("Invalid token received from server")

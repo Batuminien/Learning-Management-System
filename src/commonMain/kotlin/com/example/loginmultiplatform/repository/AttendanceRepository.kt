@@ -4,6 +4,7 @@ import com.example.loginmultiplatform.network.ApiClient
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.StudentCourseResponse
+import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.network.ApiService
 
 class AttendanceRepository {
@@ -61,7 +62,17 @@ class AttendanceRepository {
         } else {
             throw Exception(response.message)
         }
-        //println("StudentId in attendance stats: $studentId, ClassId: $classId")
-        //return apiService.getAttendanceStats(studentId, classId)
+    }
+
+    suspend fun fetchTeacherCourses(
+        teacherId: Int
+    ): List<TeacherCourseResponse> {
+        val response = apiService.fetchTeacherCourses(teacherId)
+
+        if (response.success) {
+            return response.data
+        } else {
+            throw Exception(response.message)
+        }
     }
 }
