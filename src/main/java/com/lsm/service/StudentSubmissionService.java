@@ -42,14 +42,17 @@ public class StudentSubmissionService {
         // Verify student's class enrollment
         validateStudentEnrollment(student, assignment);
 
-        // Handle document upload first to get AssignmentDocument
-        AssignmentDocument document = fileStorageService.handleDocumentUpload(
-                submitDTO.getDocument(),
-                assignment,
-                student
-        );
+        // Handle document upload only if a file is provided
+        AssignmentDocument document = null;
+        if (submitDTO.getDocument() != null && !submitDTO.getDocument().isEmpty()) {
+            document = fileStorageService.handleDocumentUpload(
+                    submitDTO.getDocument(),
+                    assignment,
+                    student
+            );
+        }
 
-        // Get or create submission with the new document
+        // Get or create submission with the optional document
         StudentSubmission submission = getOrCreateSubmission(document, assignment, student);
 
         // Validate submission status

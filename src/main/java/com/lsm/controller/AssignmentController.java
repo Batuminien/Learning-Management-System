@@ -747,11 +747,20 @@ public class AssignmentController {
     }
 
     private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty())
+        // If file is null, it's valid (optional submission)
+        if (file == null) {
             return;
+        }
+
+        // Only validate if a file is actually provided
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
         if (file.getSize() > 5_000_000) { // 5MB limit
             throw new IllegalArgumentException("File size exceeds maximum limit");
         }
+
         String contentType = file.getContentType();
         if (contentType == null || !isAllowedContentType(contentType)) {
             throw new IllegalArgumentException("Invalid file type");
