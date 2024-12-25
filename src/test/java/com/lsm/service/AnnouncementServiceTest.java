@@ -23,17 +23,14 @@ import jakarta.persistence.EntityNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AnnouncementServiceTest {
+public class AnnouncementServiceTest {
 
     @Mock
     private AnnouncementRepository announcementRepository;
@@ -50,24 +47,34 @@ class AnnouncementServiceTest {
     private AppUser teacherUser;
     private AppUser studentUser;
     private AppUser adminUser;
-    private ClassEntity classEntity;
+    private ClassEntity class1;
+    private ClassEntity class2;
     private Announcement announcement;
     private AnnouncementDTO announcementDTO;
 
     @BeforeEach
     void setUp() {
-        // Setup Class
-        classEntity = ClassEntity.builder()
+        // Setup Classes
+        class1 = ClassEntity.builder()
                 .id(1L)
-                .name("Test Class")
+                .name("Test Class 1")
                 .build();
+
+        class2 = ClassEntity.builder()
+                .id(2L)
+                .name("Test Class 2")
+                .build();
+
+        Set<ClassEntity> teacherClasses = new HashSet<>();
+        teacherClasses.add(class1);
+        teacherClasses.add(class2);
 
         // Setup Teacher
         teacherUser = AppUser.builder()
                 .id(1L)
                 .role(Role.ROLE_TEACHER)
                 .teacherDetails(TeacherDetails.builder()
-                        .classes(new HashSet<>(Collections.singletonList(classEntity)))
+                        .classes(teacherClasses)
                         .build())
                 .build();
 
@@ -86,20 +93,20 @@ class AnnouncementServiceTest {
                 .role(Role.ROLE_ADMIN)
                 .build();
 
-        // Setup Announcement
+        // Setup Announcement with multiple classes
         announcement = new Announcement();
         announcement.setId(1L);
         announcement.setTitle("Test Announcement");
         announcement.setContent("Test Content");
-        announcement.setClassEntity(classEntity);
+        announcement.setClasses(new HashSet<>(Arrays.asList(class1, class2)));
         announcement.setCreatedAt(LocalDateTime.now());
 
-        // Setup AnnouncementDTO
+        // Setup AnnouncementDTO with multiple class IDs
         announcementDTO = new AnnouncementDTO();
         announcementDTO.setId(1L);
         announcementDTO.setTitle("Test Announcement");
         announcementDTO.setContent("Test Content");
-        announcementDTO.setClassId(1L);
+        announcementDTO.setClassIds(Arrays.asList(1L, 2L));
         announcementDTO.setCreatedAt(LocalDate.now());
     }
 
@@ -108,11 +115,12 @@ class AnnouncementServiceTest {
     class CreateAnnouncementTests {
 
         @Test
-        @DisplayName("Should allow teacher to create announcement for their class")
+        @DisplayName("Should allow teacher to create announcement for their classes")
         void shouldAllowTeacherToCreateAnnouncement() throws AccessDeniedException {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
-            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(classEntity));
+            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(class1));
+            when(classEntityRepository.findById(2L)).thenReturn(Optional.of(class2));
             when(announcementRepository.save(any(Announcement.class))).thenReturn(announcement);
 
             // Act
@@ -121,6 +129,8 @@ class AnnouncementServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(announcement.getTitle(), result.getTitle());
+            assertEquals(2, result.getClassIds().size());
+            assertTrue(result.getClassIds().containsAll(Arrays.asList(1L, 2L)));
             verify(announcementRepository).save(any(Announcement.class));
         }
 
@@ -129,7 +139,7 @@ class AnnouncementServiceTest {
         void shouldNotAllowStudentToCreateAnnouncement() {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(studentUser.getId())).thenReturn(studentUser);
-            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(classEntity));
+            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(class1));
 
             // Act & Assert
             assertThrows(AccessDeniedException.class,
@@ -137,21 +147,24 @@ class AnnouncementServiceTest {
         }
 
         @Test
-        @DisplayName("Should not allow teacher to create announcement for other class")
-        void shouldNotAllowTeacherToCreateAnnouncementForOtherClass() {
+        @DisplayName("Should not allow teacher to create announcement for unauthorized class")
+        void shouldNotAllowTeacherToCreateAnnouncementForUnauthorizedClass() {
             // Arrange
-            ClassEntity otherClass = ClassEntity.builder()
-                    .id(2L)
-                    .name("Other Class")
+            ClassEntity unauthorizedClass = ClassEntity.builder()
+                    .id(3L)
+                    .name("Unauthorized Class")
                     .build();
-            announcementDTO.setClassId(2L);
+
+            AnnouncementDTO unauthorizedDTO = new AnnouncementDTO();
+            unauthorizedDTO.setClassIds(Arrays.asList(1L, 3L)); // One authorized, one unauthorized
 
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
-            when(classEntityRepository.findById(2L)).thenReturn(Optional.of(otherClass));
+            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(class1));
+            when(classEntityRepository.findById(3L)).thenReturn(Optional.of(unauthorizedClass));
 
             // Act & Assert
             assertThrows(AccessDeniedException.class,
-                    () -> announcementService.createAnnouncement(teacherUser, announcementDTO));
+                    () -> announcementService.createAnnouncement(teacherUser, unauthorizedDTO));
         }
     }
 
@@ -164,7 +177,7 @@ class AnnouncementServiceTest {
         void shouldAllowTeacherToGetAnnouncements() throws AccessDeniedException {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
-            when(announcementRepository.findByClassEntityId(1L))
+            when(announcementRepository.findByClassesId(1L))
                     .thenReturn(Collections.singletonList(announcement));
 
             // Act
@@ -173,7 +186,7 @@ class AnnouncementServiceTest {
             // Assert
             assertFalse(results.isEmpty());
             assertEquals(1, results.size());
-            assertEquals(announcement.getTitle(), results.get(0).getTitle());
+            assertTrue(results.get(0).getClassIds().contains(1L));
         }
 
         @Test
@@ -181,7 +194,7 @@ class AnnouncementServiceTest {
         void shouldAllowStudentToGetAnnouncements() throws AccessDeniedException {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(studentUser.getId())).thenReturn(studentUser);
-            when(announcementRepository.findByClassEntityId(1L))
+            when(announcementRepository.findByClassesId(1L))
                     .thenReturn(Collections.singletonList(announcement));
 
             // Act
@@ -190,7 +203,7 @@ class AnnouncementServiceTest {
             // Assert
             assertFalse(results.isEmpty());
             assertEquals(1, results.size());
-            assertEquals(announcement.getTitle(), results.get(0).getTitle());
+            assertTrue(results.get(0).getClassIds().contains(1L));
         }
     }
 
@@ -199,12 +212,13 @@ class AnnouncementServiceTest {
     class UpdateAnnouncementTests {
 
         @Test
-        @DisplayName("Should allow teacher to update their announcement")
+        @DisplayName("Should allow teacher to update announcement for their classes")
         void shouldAllowTeacherToUpdateAnnouncement() throws AccessDeniedException {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
             when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
-            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(classEntity));
+            when(classEntityRepository.findById(1L)).thenReturn(Optional.of(class1));
+            when(classEntityRepository.findById(2L)).thenReturn(Optional.of(class2));
             when(announcementRepository.save(any(Announcement.class))).thenReturn(announcement);
 
             // Act
@@ -213,8 +227,8 @@ class AnnouncementServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(announcementDTO.getTitle(), result.getTitle());
+            assertEquals(2, result.getClassIds().size());
             verify(announcementRepository).save(any(Announcement.class));
-            verify(classEntityRepository).findById(1L);
         }
 
         @Test
@@ -240,7 +254,6 @@ class AnnouncementServiceTest {
             // Arrange
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
             when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
-            when(announcementRepository.existsById(1L)).thenReturn(true);
 
             // Act
             announcementService.deleteAnnouncement(teacherUser, 1L);
@@ -250,14 +263,23 @@ class AnnouncementServiceTest {
         }
 
         @Test
-        @DisplayName("Should throw exception when deleting non-existent announcement")
-        void shouldThrowExceptionWhenDeletingNonExistentAnnouncement() {
+        @DisplayName("Should not allow teacher to delete announcement for unauthorized class")
+        void shouldNotAllowTeacherToDeleteAnnouncementForUnauthorizedClass() {
             // Arrange
+            ClassEntity unauthorizedClass = ClassEntity.builder()
+                    .id(3L)
+                    .name("Unauthorized Class")
+                    .build();
+
+            Announcement unauthorizedAnnouncement = new Announcement();
+            unauthorizedAnnouncement.setId(1L);
+            unauthorizedAnnouncement.setClasses(new HashSet<>(Collections.singletonList(unauthorizedClass)));
+
             when(appUserService.getCurrentUserWithDetails(teacherUser.getId())).thenReturn(teacherUser);
-            when(announcementRepository.findById(1L)).thenReturn(Optional.empty());
+            when(announcementRepository.findById(1L)).thenReturn(Optional.of(unauthorizedAnnouncement));
 
             // Act & Assert
-            assertThrows(ResourceNotFoundException.class,
+            assertThrows(AccessDeniedException.class,
                     () -> announcementService.deleteAnnouncement(teacherUser, 1L));
         }
     }

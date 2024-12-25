@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,22 +30,30 @@ public class AnnouncementService {
     public AnnouncementDTO createAnnouncement(AppUser loggedInUser, AnnouncementDTO dto)
             throws AccessDeniedException, ResourceNotFoundException {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
-        ClassEntity classEntity = classEntityRepository.findById(dto.getClassId())
-                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
-        if (user.getRole().equals(Role.ROLE_STUDENT))
-            throw new AccessDeniedException("Students can't create announcement");
+        // Verify all classes exist and user has access to them
+        Set<ClassEntity> classes = new HashSet<>();
+        for (Long classId : dto.getClassIds()) {
+            ClassEntity classEntity = classEntityRepository.findById(classId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + classId));
 
-        if (user.getRole().equals(Role.ROLE_TEACHER) && user.getTeacherDetails().getClasses()
-                .stream()
-                .noneMatch(c -> c.getId().equals(dto.getClassId())))
-            throw new AccessDeniedException("Teachers can't create announcement to the classes which they don't teach");
+            if (user.getRole().equals(Role.ROLE_STUDENT)) {
+                throw new AccessDeniedException("Students can't create announcements");
+            }
+
+            if (user.getRole().equals(Role.ROLE_TEACHER) &&
+                    user.getTeacherDetails().getClasses().stream()
+                            .noneMatch(c -> c.getId().equals(classId))) {
+                throw new AccessDeniedException("Teachers can't create announcements for classes they don't teach");
+            }
+
+            classes.add(classEntity);
+        }
 
         Announcement announcement = new Announcement();
         announcement.setTitle(dto.getTitle());
         announcement.setContent(dto.getContent());
-        announcement.setClassEntity(classEntity);
-        // announcement.setCreatedAt(LocalDateTime.now());
+        announcement.setClasses(classes);
 
         announcement = announcementRepository.save(announcement);
         return convertToDTO(announcement);
@@ -53,13 +63,19 @@ public class AnnouncementService {
     public List<AnnouncementDTO> getAnnouncementsByClassId(AppUser loggedInUser, Long classId)
             throws AccessDeniedException {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
-        if (user.getRole().equals(Role.ROLE_STUDENT) && !user.getStudentDetails().getClassEntity().equals(classId))
+
+        if (user.getRole().equals(Role.ROLE_STUDENT) &&
+                !user.getStudentDetails().getClassEntity().equals(classId)) {
             throw new AccessDeniedException("Students can't get announcements of other classes");
-        if (user.getRole().equals(Role.ROLE_TEACHER) && user.getTeacherDetails().getClasses()
-                .stream()
-                .noneMatch(c -> c.getId().equals(classId)))
-            throw new AccessDeniedException("Teachers can't get announcements of the other classes which they don't teach");
-        return announcementRepository.findByClassEntityId(classId).stream()
+        }
+
+        if (user.getRole().equals(Role.ROLE_TEACHER) &&
+                user.getTeacherDetails().getClasses().stream()
+                        .noneMatch(c -> c.getId().equals(classId))) {
+            throw new AccessDeniedException("Teachers can't get announcements of classes they don't teach");
+        }
+
+        return announcementRepository.findByClassesId(classId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -68,17 +84,24 @@ public class AnnouncementService {
     public void deleteAnnouncement(AppUser loggedInUser, Long id)
             throws AccessDeniedException, ResourceNotFoundException {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
-        if (user.getRole().equals(Role.ROLE_STUDENT))
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
             throw new AccessDeniedException("Students can't delete announcements");
+        }
+
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
-        if (user.getRole().equals(Role.ROLE_TEACHER) && user.getTeacherDetails().getClasses()
-                .stream()
-                .noneMatch(c -> c.getId().equals(announcement.getClassEntity().getId())))
-            throw new AccessDeniedException("Teachers can't delete announcements of the other classes which they don't teach");
-        if (!announcementRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Announcement not found");
+
+        // For teachers, check if they have access to all classes in the announcement
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            boolean hasAccessToAllClasses = announcement.getClasses().stream()
+                    .allMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
+                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+
+            if (!hasAccessToAllClasses) {
+                throw new AccessDeniedException("Teachers can't delete announcements of classes they don't teach");
+            }
         }
+
         announcementRepository.deleteById(id);
     }
 
@@ -89,21 +112,43 @@ public class AnnouncementService {
         Announcement existingAnnouncement = announcementRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Announcement not found with id: " + id));
 
-        if (user.getRole().equals(Role.ROLE_STUDENT))
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
             throw new AccessDeniedException("Students can't update announcements");
-        if (user.getRole().equals(Role.ROLE_TEACHER) && user.getTeacherDetails().getClasses().stream()
-        .noneMatch(c -> c.getId().equals(existingAnnouncement.getClassEntity().getId())))
-            throw new AccessDeniedException("Teachers can't update announcements of the other classes");
+        }
 
-        // Update fields
+        // For teachers, verify they have access to all current and new classes
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            // Check access to current classes
+            boolean hasAccessToCurrentClasses = existingAnnouncement.getClasses().stream()
+                    .allMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
+                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+
+            if (!hasAccessToCurrentClasses) {
+                throw new AccessDeniedException("Teachers can't update announcements of classes they don't teach");
+            }
+
+            // Check access to new classes
+            if (announcementDTO.getClassIds() != null) {
+                boolean hasAccessToNewClasses = announcementDTO.getClassIds().stream()
+                        .allMatch(classId -> user.getTeacherDetails().getClasses().stream()
+                                .anyMatch(teacherClass -> teacherClass.getId().equals(classId)));
+
+                if (!hasAccessToNewClasses) {
+                    throw new AccessDeniedException("Teachers can't update announcements to include classes they don't teach");
+                }
+            }
+        }
+        // Update basic fields
         existingAnnouncement.setTitle(announcementDTO.getTitle());
         existingAnnouncement.setContent(announcementDTO.getContent());
 
-        // If class is being changed, verify it exists
-        if (announcementDTO.getClassId() != null) {
-            ClassEntity classEntity = classEntityRepository.findById(announcementDTO.getClassId())
-                    .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + announcementDTO.getClassId()));
-            existingAnnouncement.setClassEntity(classEntity);
+        // Update classes if provided
+        if (announcementDTO.getClassIds() != null && !announcementDTO.getClassIds().isEmpty()) {
+            Set<ClassEntity> newClasses = announcementDTO.getClassIds().stream()
+                    .map(classId -> classEntityRepository.findById(classId)
+                            .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId)))
+                    .collect(Collectors.toSet());
+            existingAnnouncement.setClasses(newClasses);
         }
 
         // Save and convert to DTO
@@ -119,14 +164,23 @@ public class AnnouncementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
 
         // Check permissions
-        if (user.getRole().equals(Role.ROLE_STUDENT) &&
-                !user.getStudentDetails().getClassEntity().equals(announcement.getClassEntity().getId())) {
-            throw new AccessDeniedException("Students can't access announcements of other classes");
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
+            // Check if the announcement belongs to student's class
+            boolean hasAccess = announcement.getClasses().stream()
+                    .anyMatch(classEntity -> classEntity.getId().equals(user.getStudentDetails().getClassEntity()));
+            if (!hasAccess) {
+                throw new AccessDeniedException("Students can't access announcements of other classes");
+            }
         }
-        if (user.getRole().equals(Role.ROLE_TEACHER) &&
-                user.getTeacherDetails().getClasses().stream()
-                        .noneMatch(c -> c.getId().equals(announcement.getClassEntity().getId()))) {
-            throw new AccessDeniedException("Teachers can't access announcements of classes they don't teach");
+
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            // Check if teacher has access to any of the classes in the announcement
+            boolean hasAccess = announcement.getClasses().stream()
+                    .anyMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
+                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+            if (!hasAccess) {
+                throw new AccessDeniedException("Teachers can't access announcements of classes they don't teach");
+            }
         }
 
         return convertToDTO(announcement);
@@ -137,7 +191,9 @@ public class AnnouncementService {
         dto.setId(announcement.getId());
         dto.setTitle(announcement.getTitle());
         dto.setContent(announcement.getContent());
-        dto.setClassId(announcement.getClassEntity().getId());
+        dto.setClassIds(announcement.getClasses().stream()
+                .map(ClassEntity::getId)
+                .collect(Collectors.toList()));
         dto.setCreatedAt(announcement.getCreatedAt().toLocalDate());
         return dto;
     }

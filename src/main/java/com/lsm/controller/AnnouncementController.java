@@ -1,5 +1,6 @@
 package com.lsm.controller;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
 import com.lsm.model.DTOs.AnnouncementDTO;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.repository.DeviceTokenRepository;
@@ -22,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -259,7 +262,7 @@ public class AnnouncementController {
     }
 
     @Operation(summary = "Send push notification for an announcement",
-            description = "Sends push notification to all students in the class for an existing announcement")
+            description = "Sends push notification to all students in all classes associated with the announcement")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Notification sent successfully"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
@@ -273,18 +276,7 @@ public class AnnouncementController {
         try {
             AppUser loggedInUser = (AppUser) authentication.getPrincipal();
 
-            // Get announcement details
-            AnnouncementDTO announcement = announcementService.getAnnouncementById(loggedInUser, announcementId);
-
-            // Send notifications to all students in the class
-            List<String> deviceTokens = deviceTokenRepository.findTokensByClassId(announcement.getClassId());
-            for (String token : deviceTokens) {
-                notificationService.sendNotification(
-                        token,
-                        "New Announcement",
-                        announcement.getTitle()
-                );
-            }
+            sendNotification(loggedInUser, announcementId);
 
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,
@@ -301,7 +293,7 @@ public class AnnouncementController {
     }
 
     @Operation(summary = "Send push notification for multiple announcements",
-            description = "Sends push notifications for multiple announcements to their respective class students")
+            description = "Sends push notifications for multiple announcements to students in all associated classes")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Notifications sent successfully"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions")
@@ -315,16 +307,7 @@ public class AnnouncementController {
             AppUser loggedInUser = (AppUser) authentication.getPrincipal();
 
             for (Long announcementId : announcementIds) {
-                AnnouncementDTO announcement = announcementService.getAnnouncementById(loggedInUser, announcementId);
-                List<String> deviceTokens = deviceTokenRepository.findTokensByClassId(announcement.getClassId());
-
-                for (String token : deviceTokens) {
-                    notificationService.sendNotification(
-                            token,
-                            "New Announcement",
-                            announcement.getTitle()
-                    );
-                }
+                sendNotification(loggedInUser, announcementId);
             }
 
             return ResponseEntity.ok(new ApiResponse_<>(
@@ -333,11 +316,31 @@ public class AnnouncementController {
                     null
             ));
         } catch (AccessDeniedException e) {
-            log.error("Access denied: {}", e.getMessage());
+            log.error("Access denied in sending bulk announcement notification: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error sending notifications: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error sending notifications: " + e.getMessage());
+        }
+    }
+
+    private void sendNotification(AppUser loggedInUser, Long announcementId)
+            throws FirebaseMessagingException, AccessDeniedException {
+        AnnouncementDTO announcement = announcementService.getAnnouncementById(loggedInUser, announcementId);
+
+        // Collect unique device tokens from all classes
+        Set<String> deviceTokens = new HashSet<>();
+        for (Long classId : announcement.getClassIds()) {
+            deviceTokens.addAll(deviceTokenRepository.findTokensByClassId(classId));
+        }
+
+        // Send notifications to all collected device tokens
+        for (String token : deviceTokens) {
+            notificationService.sendNotification(
+                    token,
+                    "New Announcement",
+                    announcement.getTitle()
+            );
         }
     }
 }

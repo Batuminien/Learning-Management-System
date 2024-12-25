@@ -143,8 +143,13 @@ CREATE TABLE IF NOT EXISTS announcements (
                                              id BIGINT PRIMARY KEY,
                                              title VARCHAR(255),
                                              content TEXT,
-                                             class_id BIGINT REFERENCES classes(id),
                                              created_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS announcement_class (
+                                                  announcement_id BIGINT REFERENCES announcements(id) ON DELETE CASCADE,
+                                                  class_id BIGINT REFERENCES classes(id) ON DELETE CASCADE,
+                                                  PRIMARY KEY (announcement_id, class_id)
 );
 
 -- V2__Insert_Initial_Data.sql will follow in the next update
