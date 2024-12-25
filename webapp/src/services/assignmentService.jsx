@@ -80,6 +80,7 @@ export const downloadDocument = async (documentID, accessToken) => {
             }
         }
     );
+    console.log(response)
     return response.data;
 }
 
@@ -94,6 +95,7 @@ export const submitAssignment = async (assignmentID, fileData, accessToken) => {
             },
         }
     );
+    
     return response.data;
 }
 

@@ -3,25 +3,16 @@ import './PastHomeworksOfficer.css';
 import AssignmentSearch from '../../../../../utils/assignmentSearch/assignmentSearch';
 import GradeAssignment from './GradeAssignment';
 
-
-
-
-
 const PastHomeworksOfficer = () => {
-
-
     const [assignments, setAssignments] = useState([]);
     const [isSearched, setIsSearched] = useState(false);
 
-
-
     const handleSearchResults = (response) => {
         setAssignments([]);
-        response = response.filter(assignment => new Date() > new Date(assignment.dueDate));
+        // response = response.filter(assignment => new Date() > new Date(assignment.dueDate));
         setIsSearched(true);
         setAssignments(response);
     }
-
     const handleAssignmentUpdate = () => {
         
     }

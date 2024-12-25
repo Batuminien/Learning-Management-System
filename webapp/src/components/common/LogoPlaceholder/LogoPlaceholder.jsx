@@ -3,8 +3,8 @@ import './LogoPlaceholder.css'
 const LogoPlaceholder = () => {
     return(
         <div className='placeholder-container'>
-            <img src="https://placeholder.pics/svg/50x50" alt="Logo image" className='logo'/>
-            <span className='title'>Name</span>
+            <img src='/icons/app_logo.png' alt="Logo image" className='logo' width="50px" style={{'backgroundColor' :'#14267C'} }/>
+            <span className='title'>Learnovify</span>
         </div>
     );
 }

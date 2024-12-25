@@ -1,7 +1,9 @@
 import { useContext } from 'react';
+
 import { downloadDocument } from '../../../services/assignmentService';
-import deleteIcon from '/icons/delete.svg';
 import { AuthContext } from '../../../contexts/AuthContext';
+
+// import deleteIcon from 'icons/delete.svg';
 
 const Document = ({file, isRemovable = false, onRemove = null}) => {
     const { user } = useContext(AuthContext);
@@ -30,7 +32,7 @@ const Document = ({file, isRemovable = false, onRemove = null}) => {
             <span className="assignment-document" onClick={handleDocumentDownload}>{file?.name || file?.fileName}</span>
             {isRemovable &&
                 <button type='button' className='delete-icon' onClick={() => onRemove()}>
-                    <img src={deleteIcon} alt="remove file"/>
+                    <img src='icons/delete.svg' alt="remove file"/>
                 </button>
             }
         </div>

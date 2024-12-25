@@ -5,6 +5,7 @@
     --highlighted-item : #5D5FEF;
     --highlighted-item-hovered : #373895;
     --title : #2B3674;
+    --bold-text : #151D48;
     --link : #007AFF;
     --black : #000000;
     --white : #FFFFFF;
@@ -53,6 +54,14 @@ body{
     overflow: hidden;
 }
 
+.landing-page-background {
+    background: rgb(82,112,255);
+    background: linear-gradient(90deg, rgba(82,112,255,1) 2%, rgba(20,38,124,1) 100%);
+    /* width: 100%; */
+    flex: 1;
+    display: grid;
+    place-items: center;
+}
 
 .btn {
     background-color: var(--highlighted-item);
@@ -70,7 +79,6 @@ body{
     background-color: var(--highlighted-item-hovered);
     cursor: pointer;
 }
-
 
 .input-container {
     display: flex;
@@ -121,3 +129,20 @@ ul li {
     font-size: var(--label-size);
     font-weight: var(--label-weight);
 }
+
+.main-content-container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.expand-btn {
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    padding: 8px;
+    border: 1px solid var(--placeholder-text);
+    cursor: pointer;
+}
+

@@ -46,3 +46,30 @@ export const getClasses = async (userRole, accessToken) => {
   if(userRole === 'ROLE_TEACHER') return await getTeacherClasses(accessToken);
   else if(userRole === 'ROLE_ADMIN' || userRole === 'ROLE_COORDINATOR') return await getAllClasses(accessToken);
 }
+
+export const getStudentClass = async (accessToken) => {
+  const response = await axios.get(
+    `${BASE_URL}/api/v1/classes/student`,
+    {
+      headers : {
+        Authorization : `Bearer ${accessToken}`,
+      },
+    }
+  );
+  return response.data;
+}
+
+
+export const addStudent = async (studentID, classID, accessToken) => {
+  // console.log(studentID, classID, accessToken);
+  const response = await axios.post(
+    `${BASE_URL}/api/v1/classes/${classID}/students/${studentID}`,
+    {},
+    {
+      headers : {
+        Authorization : `Bearer ${accessToken}`
+      }
+    }
+  );
+  return response;
+};

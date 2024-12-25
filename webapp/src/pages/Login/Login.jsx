@@ -63,7 +63,9 @@ const Login = () => {
 
     return(
         <div className="login-page">
-            <img src="https://picsum.photos/140/900" alt="landspace photo" className='landing-img'/>
+            <div className="landing-page-background">
+                <img src='/icons/app_logo.png' alt='Company logo img' width='50%'/>
+            </div>
             <div className="login-container">
                 <div className="login">
                     <LogoPlaceholder/>

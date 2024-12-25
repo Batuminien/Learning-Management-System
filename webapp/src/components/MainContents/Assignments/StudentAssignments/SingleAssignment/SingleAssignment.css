@@ -32,15 +32,7 @@
     color: var(--title);
 }
 
-.expand-btn {
-    border: none;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    padding: 8px;
-    border: 1px solid var(--placeholder-text);
-    cursor: pointer;
-}
+
 
 .assignment-body {
     display: flex;

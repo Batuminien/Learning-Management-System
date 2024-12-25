@@ -24,3 +24,15 @@ export const getAllSubjectsOf = async (classID, accessToken) => {
   );
   return response.data;
 }
+
+export const getStudentCourses = async (studentID, accessToken) => {
+  const response = await axios.get(
+    `${BASE_URL}/api/v1/courses/student/${studentID}`,
+    {
+      headers : {
+        Authorization : `Bearer ${accessToken}`,
+      },
+    }
+  );
+  return(response.data);
+}

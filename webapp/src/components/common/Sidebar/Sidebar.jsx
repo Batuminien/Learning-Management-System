@@ -1,7 +1,9 @@
+import { useContext, useState } from 'react';
+
 import './Sidebar.css';
+
 import LogoPlaceholder from '../LogoPlaceholder/LogoPlaceholder';
 import NavigationOption from '../NavigationOption/NavigationOption';
-import { useContext, useState } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import authService from '../../../services/authService';
 

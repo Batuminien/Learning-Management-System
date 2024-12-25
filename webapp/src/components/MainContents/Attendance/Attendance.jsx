@@ -10,7 +10,7 @@ const Attendance = () => {
     const { user } = useContext(AuthContext);
 
     return(
-        <div>
+        <div className="main-content-container">
             {user.role === 'ROLE_STUDENT'
                 ? <StudentAttendance />
                 : <OfficerAttendance />

@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { isDateInFuture } from "../../../utils/dateUtils";
 
 
-const DateInput = ({title = 'Tarih', initialDate = '', isFutureInput = false, onInput}) => {
+const DateInput = ({title = 'Tarih', initialDate = '', isFutureInput = false, onInput, errorMessage = ''}) => {
 
     const [currentDate, setCurrentDate] = useState(initialDate);
-    const [dateError, setDateError] = useState('');
+    const [dateError, setDateError] = useState(errorMessage);
+
+    useEffect(() => {
+        setDateError(errorMessage);
+    }, [errorMessage]);
 
     const handleDateChange = (event) => {
         const newDate = event.target.value;

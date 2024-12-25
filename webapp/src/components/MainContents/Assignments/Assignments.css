@@ -1,9 +1,3 @@
-.assignments {
-    display: flex;
-    flex-direction: column;
-    row-gap: 16px;
-}
-
 .assignment-info {
     display: flex;
     flex-direction: column;

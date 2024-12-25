@@ -6,7 +6,9 @@
     row-gap: 64px;
     padding: 24px;
     border-right: 2px solid var(--border-color);
-    width: 250px;
+    /* background: rgb(82,112,255);
+    background: linear-gradient(161deg, rgba(82,112,255,1) 2%, rgba(20,38,124,1) 100%); */
+    
 }
 
 .navigation-options {
