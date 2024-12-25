@@ -26,6 +26,7 @@ import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, navController: NavController) {
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val username by loginViewModel.username.collectAsState()
+    val teacherId by loginViewModel.id.collectAsState()
 
     Scaffold(
         topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
@@ -38,7 +39,7 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: At
                 .padding(paddingValues)
         ) { page ->
             when (page) {
-                0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController)
+                0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController, teacherId)
                 1 -> TeacherDashboardPage(username ?: "-")
                 2 -> TeacherHomeworkPage("odev")
             }

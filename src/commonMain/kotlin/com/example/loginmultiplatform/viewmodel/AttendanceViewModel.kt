@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.StudentCourseResponse
+import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.repository.AttendanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +46,9 @@ class AttendanceViewModel : ViewModel() {
 
     private val _studentCourses = MutableStateFlow<List<StudentCourseResponse>>(emptyList())
     val studentCourses: StateFlow<List<StudentCourseResponse>> = _studentCourses
+
+    private val _teacherCourses = MutableStateFlow<List<TeacherCourseResponse>>(emptyList())
+    val teacherCourses: StateFlow<List<TeacherCourseResponse>> = _teacherCourses
 
     fun fetchAttendance(studentId: Int, startDate: String, endDate: String) {
         _isLoading.value = true
@@ -120,6 +124,22 @@ class AttendanceViewModel : ViewModel() {
                 currentMap[studentId to classId] = stats
                 _attendanceStatsMap.value = currentMap
 
+            } catch (e: Exception) {
+                _errorMessage.value = "Bir hata oluştu: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun fetchTeacherCourses(teacherId: Int) {
+        _errorMessage.value = null
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val courses = repository.fetchTeacherCourses(teacherId)
+                _teacherCourses.value = courses
             } catch (e: Exception) {
                 _errorMessage.value = "Bir hata oluştu: ${e.message}"
             } finally {

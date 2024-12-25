@@ -24,6 +24,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -99,6 +100,7 @@ actual fun TopBar(userName: String?, onSettingsClick: () -> Unit, onProfileClick
 @Composable
 actual fun BottomNavigationBar(pagerState: PagerState) {
     val items = listOf(
+        Triple("Duyurular", Icons.Rounded.Campaign, 3),
         Triple("Yoklama", Icons.Rounded.EventNote, 0),
         Triple("Ana Menü", Icons.Rounded.Home, 1),
         Triple("Ödev", Icons.Rounded.AutoStories, 2)

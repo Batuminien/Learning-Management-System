@@ -4,14 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.os.Environment
 import android.widget.Toast
-import androidx.compose.runtime.Composable
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.content.FileProvider
 import com.example.loginmultiplatform.model.AttendanceResponse
@@ -22,7 +19,6 @@ import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.StudentCourseResponse
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.DoubleSummaryStatistics
 import java.util.Locale
 
 fun CreateAttendancePDF(

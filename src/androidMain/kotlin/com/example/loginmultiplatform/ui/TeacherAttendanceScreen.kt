@@ -111,7 +111,7 @@ fun mapAttendanceStatusforFrontend(status: String): String {
 }
 
 @Composable
-actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teacherViewModel: TeacherAttendanceViewModel, navController: NavController) {
+actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teacherViewModel: TeacherAttendanceViewModel, navController: NavController, teacherId: Int?) {
 
     val classes by teacherViewModel.teacherClasses.collectAsState()
     val courses by teacherViewModel.courseId.collectAsState() //List<TeacherCourseResponse>
@@ -121,7 +121,9 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     val attendanceStatsMap by studentViewModel.attendanceStatsMap.collectAsState()
     val studentCoursesMap by studentViewModel.studentCoursesMap.collectAsState()
 
+
     var showStudentId by remember { mutableStateOf<Int?>(null) }
+
 
     val today = remember {
         val calendar = Calendar.getInstance()
@@ -158,18 +160,11 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     //öğrenci yoklama durumları için map
     val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi")
 
-    //seçili durumlar
-    val attendanceStates = remember {
-        mutableStateMapOf<Int, String>().apply {
-            classes.flatMap { it.studentIdAndNames.entries }.forEach { (studentIdStr, _) ->
-                val studentId = studentIdStr.toInt()
-                this[studentId] = "Katıldı"
-            }
-        }
-    }
+    val attendanceStates = remember { mutableStateMapOf<Int, String>() }
 
     LaunchedEffect(Unit) {
         teacherViewModel.fetchTeacherClasses()
+        teacherId?.let { studentViewModel.fetchTeacherCourses(it) }
     }
 
     LaunchedEffect(selectedDate, classes) {
@@ -210,8 +205,8 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     // Sınıflar geldikten sonra teacherId kullanarak kursları getir
     LaunchedEffect(classes) {
         if (classes.isNotEmpty()) {
-            val teacherId = classes[0].teacherId // İlk sınıftan teacherId alınır
-            teacherViewModel.fetchTeacherCourses(teacherId)
+            val teacherIdFromClasses = classes[0].teacherId // İlk sınıftan teacherId alınır
+            teacherViewModel.fetchTeacherCourses(teacherIdFromClasses)
         }
     }
 
@@ -270,9 +265,10 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
                 attendanceMap = attendanceMap,
                 attendanceStatsMap = attendanceStatsMap,
                 studentCoursesMap = studentCoursesMap,
+                selectedCourseId = courses.firstOrNull()?.id ?: 0,
+                today = today
             )
         }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
 
@@ -307,12 +303,32 @@ fun ExpendableClassCard(
     context: Context,
     startDate: String,
     endDate: String,
+
+    selectedCourseId: Int,
+    today: String
 ) {
 
     var expanded by remember { mutableStateOf(false) }
     var expandedDropdown by remember { mutableStateOf(false) }
     val bulkOperationStatus by teacherViewModel.bulkOperationStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    var editingAttendanceId by remember { mutableStateOf<Int?>(null) }
+    var originalStates = remember { mutableStateMapOf<Int, String>() }
+    var originalComments = remember { mutableStateMapOf<Int, String>() }
+
+    val hasUserModified = remember { mutableStateMapOf<Int, Boolean>() }
+
+    val filteredAttendanceData = attendanceMap
+        .filter { (studentId, _) ->
+            classInfo.studentIdAndNames.keys.contains(studentId.toString())
+        }
+        .flatMap { (_, attendanceList) ->
+            attendanceList.filter {
+                it.classId.toInt() == classInfo.id && it.courseId.toInt() == selectedCourseId
+            }
+        }
 
     Card(
         modifier = Modifier
@@ -390,6 +406,7 @@ fun ExpendableClassCard(
                                         attendanceOptions.forEach { option ->
                                             DropdownMenuItem(onClick = {
                                                 attendanceStates[sid] = option
+                                                hasUserModified[sid] = true
                                                 expandedMenu = false
                                             }) {
                                                 Text(
@@ -489,7 +506,6 @@ fun ExpendableClassCard(
                                         // İlgili sınıfa ait kursu bul
                                         val relatedCourse = courses.firstOrNull { it.classEntityIds.contains(classInfo.id) }
                                         val teacherCourseId = relatedCourse?.id ?: 0
-                                        Log.e("teacherCourseId", "teacherCourseId: ${teacherCourseId}")
 
                                         val allAttendanceForStudent = attendanceMap[sid] ?: emptyList()
 
@@ -535,28 +551,72 @@ fun ExpendableClassCard(
 
                             Button(
                                 onClick = {
-                                    val bulkList = classes.flatMap { classItem ->
-                                        classItem.studentIdAndNames.map { (idStr, _) ->
-                                            val sid = idStr.toInt()
+                                    originalStates.clear()
+                                    originalStates.putAll(attendanceStates)
 
-                                            TeacherAttendanceRequest(
-                                                studentId = sid,
-                                                date = formatToReadableDateDatabase(selectedDate),
-                                                status = mapAttendanceStatus(attendanceStates[sid] ?: "PRESENT"),
-                                                comment = studentComments[sid] ?: "",
-                                                classId = classItem.id,
-                                                courseId = courses.firstOrNull()?.id ?: 0
-                                            )
+                                    originalComments.clear()
+                                    originalComments.putAll(studentComments)
+
+                                    if (!isPastDate) {
+                                        val editedAttendance = filteredAttendanceData.find { attendance ->
+                                            if (attendance.date == formatToReadableDateDatabase(selectedDate)) {
+                                                val sid = attendance.studentId.toInt()
+                                                val originalState = attendance.status
+                                                val currentState = attendanceStates[sid]
+                                                val originalComment = attendance.comment
+                                                val currentComment = studentComments[sid]
+
+                                                originalState != mapAttendanceStatus(currentState ?: "PRESENT") || originalComment != currentComment
+                                            } else {
+                                                false
+                                            }
                                         }
+
+                                        if (editedAttendance != null) {
+                                            editingAttendanceId = editedAttendance.attendanceId.toInt()
+                                            showConfirmationDialog = true
+                                        } else {
+                                            val bulkList = classes.flatMap { classItem ->
+                                                classItem.studentIdAndNames.map { (idStr, _) ->
+                                                    val sid = idStr.toInt()
+
+                                                    TeacherAttendanceRequest(
+                                                        studentId = sid,
+                                                        date = formatToReadableDateDatabase(selectedDate),
+                                                        status = mapAttendanceStatus(attendanceStates[sid] ?: "PRESENT"),
+                                                        comment = studentComments[sid] ?: "",
+                                                        classId = classItem.id,
+                                                        courseId = courses.firstOrNull()?.id ?: 0
+                                                    )
+                                                }
+                                            }
+                                            teacherViewModel.saveAttendanceBulk(bulkList)
+                                        }
+                                    } else {
+                                        val bulkList = classes.flatMap { classItem ->
+                                            classItem.studentIdAndNames.map { (idStr, _) ->
+                                                val sid = idStr.toInt()
+                                                TeacherAttendanceRequest(
+                                                    studentId = sid,
+                                                    date = formatToReadableDateDatabase(selectedDate),
+                                                    status = mapAttendanceStatus(
+                                                        attendanceStates[sid] ?: "PRESENT"
+                                                    ),
+                                                    comment = studentComments[sid] ?: "",
+                                                    classId = classItem.id,
+                                                    courseId = selectedCourseId
+                                                )
+                                            }
+                                        }
+                                        teacherViewModel.saveAttendanceBulk(bulkList)
                                     }
-                                    teacherViewModel.saveAttendanceBulk(bulkList)
                                 },
                                 modifier = Modifier
                                     .width(110.dp)
                                     .padding(end = 16.dp)
                                     .padding(bottom = 8.dp),
                                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF334BBE)),
-                                enabled = !isPastDate
+                                enabled = !isPastDate || selectedDate == today
                             ) {
                                 Text(
                                     "Kaydet",
@@ -570,6 +630,67 @@ fun ExpendableClassCard(
                                 bulkOperationStatus?.let { message ->
                                     snackbarHostState.showSnackbar(message)
                                 }
+                            }
+
+                            if (showConfirmationDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showConfirmationDialog = false },
+                                    title = { Text("UYARI", fontFamily = customFontFamily, fontWeight = FontWeight.Bold, color = Color.Red) },
+                                    text = { Text("Var olan bir yoklama verisini değiştiriyorsunuz.\nYine de değişiklik yapmak istiyor musunuz?", fontFamily = customFontFamily, fontWeight = FontWeight.Normal, color = Color.Black) },
+                                    confirmButton = {
+                                        Button(onClick = {
+                                            showConfirmationDialog = false
+                                            editingAttendanceId?.let { attendanceId ->
+                                                val editedAttendance = filteredAttendanceData.find {
+                                                    it.attendanceId.toInt() == attendanceId
+                                                }
+                                                if (editedAttendance != null) {
+                                                    val sid = editedAttendance.studentId.toInt()
+                                                    val requestBody = mapOf(
+                                                        "studentId" to sid,
+                                                        "date" to editedAttendance.date,
+                                                        "status" to mapAttendanceStatus(attendanceStates[sid] ?: "PRESENT"),
+                                                        "comment" to (studentComments[sid] ?: ""),
+                                                        "classId" to editedAttendance.classId.toInt(),
+                                                        "courseId" to editedAttendance.courseId.toInt()
+                                                    )
+
+                                                    teacherViewModel.updateAttendance(
+                                                        attendanceId = attendanceId,
+                                                        studentId = requestBody["studentId"] as Int,
+                                                        date = requestBody["date"] as String,
+                                                        status = requestBody["status"] as String,
+                                                        comment = requestBody["comment"] as String,
+                                                        classId = requestBody["classId"] as Int,
+                                                        courseId = requestBody["courseId"] as Int
+                                                    )
+                                                }
+                                            }
+                                        },
+                                            colors = ButtonDefaults.buttonColors(
+                                                backgroundColor = Color(0xFF334BBE),
+                                                contentColor = Color.White
+                                            )
+                                        ) {
+                                            Text("Evet", fontFamily = customFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        Button(onClick = {
+                                            showConfirmationDialog = false
+                                            attendanceStates.clear()
+                                            attendanceStates.putAll(originalStates)
+                                            studentComments.clear()
+                                            studentComments.putAll(originalComments)
+                                        },
+                                            colors = ButtonDefaults.buttonColors(
+                                                backgroundColor = Color.Gray,
+                                                contentColor = Color.White
+                                            )) {
+                                            Text("Hayır", fontFamily = customFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                                        }
+                                    }
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))

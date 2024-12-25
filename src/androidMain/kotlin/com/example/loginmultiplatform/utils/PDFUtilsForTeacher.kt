@@ -1,19 +1,14 @@
 package com.example.loginmultiplatform.utils
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.os.Environment
 import android.widget.Toast
-import androidx.compose.runtime.Composable
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.content.FileProvider
 import com.example.loginmultiplatform.model.AttendanceResponse
 import java.io.File
 import java.io.FileOutputStream
@@ -22,7 +17,6 @@ import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.StudentCourseResponse
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.DoubleSummaryStatistics
 import java.util.Locale
 
 fun CreateAttendancePDFforTeacher(
@@ -155,47 +149,46 @@ fun CreateAttendancePDFforTeacher(
         // Tablo satırları
         paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_medium)
         attendanceList.forEachIndexed { index, attendance ->
-            if (attendance.status != "PRESENT") {
-                val rowHeight = 30f
-                val top = yOffset
-                val bottom = yOffset + rowHeight
 
-                // Satır arka plan rengi alternatifi
-                paint.style = Paint.Style.FILL
-                //paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
-                paint.color = tableRowColor1
-                canvas.drawRect(tableLeft, top, tableRight, bottom, paint)
+            val rowHeight = 30f
+            val top = yOffset
+            val bottom = yOffset + rowHeight
 
-                paint.style = Paint.Style.STROKE
-                paint.color = tableHeaderColor
-                paint.strokeWidth = 1f
-                canvas.drawRect(tableLeft + 1f, top, tableRight - 1f, bottom - 1f, paint)
+            // Satır arka plan rengi alternatifi
+            paint.style = Paint.Style.FILL
+            //paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
+            paint.color = tableRowColor1
+            canvas.drawRect(tableLeft, top, tableRight, bottom, paint)
 
-                paint.style = Paint.Style.FILL
+            paint.style = Paint.Style.STROKE
+            paint.color = tableHeaderColor
+            paint.strokeWidth = 1f
+            canvas.drawRect(tableLeft + 1f, top, tableRight - 1f, bottom - 1f, paint)
 
-                // Metinler
-                //paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
-                paint.color = Color.BLACK
-                paint.textSize = 12f
-                val attendanceDate =
-                    SimpleDateFormat("yyyy-MM-dd", Locale("tr")).parse(attendance.date)
-                val outputFormat = SimpleDateFormat("d MMMM yyyy EEEE", Locale("tr"))
-                val formattedDate = if (attendanceDate != null)
-                    outputFormat.format(attendanceDate)
-                else
-                    attendance.date
+            paint.style = Paint.Style.FILL
 
-                canvas.drawText(attendance.status, durumX, top + 20f, paint)
-                canvas.drawText(formattedDate, tarihX, top + 20f, paint)
-                canvas.drawText(
-                    attendance.comment ?: "Açıklama yapılmadı.",
-                    aciklamaX,
-                    top + 20f,
-                    paint
-                )
+            // Metinler
+            //paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
+            paint.color = Color.BLACK
+            paint.textSize = 12f
+            val attendanceDate =
+                SimpleDateFormat("yyyy-MM-dd", Locale("tr")).parse(attendance.date)
+            val outputFormat = SimpleDateFormat("d MMMM yyyy EEEE", Locale("tr"))
+            val formattedDate = if (attendanceDate != null)
+                outputFormat.format(attendanceDate)
+            else
+                attendance.date
 
-                yOffset += rowHeight
-            }
+            canvas.drawText(attendance.status, durumX, top + 20f, paint)
+            canvas.drawText(formattedDate, tarihX, top + 20f, paint)
+            canvas.drawText(
+                attendance.comment ?: "Açıklama yapılmadı.",
+                aciklamaX,
+                top + 20f,
+                paint
+            )
+
+            yOffset += rowHeight
         }
 
         yOffset += 20f
