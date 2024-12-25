@@ -37,16 +37,19 @@ import com.example.loginmultiplatform.ui.components.TopBar
 import androidx.navigation.NavController
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
-
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 actual fun StudentDashboard(navController: NavController, loginViewModel: LoginViewModel, attendanceViewModel: AttendanceViewModel) {
-    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 4 })
     val studentId by loginViewModel.studentId.collectAsState()
     val username by loginViewModel.username.collectAsState()
+
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
@@ -56,13 +59,30 @@ actual fun StudentDashboard(navController: NavController, loginViewModel: LoginV
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
+            userScrollEnabled = true
         ) { page ->
             when (page) {
                 0 -> AttendanceScreen(attendanceViewModel, navController, studentId = studentId ?: -1, classId = 1)
                 1 -> DashboardPage(username)
                 2 -> HomeworkPage("HOMEWORK PAGE")
+                3 -> StudentAnnouncementPage(loginViewModel, navController)
             }
+        }
+
+        LaunchedEffect(pagerState) {
+            snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
+                .collect{ (currentPage, offsetFraction) ->
+                    coroutineScope.launch {
+                        when (currentPage) {
+                            0 -> {
+                                if (offsetFraction > 0.5) {
+                                    pagerState.animateScrollToPage(3)
+                                }
+                            }
+                        }
+                    }
+                }
         }
     }
 }

@@ -654,7 +654,7 @@ fun ExpendableClassCard(
                                                         "classId" to editedAttendance.classId.toInt(),
                                                         "courseId" to editedAttendance.courseId.toInt()
                                                     )
-                                                    
+
                                                     teacherViewModel.updateAttendance(
                                                         attendanceId = attendanceId,
                                                         studentId = requestBody["studentId"] as Int,
