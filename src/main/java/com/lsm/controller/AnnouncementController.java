@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.nio.file.AccessDeniedException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -143,6 +144,116 @@ public class AnnouncementController {
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Create multiple announcements", description = "Only teachers, admins, and coordinators can create announcements")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Announcements created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @PostMapping("/bulk")
+    public ResponseEntity<ApiResponse_<List<AnnouncementDTO>>> createBulkAnnouncements(
+            @Valid @RequestBody List<AnnouncementDTO> announcementDTOs,
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            List<AnnouncementDTO> createdAnnouncements = new ArrayList<>();
+
+            for (AnnouncementDTO dto : announcementDTOs) {
+                AnnouncementDTO createdAnnouncement = announcementService.createAnnouncement(loggedInUser, dto);
+                createdAnnouncements.add(createdAnnouncement);
+            }
+
+            ApiResponse_<List<AnnouncementDTO>> response = new ApiResponse_<>(
+                    true,
+                    "Announcements created successfully",
+                    createdAnnouncements
+            );
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in createBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error in createBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Update multiple announcements", description = "Only teachers, admins, and coordinators can update announcements")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcements updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "One or more announcements not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @PutMapping("/bulk")
+    public ResponseEntity<ApiResponse_<List<AnnouncementDTO>>> updateBulkAnnouncements(
+            @Valid @RequestBody List<AnnouncementDTO> announcementDTOs,
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            List<AnnouncementDTO> updatedAnnouncements = new ArrayList<>();
+
+            for (AnnouncementDTO dto : announcementDTOs) {
+                if (dto.getId() == null) {
+                    throw new IllegalArgumentException("Announcement ID cannot be null for update operation");
+                }
+                AnnouncementDTO updatedAnnouncement = announcementService.updateAnnouncement(loggedInUser, dto.getId(), dto);
+                updatedAnnouncements.add(updatedAnnouncement);
+            }
+
+            ApiResponse_<List<AnnouncementDTO>> response = new ApiResponse_<>(
+                    true,
+                    "Announcements updated successfully",
+                    updatedAnnouncements
+            );
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in updateBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid request in updateBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error in updateBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Delete multiple announcements", description = "Only teachers, admins, and coordinators can delete announcements")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcements deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "One or more announcements not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @DeleteMapping("/bulk")
+    public ResponseEntity<ApiResponse_<Void>> deleteBulkAnnouncements(
+            @RequestBody List<Long> announcementIds,
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+
+            for (Long id : announcementIds) {
+                announcementService.deleteAnnouncement(loggedInUser, id);
+            }
+
+            ApiResponse_<Void> response = new ApiResponse_<>(
+                    true,
+                    "Announcements deleted successfully",
+                    null
+            );
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in deleteBulkAnnouncements: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error in deleteBulkAnnouncements: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
