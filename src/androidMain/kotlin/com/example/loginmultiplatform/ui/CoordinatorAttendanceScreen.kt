@@ -110,7 +110,7 @@ actual fun CoordinatorAttendanceScreen(studentViewModel: AttendanceViewModel, te
                 set(Calendar.MILLISECOND, 0)
             }.time
 
-            selected != null && selected.before(todayWithoutTime) && !selected.before(oneWeekAgo)
+            selected != null && (selected.before(todayWithoutTime) || selected == todayWithoutTime) && !selected.before(oneWeekAgo)
         } catch (e: Exception) {
             false
         }
@@ -236,7 +236,7 @@ actual fun CoordinatorAttendanceScreen(studentViewModel: AttendanceViewModel, te
                     }
 
                     if (stats != null) {
-                        Log.d("Stats", "Stats for $sid: $stats")
+                        //Log.d("Stats", "Stats for $sid: $stats")
                     }
                 }
             }
@@ -505,7 +505,7 @@ fun ExpendableClassCards(
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
                                 )
-                                if (isPastDate) {
+                                if (isPastDate || selectedDate == today) {
                                     DropdownMenu(
                                         expanded = expandedMenu,
                                         onDismissRequest = { expandedMenu = false }
@@ -707,8 +707,9 @@ fun ExpendableClassCards(
                             ) {
                                 Button(
                                     onClick = {
-
+                                        Log.e("deneme dışarı", "deneme dışarı: deneme dışarı")
                                         if (isPastDate) {
+                                            Log.e("deneme içeri", "deneme içeri: deneme içeri")
                                             originalStates.clear()
                                             originalStates.putAll(attendanceStates)
                                             originalComments.clear()

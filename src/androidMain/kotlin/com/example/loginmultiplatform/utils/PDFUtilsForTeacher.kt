@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
 import com.example.loginmultiplatform.model.AttendanceResponse
@@ -115,7 +116,7 @@ fun CreateAttendancePDFforTeacher(
         paint.textSize = 16f
         paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_black)
 
-        val dersTitle = courses.find { it.id == courseIdKey.toInt() }
+        val dersTitle = courses.find { it.id == courseId }
         if (dersTitle != null) {
             canvas.drawText(dersTitle.name, 20f, yOffset, paint)
         } else {
