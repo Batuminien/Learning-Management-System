@@ -28,4 +28,7 @@ public class RefreshToken {
 
     @Column(nullable = false)
     private Instant expiryDate;
+
+    @Column(name = "remember_me", nullable = false)
+    private boolean rememberMe;
 }

@@ -18,6 +18,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -41,14 +42,17 @@ public class StudentSubmissionService {
         // Verify student's class enrollment
         validateStudentEnrollment(student, assignment);
 
-        // Handle document upload first to get AssignmentDocument
-        AssignmentDocument document = fileStorageService.handleDocumentUpload(
-                submitDTO.getDocument(),
-                assignment,
-                student
-        );
+        // Handle document upload only if a file is provided
+        AssignmentDocument document = null;
+        if (submitDTO.getDocument() != null && !submitDTO.getDocument().isEmpty()) {
+            document = fileStorageService.handleDocumentUpload(
+                    submitDTO.getDocument(),
+                    assignment,
+                    student
+            );
+        }
 
-        // Get or create submission with the new document
+        // Get or create submission with the optional document
         StudentSubmission submission = getOrCreateSubmission(document, assignment, student);
 
         // Validate submission status
@@ -56,7 +60,7 @@ public class StudentSubmissionService {
 
         // Update submission details
         submission.setStatus(AssignmentStatus.SUBMITTED);
-        submission.setSubmissionDate(LocalDate.now());
+        submission.setSubmissionDate(LocalDateTime.now());
         submission.setComment(submitDTO.getSubmissionComment());
 
         return submissionRepository.save(submission);

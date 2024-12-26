@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -23,8 +25,13 @@ public class Announcement {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @ManyToOne
-    private ClassEntity classEntity;
+    @ManyToMany
+    @JoinTable(
+            name = "announcement_class",
+            joinColumns = @JoinColumn(name = "announcement_id"),
+            inverseJoinColumns = @JoinColumn(name = "class_id")
+    )
+    private Set<ClassEntity> classes = new HashSet<>();
 
     private LocalDateTime createdAt;
 

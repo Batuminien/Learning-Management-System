@@ -1,14 +1,21 @@
 package com.lsm.controller;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.lsm.config.ClientType;
+import com.lsm.config.ClientTypeInterceptor;
+import com.lsm.mapper.AssignmentDocumentMapper;
 import com.lsm.model.DTOs.*;
 import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.AssignmentDocument;
+import com.lsm.model.entity.DeviceToken;
 import com.lsm.model.entity.StudentSubmission;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
+import com.lsm.repository.DeviceTokenRepository;
 import com.lsm.service.AssignmentDocumentService;
 import com.lsm.service.AssignmentService;
 
+import com.lsm.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -55,6 +62,9 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
     private final AssignmentDocumentService documentService;
+    private final AssignmentDocumentMapper assignmentDocumentMapper;
+    private final NotificationService notificationService;
+    private final DeviceTokenRepository deviceTokenRepository;
 
     @Operation(
             summary = "Create a new assignment",
@@ -92,7 +102,7 @@ public class AssignmentController {
             throw e;
         } catch (Exception e) {
             log.error("Error creating assignment: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Error creating assignment: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Error creating assignment: " + e.getMessage());
         }
     }
 
@@ -128,10 +138,10 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while updating assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error occurred while updating assignment: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage());
         }
     }
 
@@ -160,7 +170,7 @@ public class AssignmentController {
 
         } catch (AccessDeniedException e) {
             log.error("Access denied while getting all assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         }
     }
 
@@ -203,10 +213,10 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while getting teacher assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (EntityNotFoundException e) {
             log.error("Entity not found while getting teacher assignment: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Entity not found: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Entity not found: " + e.getMessage());
         }
     }
 
@@ -247,13 +257,13 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while deleting document: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (EntityNotFoundException e) {
             log.error("Document not found: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Entity not found: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Entity not found: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error deleting document: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "An error occurred: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "An error occurred: " + e.getMessage());
         }
     }
 
@@ -288,10 +298,10 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while getting assignments of the student: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (EntityNotFoundException e) {
             log.error("Student not found: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Student not found: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Student not found: " + e.getMessage());
         }
     }
 
@@ -322,7 +332,7 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while deleting an assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         }
     }
 
@@ -345,11 +355,11 @@ public class AssignmentController {
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,
                     "Document uploaded successfully",
-                    convertToDTO(document)
+                    assignmentDocumentMapper.convertToDTO(document)
             ));
         } catch (IOException e) {
             log.error("Error uploading document: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Error uploading document: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Error uploading document: " + e.getMessage());
         }
     }
 
@@ -374,6 +384,41 @@ public class AssignmentController {
             log.error("Error downloading document: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Access denied: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Bulk download student submissions",
+            description = "Downloads all student submissions for an assignment as a zip file"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Submissions downloaded successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    @GetMapping("/{assignmentId}/submissions/download")
+    public ResponseEntity<Resource> bulkDownloadSubmissions(
+            @Parameter(description = "ID of the assignment", required = true)
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication) {
+        try {
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Resource zipResource = documentService.bulkDownloadSubmissions(assignmentId, currentUser);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"submissions.zip\"")
+                    .body(zipResource);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied while downloading submissions: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Access denied: " + e.getMessage());
+        } catch (IOException e) {
+            log.error("Error creating zip file: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error creating zip file: " + e.getMessage());
         }
     }
 
@@ -406,7 +451,7 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while grading the assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         }
     }
 
@@ -471,7 +516,7 @@ public class AssignmentController {
             ));
         } catch (Exception e) {
             log.error("Error during bulk grading: {}", e.getMessage());
-            return httpError(HttpStatus.BAD_REQUEST, "Error during bulk grading: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Error during bulk grading: " + e.getMessage());
         }
     }
 
@@ -508,10 +553,10 @@ public class AssignmentController {
             ));
         } catch (IOException e) {
             log.error("An exception occurred when submitting an assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "IOException occurred: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "IOException occurred: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error submitting assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Error submitting assignment: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Error submitting assignment: " + e.getMessage());
         }
     }
 
@@ -541,19 +586,181 @@ public class AssignmentController {
             ));
         } catch (AccessDeniedException e) {
             log.error("Access denied while un-submitting the assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error while un-submitting the assignment: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Error: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Send new assignment notification",
+            description = "Sends push notifications about a new assignment to all students in the class (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/notify/created")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentCreated(
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication
+    ) {
+        try {
+            // Verify this is a mobile client
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            // Verify the user is the assignment creator
+            if (!assignment.getAssignedBy().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Only the assignment creator can send notifications");
+            }
+
+            List<String> deviceTokens = deviceTokenRepository.findTokensByClassId(assignment.getClassEntity().getId());
+            for (String token : deviceTokens) {
+                try {
+                    notificationService.sendNotification(
+                            token,
+                            "New Assignment",
+                            "A new assignment has been posted: " + assignment.getTitle()
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to token {}: {}", token, e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Notifications sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending notifications: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send notifications: " + e.getMessage()
+            );
+        }
+    }
+
+    @Operation(
+            summary = "Send grade notification",
+            description = "Sends push notification about graded assignment to the student (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/students/{studentId}/notify/graded")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentGraded(
+            @PathVariable @Positive Long assignmentId,
+            @PathVariable @Positive Long studentId,
+            Authentication authentication
+    ) {
+        try {
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            // Verify the user is the assignment creator
+            if (!assignment.getAssignedBy().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Only the assignment creator can send notifications");
+            }
+
+            List<DeviceToken> tokens = deviceTokenRepository.findByUserId(studentId);
+            for (DeviceToken token : tokens) {
+                try {
+                    notificationService.sendNotification(
+                            token.getDeviceToken(),
+                            "Assignment Graded",
+                            "Your assignment '" + assignment.getTitle() + "' has been graded"
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to student {}: {}", studentId, e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Grade notification sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending grade notification: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send grade notification: " + e.getMessage()
+            );
+        }
+    }
+
+    @Operation(
+            summary = "Send submission notification",
+            description = "Sends push notification about assignment submission to the teacher (Mobile only)"
+    )
+    @PostMapping("/{assignmentId}/notify/submitted")
+    public ResponseEntity<ApiResponse_<Void>> notifyAssignmentSubmitted(
+            @PathVariable @Positive Long assignmentId,
+            Authentication authentication
+    ) {
+        try {
+            if (ClientTypeInterceptor.getCurrentClientType() == ClientType.WEB) {
+                return ApiResponse_.httpError(
+                        HttpStatus.BAD_REQUEST,
+                        "This endpoint is only available for mobile clients"
+                );
+            }
+
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+            Assignment assignment = assignmentService.findById(assignmentId);
+
+            List<DeviceToken> tokens = deviceTokenRepository.findByUserId(assignment.getAssignedBy().getId());
+            for (DeviceToken token : tokens) {
+                try {
+                    notificationService.sendNotification(
+                            token.getDeviceToken(),
+                            "Assignment Submitted",
+                            "Student " + currentUser.getUsername() + " has submitted assignment: " + assignment.getTitle()
+                    );
+                } catch (FirebaseMessagingException e) {
+                    log.error("Failed to send notification to teacher: {}", e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Submission notification sent successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            log.error("Error sending submission notification: {}", e.getMessage());
+            return ApiResponse_.httpError(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send submission notification: " + e.getMessage()
+            );
         }
     }
 
     private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty())
+        // If file is null, it's valid (optional submission)
+        if (file == null) {
             return;
+        }
+
+        // Only validate if a file is actually provided
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
         if (file.getSize() > 5_000_000) { // 5MB limit
             throw new IllegalArgumentException("File size exceeds maximum limit");
         }
+
         String contentType = file.getContentType();
         if (contentType == null || !isAllowedContentType(contentType)) {
             throw new IllegalArgumentException("Invalid file type");
@@ -567,28 +774,5 @@ public class AssignmentController {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "text/plain"
         ).contains(contentType);
-    }
-
-    private AssignmentDocumentDTO convertToDTO(AssignmentDocument document) {
-        return AssignmentDocumentDTO.builder()
-                .assignmentId(document.getAssignment().getId())
-                .documentId(document.getId())
-                .fileName(document.getFileName())
-                .fileType(document.getFileType())
-                .filePath(document.getFilePath())
-                .fileSize(document.getFileSize())
-                .uploadTime(document.getUploadTime())
-                .uploadedByUsername(document.getUploadedBy().getUsername())
-                .build();
-    }
-
-    private static <T> ResponseEntity<ApiResponse_<T>> httpError(HttpStatus s, String message) {
-        return ResponseEntity.
-                status(s).
-                body(new ApiResponse_<>(
-                        false,
-                        message,
-                        null
-                ));
     }
 }

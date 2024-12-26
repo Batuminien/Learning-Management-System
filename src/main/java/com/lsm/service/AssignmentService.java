@@ -28,7 +28,7 @@ import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.validation.annotation.Validated;
 
@@ -244,29 +244,35 @@ public class AssignmentService {
             assignmentDocumentRepository.delete(teacherDoc);
         }
 
-        // Clear student submissions
+        // Clear student submissions and their documents
         if (!assignment.getStudentSubmissions().isEmpty()) {
-            assignment.getStudentSubmissions().forEach(submission -> {
-                submission.setAssignment(null);
+            for (StudentSubmission submission : new ArrayList<>(assignment.getStudentSubmissions())) {
+                // Clear document reference and delete document first
+                if (submission.getDocument() != null) {
+                    AssignmentDocument doc = submission.getDocument();
+                    submission.setDocument(null);
+                    studentSubmissionRepository.save(submission);
+                    assignmentDocumentRepository.delete(doc);
+                }
+                // Then delete the submission
                 studentSubmissionRepository.delete(submission);
-            });
+            }
             assignment.getStudentSubmissions().clear();
         }
 
-        // Remove assignment from class entities
-        List<Long> classIds = user.getTeacherDetails().getClasses().stream()
-                .map(ClassEntity::getId)
-                .collect(Collectors.toList());
+        // Remove assignment from class entity
+        ClassEntity classEntity = assignment.getClassEntity();
+        classEntity.getAssignments().remove(assignment);
+        classEntityRepository.save(classEntity);
 
-        Set<ClassEntity> classEntities = classEntityRepository.findAllByIdIn(classIds);
-
-        classEntities.forEach(classEntity -> {
-            classEntity.getAssignments().remove(assignment);
-            classEntityRepository.save(classEntity);
-        });
+        // Remove assignment from course
+        Course course = assignment.getCourse();
+        course.getAssignments().remove(assignment);
+        courseRepository.save(course);
 
         // Finally delete the assignment
         assignmentRepository.delete(assignment);
+        assignmentRepository.flush(); // Force immediate database synchronization
     }
 
     @Transactional

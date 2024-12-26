@@ -52,8 +52,11 @@ public class JwtTokenProvider {
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateAccessToken(AppUser user) {
-        return generateToken(user, TokenType.ACCESS, accessTokenExpiration);
+    public String generateAccessToken(AppUser user, boolean rememberMe) {
+        long expiration = rememberMe ?
+                accessTokenExpiration * 7 : // 7 times longer for remember me
+                accessTokenExpiration;
+        return generateToken(user, TokenType.ACCESS, expiration);
     }
 
     public String generateRefreshToken(AppUser user) {

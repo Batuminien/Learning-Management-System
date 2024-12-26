@@ -6,6 +6,7 @@ import lombok.*;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -37,7 +38,7 @@ public class StudentSubmission {
     private AssignmentDocument document;
 
     @Column(name = "submission_date")
-    private LocalDate submissionDate;
+    private LocalDateTime submissionDate;
 
     @Column(name = "submission_comment")
     private String comment;

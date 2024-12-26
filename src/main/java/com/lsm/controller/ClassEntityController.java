@@ -71,10 +71,10 @@ public class ClassEntityController {
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (AccessDeniedException e) {
             log.error("Access denied in createClass: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in createClass: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -98,10 +98,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in getClassById: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in getClassById: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -126,7 +126,7 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Unexpected error in getAllClasses: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -155,10 +155,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in updateClass: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in updateClass: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -181,10 +181,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in deleteClass: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in deleteClass: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -211,10 +211,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in addStudent: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in addStudent: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -241,10 +241,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied while adding students in bulk: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error while adding students in bulk: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -271,10 +271,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in removeStudent: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in removeStudent: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -299,10 +299,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied in getTeacherClasses: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error in getTeacherClasses: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
 
@@ -324,20 +324,10 @@ public class ClassEntityController {
             return ResponseEntity.ok(response);
         } catch (AccessDeniedException e) {
             log.error("Access denied: {}", e.getMessage());
-            return httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage());
-            return httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
-    }
-
-    private static <T> ResponseEntity<ApiResponse_<T>> httpError(HttpStatus s, String message) {
-        return ResponseEntity.
-                status(s).
-                body(new ApiResponse_<>(
-                        false,
-                        message,
-                        null
-                ));
     }
 }

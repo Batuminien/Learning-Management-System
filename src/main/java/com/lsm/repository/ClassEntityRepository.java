@@ -25,7 +25,7 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
     Optional<ClassEntity> getClassEntityById(Long id);
 
     @Query("SELECT c FROM ClassEntity c LEFT JOIN FETCH c.assignments WHERE c.id = :id")
-    Optional<ClassEntity> findByIdWithAssignments(Long id);
+    Optional<ClassEntity> findByIdWithAssignments(@Param("id") Long id);
 
     @Query("SELECT DISTINCT c FROM ClassEntity c " +
             "LEFT JOIN FETCH c.assignments a " +

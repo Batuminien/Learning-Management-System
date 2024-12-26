@@ -1,5 +1,6 @@
 package com.lsm.model.DTOs;
 
+import com.lsm.mapper.AssignmentDocumentMapper;
 import com.lsm.model.entity.StudentSubmission;
 import com.lsm.model.entity.enums.AssignmentStatus;
 import lombok.Getter;
@@ -8,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -21,7 +22,7 @@ public class StudentSubmissionDTO {
     private String studentName;
     private AssignmentStatus status;
     private AssignmentDocumentDTO document;
-    private LocalDate submissionDate;
+    private LocalDateTime submissionDate;
     private String comment;
     private Double grade;
     private String feedback;
@@ -37,14 +38,8 @@ public class StudentSubmissionDTO {
         this.feedback = submission.getFeedback();
 
         if (submission.getDocument() != null) {
-            this.document = AssignmentDocumentDTO.builder()
-                    .assignmentId(submission.getAssignment().getId())
-                    .fileName(submission.getDocument().getFileName())
-                    .fileType(submission.getDocument().getFileType())
-                    .fileSize(submission.getDocument().getFileSize())
-                    .uploadTime(submission.getDocument().getUploadTime())
-                    .uploadedByUsername(submission.getDocument().getUploadedBy().getUsername())
-                    .build();
+            AssignmentDocumentMapper assignmentDocumentMapper = new AssignmentDocumentMapper();
+            this.document = assignmentDocumentMapper.convertToDTO(submission.getDocument());
         }
     }
 }

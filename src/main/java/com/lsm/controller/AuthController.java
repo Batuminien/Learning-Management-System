@@ -189,6 +189,42 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse_<LoginResponseDTO>> googleLogin(
+            @RequestHeader("Google-Token") String googleToken,
+            HttpServletRequest request) {
+
+        String clientIp = extractClientIp(request);
+
+        try {
+            rateLimiter.checkRateLimit(clientIp);
+
+            AuthenticationResult result = authService.authenticateWithGoogle(googleToken, clientIp);
+
+            LoginResponseDTO response = userMapper.toLoginResponse(
+                    result.getUser(),
+                    result.getAccessToken(),
+                    result.getRefreshToken(),
+                    result.getExpiresIn()
+            );
+
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Google authentication successful",
+                    response
+            ));
+
+        } catch (RateLimitExceededException e) {
+            return ResponseEntity
+                    .status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(new ApiResponse_<>(false, e.getMessage(), null));
+        } catch (AuthenticationException | AccountLockedException e) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse_<>(false, e.getMessage(), null));
+        }
+    }
+
     private String extractClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {

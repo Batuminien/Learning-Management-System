@@ -2,11 +2,12 @@ package com.lsm.service;
 
 import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.AssignmentDocument;
+import com.lsm.model.entity.StudentSubmission;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AssignmentDocumentRepository;
 import com.lsm.repository.AssignmentRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +16,13 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -102,6 +106,57 @@ public class AssignmentDocumentService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Resource bulkDownloadSubmissions(Long assignmentId, AppUser currentUser) throws IOException {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
+
+        // Validate access
+        if (currentUser.getRole() == Role.ROLE_STUDENT) {
+            throw new AccessDeniedException("Students cannot bulk download submissions");
+        }
+
+        if (currentUser.getRole() == Role.ROLE_TEACHER &&
+                !currentUser.getId().equals(assignment.getAssignedBy().getId())) {
+            throw new AccessDeniedException("Teachers can only download submissions for their own assignments");
+        }
+
+        // Create a temporary zip file
+        Path tempDir = Files.createTempDirectory("submissions_");
+        Path zipFile = tempDir.resolve("submissions.zip");
+
+        try (FileOutputStream fos = new FileOutputStream(zipFile.toFile());
+             ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+
+            for (StudentSubmission submission : assignment.getStudentSubmissions()) {
+                if (submission.getDocument() != null) {
+                    // Create student-specific folder name
+                    String folderName = submission.getStudent().getUsername() + "_" +
+                            submission.getStudent().getId() + "/";
+
+                    // Add the submission document to the zip
+                    Path docPath = Paths.get(submission.getDocument().getFilePath());
+                    if (Files.exists(docPath)) {
+                        ZipEntry zipEntry = new ZipEntry(folderName +
+                                submission.getDocument().getFileName());
+                        zipOut.putNextEntry(zipEntry);
+                        Files.copy(docPath, zipOut);
+                        zipOut.closeEntry();
+                    }
+                }
+            }
+        }
+
+        // Create resource from the zip file
+        Resource resource = new UrlResource(zipFile.toUri());
+
+        // Schedule file deletion after response is sent
+        tempDir.toFile().deleteOnExit();
+        zipFile.toFile().deleteOnExit();
+
+        return resource;
+    }
+
     @Transactional
     public void deleteDocument(Long documentId, AppUser currentUser) throws IOException {
         AssignmentDocument document = documentRepository.findById(documentId)
@@ -139,20 +194,51 @@ public class AssignmentDocumentService {
     }
 
     private void validateDownloadAccess(AssignmentDocument document, AppUser currentUser) throws AccessDeniedException {
+        // Admin and coordinator have full access
         if (currentUser.getRole() == Role.ROLE_ADMIN ||
                 currentUser.getRole() == Role.ROLE_COORDINATOR) {
             return;
         }
 
-        if (currentUser.getRole() == Role.ROLE_TEACHER &&
-                !currentUser.getId().equals(document.getAssignment().getAssignedBy().getId())) {
-            throw new AccessDeniedException("Teachers can only access their own assignment documents");
+        Assignment assignment = document.getAssignment();
+
+        if (currentUser.getRole() == Role.ROLE_TEACHER) {
+            // Teachers can download:
+            // 1. Their own assignment documents
+            // 2. Student submissions for their assignments
+            boolean isAssignmentCreator = currentUser.getId().equals(assignment.getAssignedBy().getId());
+
+            if (!isAssignmentCreator && document.equals(assignment.getTeacherDocument())) {
+                throw new AccessDeniedException("Teachers can only access their own assignment documents");
+            }
+            return;
         }
 
-        if (currentUser.getRole() == Role.ROLE_STUDENT &&
-                document.getAssignment().getClassEntity().getStudents().stream()
-                        .noneMatch(s -> s.getId().equals(currentUser.getId()))) {
-            throw new AccessDeniedException("Students can only access documents for their assignments");
+        if (currentUser.getRole() == Role.ROLE_STUDENT) {
+            // Students can download:
+            // 1. Teacher documents for their assignments
+            // 2. Their own submissions
+            boolean isStudentInClass = assignment.getClassEntity().getStudents().stream()
+                    .anyMatch(s -> s.getId().equals(currentUser.getId()));
+
+            if (!isStudentInClass) {
+                throw new AccessDeniedException("Students can only access documents for their assignments");
+            }
+
+            // If it's a submission document, verify it belongs to the student
+            if (!document.equals(assignment.getTeacherDocument())) {
+                boolean isOwnSubmission = assignment.getStudentSubmissions().stream()
+                        .anyMatch(submission ->
+                                submission.getStudent().getId().equals(currentUser.getId()) &&
+                                        submission.getDocument() != null &&
+                                        submission.getDocument().getId().equals(document.getId())
+                        );
+
+                if (!isOwnSubmission) {
+                    throw new AccessDeniedException("Students can only download their own submissions");
+                }
+            }
+            return;
         }
     }
 }

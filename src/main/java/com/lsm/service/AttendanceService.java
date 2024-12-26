@@ -13,7 +13,7 @@ import com.lsm.repository.AttendanceRepository;
 import com.lsm.repository.AppUserRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.repository.CourseRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
@@ -151,6 +151,49 @@ public class AttendanceService {
         return processAttendances(attendances, null, classEntity, course);
     }
 
+    @Transactional
+    public Attendance updateAttendance(AppUser loggedInUser, Long attendanceId, AttendanceRequestDTO attendanceRequest)
+            throws AccessDeniedException {
+        // Check if the user is a student
+        if (loggedInUser.getRole().equals(Role.ROLE_STUDENT)) {
+            throw new AccessDeniedException("Students can't update attendance records");
+        }
+
+        // Find the existing attendance record
+        Attendance existingAttendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Attendance record with ID %d not found.", attendanceId)
+                ));
+
+        // If user is a teacher, verify they have access to the course
+        if (loggedInUser.getRole().equals(Role.ROLE_TEACHER)) {
+            AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
+            boolean hasAccess = user.getTeacherDetails().getClasses().stream()
+                    .flatMap(classEntity -> classEntity.getCourses().stream())
+                    .anyMatch(courseEntity -> courseEntity.getId().equals(existingAttendance.getCourseId()));
+
+            if (!hasAccess) {
+                throw new AccessDeniedException("Teachers can only update attendance for their courses");
+            }
+        }
+
+        // Verify the student exists
+        AppUser student = appUserRepository.findById(attendanceRequest.getStudentId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Student with ID %d not found.", attendanceRequest.getStudentId())
+                ));
+
+        // Update the attendance record
+        existingAttendance.setStudent(student);
+        existingAttendance.setDate(attendanceRequest.getDate());
+        existingAttendance.setStatus(attendanceRequest.getStatus());
+        existingAttendance.setComment(attendanceRequest.getComment());
+        existingAttendance.setClassId(attendanceRequest.getClassId());
+        existingAttendance.setCourseId(attendanceRequest.getCourseId());
+
+        return attendanceRepository.save(existingAttendance);
+    }
+
     private List<Attendance> getAttendancesByStudent(Long studentId, Long classId) {
         if (classId != null) {
             return attendanceRepository.findByStudentIdAndClassId(studentId, classId);
@@ -212,6 +255,13 @@ public class AttendanceService {
                             ? (presentCount + lateCount) * 100.0 / totalClasses
                             : 0;
 
+                    List<AttendanceDTO> recentAttendances = courseOrStudentAttendances.stream()
+                            .sorted((a1, a2) -> a2.getDate().compareTo(a1.getDate()))
+                            .limit(5)  // Get the 5 most recent attendance records
+                            .filter(a -> !a.getStatus().equals(AttendanceStatus.PRESENT))
+                            .map(attendance -> new AttendanceDTO(attendance, attendance.getComment()))
+                            .toList();
+
                     if (classEntity != null) {
                         return AttendanceStatsDTO.builder()
                                 .studentId(currentStudent.getId())
@@ -219,12 +269,16 @@ public class AttendanceService {
                                 .classId(classEntity.getId())
                                 .className(classEntity.getName())
                                 .courseId(course != null ? course.getId() : key)
-                                .courseName(course != null ? course.getName() : "Unknown Course")
+                                .courseName(course != null ? course.getName() :
+                                        courseRepository.findById(key)
+                                                .map(Course::getName)
+                                                .orElse("Unknown Course"))
                                 .totalClasses(totalClasses)
                                 .presentCount(presentCount)
                                 .absentCount(absentCount)
                                 .lateCount(lateCount)
                                 .attendancePercentage(Math.round(attendancePercentage * 100.0) / 100.0)
+                                .recentAttendance(recentAttendances)
                                 .build();
                     }
                     // Handle class ID resolution safely
@@ -246,12 +300,16 @@ public class AttendanceService {
                             .classId(resolvedClassId)
                             .className(resolvedClassEntity != null ? resolvedClassEntity.getName() : null)
                             .courseId(course != null ? course.getId() : key)
-                            .courseName(course != null ? course.getName() : "Unknown Course")
+                            .courseName(course != null ? course.getName() :
+                                    courseRepository.findById(key)
+                                            .map(Course::getName)
+                                            .orElse("Unknown Course"))
                             .totalClasses(totalClasses)
                             .presentCount(presentCount)
                             .absentCount(absentCount)
                             .lateCount(lateCount)
                             .attendancePercentage(Math.round(attendancePercentage * 100.0) / 100.0)
+                            .recentAttendance(recentAttendances)
                             .build();
                 })
                 .collect(Collectors.toList());

@@ -1,5 +1,9 @@
 package com.lsm.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.lsm.events.*;
 import com.lsm.exception.*;
 import com.lsm.model.DTOs.auth.*;
@@ -13,6 +17,7 @@ import com.lsm.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.passay.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -45,6 +50,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptService loginAttemptService;
     private final EventPublisher eventPublisher;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
 
     @Transactional
     public AppUser registerUser(RegisterRequestDTO registerRequest) {
@@ -89,13 +97,19 @@ public class AuthService {
             // Clean up any existing refresh tokens before creating a new one
             cleanupExpiredTokens(user);
 
-            String accessToken = jwtTokenProvider.generateAccessToken(user);
-            RefreshToken refreshToken = createRefreshToken(user.getId());
+            // Generate tokens with remember me consideration
+            String accessToken = jwtTokenProvider.generateAccessToken(user, loginRequest.isRememberMe());
+            RefreshToken refreshToken = createRefreshToken(user.getId(), loginRequest.isRememberMe());
 
             loginAttemptService.loginSucceeded(clientIp);
             eventPublisher.publishEvent(new UserLoginEvent(user));
 
-            return new AuthenticationResult(accessToken, refreshToken.getToken(), user, REFRESH_TOKEN_VALIDITY);
+            // Return different expiration times based on remember me
+            long expiresIn = loginRequest.isRememberMe() ?
+                    REFRESH_TOKEN_VALIDITY * 7 : // 7 times longer for remember me
+                    REFRESH_TOKEN_VALIDITY;
+
+            return new AuthenticationResult(accessToken, refreshToken.getToken(), user, expiresIn);
 
         } catch (BadCredentialsException e) {
             loginAttemptService.loginFailed(clientIp);
@@ -111,16 +125,22 @@ public class AuthService {
     }
 
     @Transactional
-    public RefreshToken createRefreshToken(Long userId) {
+    public RefreshToken createRefreshToken(Long userId, boolean rememberMe) {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         cleanupOldRefreshTokens(user);
 
+        // Calculate expiration based on remember me
+        long validity = rememberMe ?
+                REFRESH_TOKEN_VALIDITY * 7 : // 7 times longer for remember me
+                REFRESH_TOKEN_VALIDITY;
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(generateSecureToken())
-                .expiryDate(Instant.now().plusMillis(REFRESH_TOKEN_VALIDITY))
+                .expiryDate(Instant.now().plusMillis(validity))
+                .rememberMe(rememberMe)
                 .build();
 
         return refreshTokenRepository.save(refreshToken);
@@ -132,7 +152,7 @@ public class AuthService {
                 .map(this::verifyRefreshToken)
                 .map(token -> {
                     AppUser user = token.getUser();
-                    String newAccessToken = jwtTokenProvider.generateAccessToken(user);
+                    String newAccessToken = jwtTokenProvider.generateAccessToken(user, token.isRememberMe());
                     return new TokenRefreshResult(newAccessToken, refreshToken);
                 })
                 .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
@@ -164,6 +184,55 @@ public class AuthService {
             throw new LogoutException("Error during logout process");
         }
     }
+
+    @Transactional
+    public AuthenticationResult authenticateWithGoogle(String googleToken, String clientIp) {
+        try {
+            NetHttpTransport transport = new NetHttpTransport();
+
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(transport, new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(googleToken);
+            if (idToken == null) {
+                throw new AuthenticationException("Invalid Google token");
+            }
+
+            // Get user info from token
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+
+            if (!payload.getEmailVerified()) {
+                throw new AuthenticationException("Google account email not verified");
+            }
+
+            // Find existing user
+            AppUser user = appUserRepository.findByEmail(email)
+                    .orElseThrow(() -> new AuthenticationException(
+                            "No user found with email: " + email + ". Please contact admin for registration."));
+
+            // Create authentication token
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Generate tokens
+            String accessToken = jwtTokenProvider.generateAccessToken(user, false);
+            RefreshToken refreshToken = createRefreshToken(user.getId(), false);
+
+            return AuthenticationResult.builder()
+                    .user(user)
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken.getToken())
+                    .expiresIn(REFRESH_TOKEN_VALIDITY)
+                    .build();
+
+        } catch (Exception e) {
+            throw new AuthenticationException("Failed to verify Google token: " + e.getMessage());
+        }
+    }
+
 
     private AppUser createUserFromRequest(RegisterRequestDTO registerRequest) {
         AppUser .AppUserBuilder userBuilder = AppUser.builder()
@@ -246,15 +315,14 @@ public class AuthService {
     }
 
     private String generateSecureToken() {
-        return UUID.randomUUID().toString() +
+        return UUID.randomUUID() +
                 UUID.randomUUID().toString();
     }
 
     private void cleanupOldRefreshTokens(AppUser user) {
         List<RefreshToken> tokens = refreshTokenRepository.findByUserOrderByExpiryDateDesc(user);
         if (tokens.size() >= MAX_REFRESH_TOKEN_PER_USER) {
-            tokens.subList(MAX_REFRESH_TOKEN_PER_USER - 1, tokens.size())
-                    .forEach(refreshTokenRepository::delete);
+            refreshTokenRepository.deleteAll(tokens.subList(MAX_REFRESH_TOKEN_PER_USER - 1, tokens.size()));
         }
     }
 

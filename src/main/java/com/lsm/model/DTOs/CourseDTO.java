@@ -23,6 +23,8 @@ public class CourseDTO implements Serializable {
 
     private Long id;
 
+    private Long teacherId;
+
     @NotBlank(message = "Course name is required")
     private String name;
 

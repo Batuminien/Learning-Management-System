@@ -183,6 +183,29 @@ public class SecurityConfig {
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/announcements/{id}")
                             .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
 
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/users/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/users/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/users/**")
+                            .hasAuthority("ROLE_ADMIN");
+
+                    // Student management endpoints
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/students/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/students/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/students/**")
+                            .hasAuthority("ROLE_ADMIN");
+
+                    // Teacher management endpoints
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/teachers/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/teachers/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**")
+                            .hasAuthority("ROLE_ADMIN");
+
 
                     // Default policy
                     registry.anyRequest().authenticated();

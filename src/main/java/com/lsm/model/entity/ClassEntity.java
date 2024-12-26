@@ -45,7 +45,7 @@ public class ClassEntity {
     )
     @Builder.Default private Set<AppUser> students = new HashSet<>();
 
-    @OneToMany(mappedBy = "classEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "classEntity", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<Assignment> assignments = new HashSet<>();
 
     @ManyToMany
