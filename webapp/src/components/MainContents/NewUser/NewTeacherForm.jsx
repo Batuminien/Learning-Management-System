@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import InputField from "../../common/InputField/InputField";
 import DateInput from "../../common/DateInput/DateInput";
+import ClassesDropdown from "../../common/ClassesDropdown/ClassesDropdown";
+import { AuthContext } from "../../../contexts/AuthContext";
+import ClassCourseMatching from "./ClassCourseMatching";
+import CourseClassMatching from "./CourseClassMatching";
 
 
 
 
 const NewTeacherForm = () => {
-
+    const { user } = useContext(AuthContext);
 
     const [firstName, setFirstName] = useState('');
     const [firstNameError, setFirstNameError] = useState('');
@@ -14,10 +18,17 @@ const NewTeacherForm = () => {
     const [lastName, setLastName] = useState('');
     const [lastNameError, setLastNameError] = useState('');
 
+    const [TC, setTC] = useState('');
+    const [TcError, setTcError] = useState('');
 
-    useEffect(() => {
-        console.log('sınıfları çek');
-    }, []);
+    const [birthDate, setBirthDate] = useState('');
+    const [birthDateError, setBirthDateError] = useState('');
+
+    const [mail, setMail] = useState('');
+    const [mailError, setMailError] = useState('');
+
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [phoneNumberError, setPhoneNumberError] = useState('');
 
     return(
         <div className="form">
@@ -37,30 +48,33 @@ const NewTeacherForm = () => {
                 />
                 <InputField
                     label={'TC Kimlik Numarası'}
-                    value={lastName}
-                    onChange={(event) => {setLastName(event.target.value), setLastNameError('')}}
-                    errorMessage={lastNameError}
+                    value={TC}
+                    onChange={(event) => {setTC(event.target.value), setTcError('')}}
+                    errorMessage={TcError}
                 />
                 <DateInput
                     title={'Doğum Tarihi'}
-                    onInput={(date) => {}}
+                    onInput={(date) => {setBirthDate(date), setBirthDateError('')}}
+                    errorMessage={birthDateError}
                 />
                 <InputField
                     label={'E-posta Adresi'}
-                    value={lastName}
-                    onChange={(event) => {setLastName(event.target.value), setLastNameError('')}}
-                    errorMessage={lastNameError}
+                    value={mail}
+                    onChange={(event) => {setMail(event.target.value), setMailError('')}}
+                    errorMessage={mailError}
                 />
                 <InputField
                     label={'Telefon Numarası'}
                     placeholder={'05xx xxx xx xx'}
-                    value={lastName}
-                    onChange={(event) => {setLastName(event.target.value), setLastNameError('')}}
-                    errorMessage={lastNameError}
+                    value={phoneNumber}
+                    onChange={(event) => {setPhoneNumber(event.target.value), setPhoneNumberError('')}}
+                    errorMessage={phoneNumberError}
                 />
-                
-
             </div>
+            <div className="form-title">Dersler</div>
+            {/* <ClassCourseMatching/> */}
+            <CourseClassMatching
+            />
         </div>
     );
 }
