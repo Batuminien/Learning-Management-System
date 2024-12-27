@@ -1,12 +1,12 @@
 package com.lsm.mapper;
 
 import com.lsm.model.DTOs.StudentResponseDTO;
+import com.lsm.model.DTOs.TeacherCourseResponseDTO;
 import com.lsm.model.DTOs.TeacherResponseDTO;
 import com.lsm.model.DTOs.UserResponseDTO;
 import com.lsm.model.DTOs.auth.LoginResponseDTO;
 import com.lsm.model.DTOs.auth.RegisterResponseDTO;
 import com.lsm.model.entity.ClassEntity;
-import com.lsm.model.entity.Course;
 import com.lsm.model.entity.StudentDetails;
 import com.lsm.model.entity.TeacherDetails;
 import com.lsm.model.entity.base.AppUser;
@@ -91,6 +91,16 @@ public class UserMapper {
             throw new IllegalStateException("Teacher details not found");
         }
 
+        List<TeacherCourseResponseDTO> teacherCourses = details.getTeacherCourses().stream()
+                .map(tc -> TeacherCourseResponseDTO.builder()
+                        .teacherId(tc.getId())
+                        .courseId(tc.getCourse().getId())
+                        .classIds(tc.getClasses().stream()
+                                .map(ClassEntity::getId)
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+
         return TeacherResponseDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -101,12 +111,7 @@ public class UserMapper {
                 .phone(details.getPhone())
                 .tc(details.getTc())
                 .birthDate(details.getBirthDate())
-                .classIds(details.getClasses().stream()
-                        .map(ClassEntity::getId)
-                        .collect(Collectors.toList()))
-                .courseIds(details.getCourses().stream()
-                        .map(Course::getId)
-                        .collect(Collectors.toList()))
+                .teacherCourses(teacherCourses)
                 .build();
     }
 

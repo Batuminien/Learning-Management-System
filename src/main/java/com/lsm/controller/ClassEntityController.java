@@ -46,12 +46,7 @@ public class ClassEntityController {
         this.classMapper = classMapper;
     }
 
-    @Operation(summary = "Create a new class", description = "Only teachers and admins can create classes")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Class created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data"),
-            @ApiResponse(responseCode = "403", description = "Insufficient permissions")
-    })
+    @Operation(summary = "Create a new class")
     @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
     @PostMapping
     public ResponseEntity<ApiResponse_<ClassEntityResponseDTO>> createClass(
@@ -61,19 +56,19 @@ public class ClassEntityController {
             AppUser loggedInUser = (AppUser) authentication.getPrincipal();
             if (loggedInUser.getRole() == Role.ROLE_STUDENT)
                 throw new AccessDeniedException("Students can't create a class");
+
             ClassEntity entity = classMapper.toEntity(requestDTO);
-            ClassEntity createdClass = classService.createClass(loggedInUser, entity, requestDTO.getTeacherId(), requestDTO.getStudentIds());
-            ApiResponse_<ClassEntityResponseDTO> response = new ApiResponse_<>(
+            ClassEntity createdClass = classService.createClass(loggedInUser, entity,
+                    requestDTO.getTeacherCourses(), requestDTO.getStudentIds());
+
+            return new ResponseEntity<>(new ApiResponse_<>(
                     true,
                     "Class created successfully",
                     classMapper.toDTO(createdClass)
-            );
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
+            ), HttpStatus.CREATED);
         } catch (AccessDeniedException e) {
-            log.error("Access denied in createClass: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
         } catch (Exception e) {
-            log.error("Unexpected error in createClass: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
         }
     }
@@ -146,13 +141,14 @@ public class ClassEntityController {
         try {
             AppUser loggedInUser = (AppUser) authentication.getPrincipal();
             ClassEntity entity = classMapper.toEntity(requestDTO);
-            ClassEntity updatedClass = classService.updateClass(loggedInUser, id, entity, requestDTO.getTeacherId(), requestDTO.getStudentIds());
-            ApiResponse_<ClassEntityResponseDTO> response = new ApiResponse_<>(
+            ClassEntity updatedClass = classService.updateClass(loggedInUser, id, entity,
+                    requestDTO.getTeacherCourses(), requestDTO.getStudentIds());
+
+            return ResponseEntity.ok(new ApiResponse_<>(
                     true,
                     "Class updated successfully",
                     classMapper.toDTO(updatedClass)
-            );
-            return ResponseEntity.ok(response);
+            ));
         } catch (AccessDeniedException e) {
             log.error("Access denied in updateClass: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());

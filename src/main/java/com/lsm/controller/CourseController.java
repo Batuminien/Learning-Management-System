@@ -324,14 +324,15 @@ public class CourseController {
             @Parameter(description = "ID of the course", required = true)
             @PathVariable @Positive Long courseId,
             @Parameter(description = "ID of the teacher", required = true)
-            @PathVariable @Positive Long teacherId
+            @PathVariable @Positive Long teacherId,
+            @RequestBody List<Long> classIds
     ) {
         try {
             log.info("Assigning teacher {} to course {}", teacherId, courseId);
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,
                     "Teacher assigned successfully",
-                    courseService.assignTeacherToCourse(courseId, teacherId)
+                    courseService.assignTeacherToCourse(courseId, teacherId, classIds)
             ));
         } catch (EntityNotFoundException e) {
             log.error("Resource not found: {}", e.getMessage());
@@ -342,7 +343,7 @@ public class CourseController {
         }
     }
 
-    @DeleteMapping("/{courseId}/teacher")
+    @DeleteMapping("/{courseId}/teacher/{teacherId}")
     @Operation(summary = "Remove teacher from course", description = "Remove the assigned teacher from a course")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Teacher removed successfully"),
@@ -352,14 +353,15 @@ public class CourseController {
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR')")
     public ResponseEntity<ApiResponse_<CourseDTO>> removeTeacherFromCourse(
             @Parameter(description = "ID of the course", required = true)
-            @PathVariable @Positive Long courseId
+            @PathVariable @Positive Long courseId,
+            @PathVariable @Positive Long teacherId
     ) {
         try {
             log.info("Removing teacher from course {}", courseId);
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,
                     "Teacher removed successfully",
-                    courseService.removeTeacherFromCourse(courseId)
+                    courseService.removeTeacherFromCourse(courseId, teacherId)
             ));
         } catch (EntityNotFoundException e) {
             log.error("Course not found: {}", e.getMessage());
@@ -382,17 +384,19 @@ public class CourseController {
             @Parameter(description = "ID of the course", required = true)
             @PathVariable @Positive Long courseId,
             @Parameter(description = "ID of the new teacher", required = true)
-            @PathVariable @Positive Long teacherId
+            @PathVariable @Positive Long teacherId,
+            @RequestBody List<Long> classIds
     ) {
         try {
+            // TODO: loggedInUser check
             log.info("Updating teacher for course {} to {}", courseId, teacherId);
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,
                     "Teacher updated successfully",
-                    courseService.updateCourseTeacher(courseId, teacherId)
+                    courseService.updateCourseTeacher(courseId, teacherId, classIds)
             ));
         } catch (EntityNotFoundException e) {
-            log.error("Resource not found: {}", e.getMessage());
+            log.error("Resource not found in updateCourseTeacher: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
             log.error("Error updating course teacher: {}", e.getMessage());

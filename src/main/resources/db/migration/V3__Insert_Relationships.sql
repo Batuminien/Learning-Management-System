@@ -65,30 +65,44 @@ WHERE NOT EXISTS (
 
 -- Create Assignments if they don't exist
 INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_id,
-                         last_modified_by_id, class_id, course_id, assignment_date, last_modified_date)
-SELECT nextval('assignments_seq'), 'Math Homework 1', 'Complete exercises 1-10', CURRENT_DATE + INTERVAL '7 days',
-       (SELECT id FROM app_users WHERE username = 'teacher1'),
-       (SELECT id FROM app_users WHERE username = 'teacher1'),
-       (SELECT id FROM classes WHERE name = '11-A-MF'),
-       (SELECT id FROM courses WHERE code = 'MAT-1'),
+                         last_modified_by_id, class_id, course_id, assignment_date,
+                         last_modified_date, teacher_course_id)
+SELECT nextval('assignments_seq'), 'Math Homework 1', 'Complete exercises 1-10',
+       CURRENT_DATE + INTERVAL '7 days',
+       t.teacher_id,
+       t.teacher_id,
+       c.id,
+       t.course_id,
        CURRENT_DATE,
-       CURRENT_DATE
+       CURRENT_DATE,
+       t.id
+FROM teacher_courses t
+         CROSS JOIN classes c
 WHERE NOT EXISTS (
     SELECT 1 FROM assignments WHERE title = 'Math Homework 1'
-);
+)
+  AND t.course_id = (SELECT id FROM courses WHERE code = 'MAT-1')
+LIMIT 1;
 
 INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_id,
-                         last_modified_by_id, class_id, course_id, assignment_date, last_modified_date)
-SELECT nextval('assignments_seq'), 'Literacy Report', 'Write report on turkish literacy', CURRENT_DATE + INTERVAL '10 days',
-       (SELECT id FROM app_users WHERE username = 'teacher2'),
-       (SELECT id FROM app_users WHERE username = 'teacher2'),
-       (SELECT id FROM classes WHERE name = '11-B-TM'),
-       (SELECT id FROM courses WHERE code = 'EDB-1'),
+                         last_modified_by_id, class_id, course_id, assignment_date,
+                         last_modified_date, teacher_course_id)
+SELECT nextval('assignments_seq'), 'Literacy Report', 'Write report on turkish literacy',
+       CURRENT_DATE + INTERVAL '10 days',
+       t.teacher_id,
+       t.teacher_id,
+       c.id,
+       t.course_id,
        CURRENT_DATE,
-       CURRENT_DATE
+       CURRENT_DATE,
+       t.id
+FROM teacher_courses t
+         CROSS JOIN classes c
 WHERE NOT EXISTS (
     SELECT 1 FROM assignments WHERE title = 'Literacy Report'
-);
+)
+  AND t.course_id = (SELECT id FROM courses WHERE code = 'EDB-1')
+LIMIT 1;
 
 -- Create Assignment Documents if they don't exist
 INSERT INTO assignment_documents (id, file_name, file_path, upload_time, file_type, file_size,

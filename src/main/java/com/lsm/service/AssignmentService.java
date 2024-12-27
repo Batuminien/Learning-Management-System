@@ -312,41 +312,38 @@ public class AssignmentService {
     }
 
     @Transactional
-    public Assignment unsubmitAssignment(Long assignmentId, AppUser  currentUser) throws AccessDeniedException {
+    public Assignment unsubmitAssignment(Long assignmentId, AppUser currentUser) throws AccessDeniedException {
         Assignment assignment = findById(assignmentId);
 
         if (assignment.getDueDate().isBefore(LocalDate.now()))
             throw new IllegalStateException("Can only un-submit assignments that have been due.");
 
-        // Validate that only the student can un-submit their assignment
-        if (currentUser .getRole() != Role.ROLE_STUDENT)
+        if (currentUser.getRole() != Role.ROLE_STUDENT)
             throw new AccessDeniedException("Only students can un-submit assignments");
 
-        // Check if the class entity exists
-        ClassEntity classEntity = classEntityRepository.findById(currentUser .getStudentDetails().getClassEntity())
+        ClassEntity classEntity = classEntityRepository.findById(currentUser.getStudentDetails().getClassEntity())
                 .orElseThrow(() -> new EntityNotFoundException("Class not found"));
 
-        // Verify the assignment belongs to the student
-        if (!classEntity.getCourses().contains(assignment.getCourse()))
+        // Verify the assignment belongs to the student's class through teacher courses
+        boolean isEnrolled = classEntity.getTeacherCourses().stream()
+                .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));
+
+        if (!isEnrolled)
             throw new AccessDeniedException("You can only un-submit your own assignments");
 
-        // Find the student's submission
         StudentSubmission studentSubmission = assignment.getStudentSubmissions().stream()
                 .filter(submission -> submission.getStudent().getId().equals(currentUser.getId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("Student didn't submit assignment"));
 
-        // Validate submission status
         if (studentSubmission.getStatus() != AssignmentStatus.SUBMITTED) {
             throw new IllegalStateException("Can only un-submit assignments that have been submitted.");
         }
 
-        // Validate that assignment is in SUBMITTED status and not yet graded
         if (studentSubmission.getGrade() != null)
             throw new IllegalStateException("Cannot un-submit graded assignments");
 
         assignment.getStudentSubmissions().remove(studentSubmission);
-
         return assignmentRepository.save(assignment);
     }
 
@@ -355,42 +352,35 @@ public class AssignmentService {
             throws IllegalStateException, IOException {
         Assignment assignment = findById(assignmentId);
 
-        // Check deadline
         if (LocalDate.now().isAfter(assignment.getDueDate()))
             throw new IllegalStateException("Assignment deadline has passed");
 
         Optional<StudentSubmission> optionalSubmission = assignment.getStudentSubmissions().stream()
-                .filter(studentSubmission -> studentSubmission.getStudent().getId().equals(currentUser .getId()))
+                .filter(studentSubmission -> studentSubmission.getStudent().getId().equals(currentUser.getId()))
                 .findFirst();
 
         if (optionalSubmission.isPresent()) {
             StudentSubmission theStudentSubmission = optionalSubmission.get();
-
             if (theStudentSubmission.getStatus() == AssignmentStatus.SUBMITTED)
                 throw new IllegalStateException("You have already submitted the assignment");
-            else if (theStudentSubmission.getGrade() != null)
+            if (theStudentSubmission.getGrade() != null || theStudentSubmission.getStatus() == AssignmentStatus.GRADED)
                 throw new IllegalStateException("The assignment has already been graded");
-            else if (theStudentSubmission.getStatus() == AssignmentStatus.GRADED)
-                throw new IllegalStateException("The assignment has already been graded");
-            else {
-                // Delete the old file
-                Files.deleteIfExists(Paths.get(theStudentSubmission.getDocument().getFilePath()));
-                theStudentSubmission.setDocument(null);
-                assignmentRepository.save(assignment);
-            }
+
+            Files.deleteIfExists(Paths.get(theStudentSubmission.getDocument().getFilePath()));
+            theStudentSubmission.setDocument(null);
+            assignmentRepository.save(assignment);
         }
 
-        Optional<ClassEntity> classEntityOpt = classEntityRepository.findById(currentUser.getStudentDetails().getClassEntity());
-        if (classEntityOpt.isEmpty())
-            throw new EntityNotFoundException("Class not found");
-        ClassEntity classEntity = classEntityOpt.get();
+        ClassEntity classEntity = classEntityRepository.findById(currentUser.getStudentDetails().getClassEntity())
+                .orElseThrow(() -> new EntityNotFoundException("Class not found"));
 
-        // Verify the assignment belongs to the student
-        if (!classEntity.getCourses().contains(assignment.getCourse())) {
+        boolean isEnrolled = classEntity.getTeacherCourses().stream()
+                .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));
+
+        if (!isEnrolled) {
             throw new AccessDeniedException("You can only submit your own assignments");
         }
 
-        // Upload document
         StudentSubmission studentSubmission = studentSubmissionService.submitAssignment(
                 assignmentId,
                 submitDTO,
@@ -455,8 +445,9 @@ public class AssignmentService {
         }
 
         if (teacher.getRole() == Role.ROLE_TEACHER &&
-                teacher.getTeacherDetails().getClasses().stream()
-                        .noneMatch(c -> c.getId().equals(classEntity.getId()))) {
+                teacher.getTeacherDetails().getTeacherCourses().stream()
+                        .noneMatch(tc -> tc.getClasses().stream()
+                                .anyMatch(c -> c.getId().equals(classEntity.getId())))) {
             throw new AccessDeniedException("Teachers can create assignments only for their assigned classes");
         }
     }

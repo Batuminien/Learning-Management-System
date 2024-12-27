@@ -18,6 +18,5 @@ public class TeacherResponseDTO extends UserResponseDTO {
     private String phone;
     private String tc;
     private LocalDate birthDate;
-    private List<Long> classIds;
-    private List<Long> courseIds;
+    private List<TeacherCourseResponseDTO> teacherCourses;
 }

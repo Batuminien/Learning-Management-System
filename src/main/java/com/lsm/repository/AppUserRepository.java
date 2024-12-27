@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.lsm.model.entity.base.AppUser;
+
 import java.util.Optional;
 
 @Repository
@@ -18,10 +19,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByUsernameOrEmail(String username, String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
-    @Query("SELECT DISTINCT u FROM AppUser u " +
-            "LEFT JOIN FETCH u.teacherDetails td " +
-            "LEFT JOIN FETCH td.classes " +
-            "LEFT JOIN FETCH td.courses " +
+    @Query("SELECT DISTINCT dt.deviceToken " +
+            "FROM DeviceToken dt " +
+            "JOIN dt.user u " +
             "WHERE u.id = :userId")
     Optional<AppUser> findUserWithTeacherDetailsAndClasses(@Param("userId") Long userId);
     Page<AppUser> findAllByRole(Role role, Pageable pageable);

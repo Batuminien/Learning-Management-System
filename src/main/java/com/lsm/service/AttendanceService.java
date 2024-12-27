@@ -45,11 +45,10 @@ public class AttendanceService {
     public Attendance markAttendance(AppUser loggedInUser, AttendanceRequestDTO attendanceRequest) throws AccessDeniedException {
         if (loggedInUser.getRole().equals(Role.ROLE_STUDENT))
             throw new AccessDeniedException("Students can't mark attendance");
-        if (loggedInUser .getRole().equals(Role.ROLE_TEACHER)) {
+        if (loggedInUser.getRole().equals(Role.ROLE_TEACHER)) {
             AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
-            boolean found = user.getTeacherDetails().getClasses().stream()
-                    .flatMap(classEntity -> classEntity.getCourses().stream())
-                    .anyMatch(courseEntity -> courseEntity.getId().equals(attendanceRequest.getCourseId()));
+            boolean found = user.getTeacherDetails().getTeacherCourses().stream()
+                    .anyMatch(tc -> tc.getCourse().getId().equals(attendanceRequest.getCourseId()));
 
             if (!found) {
                 throw new AccessDeniedException("Teachers can only mark attendance to their courses");
@@ -65,22 +64,18 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void markBulkAttendance(AppUser  loggedInUser , List<AttendanceRequestDTO> attendanceRequests)
+    public void markBulkAttendance(AppUser loggedInUser, List<AttendanceRequestDTO> attendanceRequests)
             throws AccessDeniedException {
-        // Check if the logged-in user is a student
-        if (loggedInUser .getRole().equals(Role.ROLE_STUDENT)) {
+        if (loggedInUser.getRole().equals(Role.ROLE_STUDENT)) {
             throw new AccessDeniedException("Students can't mark attendance");
         }
 
-        // Check if the logged-in user is a teacher and validate their access to the courses
-        if (loggedInUser .getRole().equals(Role.ROLE_TEACHER)) {
-            AppUser  user = appUserService.getCurrentUserWithDetails(loggedInUser .getId());
-            Set<Long> courseIds = user.getTeacherDetails().getClasses().stream()
-                    .flatMap(classEntity -> classEntity.getCourses().stream())
-                    .map(Course::getId)
+        if (loggedInUser.getRole().equals(Role.ROLE_TEACHER)) {
+            AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
+            Set<Long> courseIds = user.getTeacherDetails().getTeacherCourses().stream()
+                    .map(tc -> tc.getCourse().getId())
                     .collect(Collectors.toSet());
 
-            // Validate that all attendance requests are for courses the teacher is associated with
             for (AttendanceRequestDTO attendanceRequest : attendanceRequests) {
                 if (!courseIds.contains(attendanceRequest.getCourseId())) {
                     throw new AccessDeniedException("Teachers can only mark attendance to their courses");
@@ -88,9 +83,8 @@ public class AttendanceService {
             }
         }
 
-        // Process each attendance request
         for (AttendanceRequestDTO attendanceRequest : attendanceRequests) {
-            AppUser  student = appUserRepository.findById(attendanceRequest.getStudentId())
+            AppUser student = appUserRepository.findById(attendanceRequest.getStudentId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             String.format("Student with ID %d not found.", attendanceRequest.getStudentId())
                     ));
@@ -154,36 +148,30 @@ public class AttendanceService {
     @Transactional
     public Attendance updateAttendance(AppUser loggedInUser, Long attendanceId, AttendanceRequestDTO attendanceRequest)
             throws AccessDeniedException {
-        // Check if the user is a student
         if (loggedInUser.getRole().equals(Role.ROLE_STUDENT)) {
             throw new AccessDeniedException("Students can't update attendance records");
         }
 
-        // Find the existing attendance record
         Attendance existingAttendance = attendanceRepository.findById(attendanceId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Attendance record with ID %d not found.", attendanceId)
                 ));
 
-        // If user is a teacher, verify they have access to the course
         if (loggedInUser.getRole().equals(Role.ROLE_TEACHER)) {
             AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
-            boolean hasAccess = user.getTeacherDetails().getClasses().stream()
-                    .flatMap(classEntity -> classEntity.getCourses().stream())
-                    .anyMatch(courseEntity -> courseEntity.getId().equals(existingAttendance.getCourseId()));
+            boolean hasAccess = user.getTeacherDetails().getTeacherCourses().stream()
+                    .anyMatch(tc -> tc.getCourse().getId().equals(existingAttendance.getCourseId()));
 
             if (!hasAccess) {
                 throw new AccessDeniedException("Teachers can only update attendance for their courses");
             }
         }
 
-        // Verify the student exists
         AppUser student = appUserRepository.findById(attendanceRequest.getStudentId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Student with ID %d not found.", attendanceRequest.getStudentId())
                 ));
 
-        // Update the attendance record
         existingAttendance.setStudent(student);
         existingAttendance.setDate(attendanceRequest.getDate());
         existingAttendance.setStatus(attendanceRequest.getStatus());

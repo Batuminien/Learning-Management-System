@@ -76,7 +76,10 @@ public class StudentSubmissionService {
         ClassEntity studentClass = classEntityRepository.findById(student.getStudentDetails().getClassEntity())
                 .orElseThrow(() -> new EntityNotFoundException("Student's class not found"));
 
-        if (!studentClass.getCourses().contains(assignment.getCourse())) {
+        boolean isEnrolled = studentClass.getTeacherCourses().stream()
+                .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));
+
+        if (!isEnrolled) {
             throw new AccessDeniedException("You can only submit assignments for your enrolled courses");
         }
     }

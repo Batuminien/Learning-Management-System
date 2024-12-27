@@ -17,23 +17,33 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
     @Query("SELECT c FROM ClassEntity c " +
             "LEFT JOIN FETCH c.assignments " +
             "LEFT JOIN FETCH c.students " +
-            "LEFT JOIN FETCH c.courses")
+            "LEFT JOIN FETCH c.teacherCourses tc " +
+            "LEFT JOIN FETCH tc.course")
     List<ClassEntity> findAllWithAssociations();
 
     Optional<ClassEntity> findClassEntityByName(String className);
 
     Optional<ClassEntity> getClassEntityById(Long id);
 
-    @Query("SELECT c FROM ClassEntity c LEFT JOIN FETCH c.assignments WHERE c.id = :id")
+    @Query("SELECT DISTINCT c FROM ClassEntity c " +
+            "LEFT JOIN FETCH c.assignments a " +
+            "LEFT JOIN FETCH a.assignedBy " +
+            "LEFT JOIN FETCH a.course " +
+            "LEFT JOIN FETCH a.lastModifiedBy " +
+            "LEFT JOIN FETCH a.teacherDocument " +
+            "LEFT JOIN FETCH c.students " +
+            "LEFT JOIN FETCH c.teacherCourses tc " +
+            "LEFT JOIN FETCH tc.teacher " +
+            "LEFT JOIN FETCH tc.course " +
+            "WHERE c.id = :id")
     Optional<ClassEntity> findByIdWithAssignments(@Param("id") Long id);
 
     @Query("SELECT DISTINCT c FROM ClassEntity c " +
             "LEFT JOIN FETCH c.assignments a " +
             "LEFT JOIN FETCH c.students s " +
-            "LEFT JOIN FETCH c.courses co " +
-            "WHERE c.teacher.id = :teacherId")
+            "LEFT JOIN FETCH c.teacherCourses tc " +
+            "WHERE tc.teacher.id = :teacherId")
     List<ClassEntity> findClassesByTeacherId(@Param("teacherId") Long teacherId);
 
-    // List<ClassEntity> findAllByIdIn(List<Long> ids);
     Set<ClassEntity> findAllByIdIn(List<Long> ids);
 }

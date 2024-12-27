@@ -6,6 +6,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.lsm.events.*;
 import com.lsm.exception.*;
+import com.lsm.model.DTOs.TeacherCourseDTO;
 import com.lsm.model.DTOs.auth.*;
 import com.lsm.model.DTOs.TokenRefreshResult;
 import com.lsm.model.entity.*;
@@ -273,10 +274,26 @@ public class AuthService {
     private TeacherDetails getTeacherDetails(TeacherRegisterRequestDTO registerRequest) {
         TeacherDetails teacherDetails = new TeacherDetails();
         teacherDetails.setTc(registerRequest.getTc());
-        teacherDetails.setClasses(getClasses(registerRequest.getClasses()));
-        teacherDetails.setCourses(getCourses(registerRequest.getCourses()));
         teacherDetails.setPhone(registerRequest.getPhone());
         teacherDetails.setBirthDate(registerRequest.getBirthDate());
+
+        Set<TeacherCourse> teacherCourses = new HashSet<>();
+
+        for (TeacherCourseDTO courseDTO : registerRequest.getTeacherCourses()) {
+            Course course = courseRepository.findById(courseDTO.getCourseId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + courseDTO.getCourseId()));
+
+            Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(courseDTO.getClassIds()));
+
+            TeacherCourse teacherCourse = TeacherCourse.builder()
+                    .course(course)
+                    .classes(classes)
+                    .build();
+
+            teacherCourses.add(teacherCourse);
+        }
+
+        teacherDetails.setTeacherCourses(teacherCourses);
         return teacherDetails;
     }
 
