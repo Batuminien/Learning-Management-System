@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getAllCourses } from "../../../services/coursesService";
+import { getAllClasses } from "../../../services/classesService";
 
 
 
@@ -10,15 +11,23 @@ const CourseClassMatching = () => {
     const { user } = useContext(AuthContext);
 
     const [courses, setCourses] = useState([]);
+    const [classes, setClasses] = useState([]);
+
     const [selectedCourse, setSelectedCourse] = useState({name : '', id : null});
     const[classesOfSelectedCourse, setClassesOfSelectedCourse] = useState([]);
+    const [nonClassesOfSelectedCourse, setNonClassesOfSelectedCourse] = useState('');
 
     useEffect(() => {
         const fetchCourses = async () => {
             try{
                 const allCourses = await getAllCourses(user.accessToken);
-                console.log(allCourses.data);
+                console.log('courses : ', allCourses.data);
                 setCourses(allCourses.data);
+                
+                const allClasses = await getAllClasses(user.accessToken);
+                console.log('classes : ', allClasses.data);
+                setClasses(allClasses.data);
+
             }catch(error){
                 console.log(error)
             }
@@ -32,9 +41,16 @@ const CourseClassMatching = () => {
         const newCourseID = Number(selectedOption.getAttribute('data-key'));
         const newSelectedCourse = {name : newCourseName, id : newCourseID};
         setSelectedCourse(newSelectedCourse);
-        const classes = courses.find(course => course.id === newCourseID).classEntityIds;
-        console.log('classes of the course : ', classes);
-        setClassesOfSelectedCourse(classes);
+
+        const classListOfCourse = courses.find(course => course.id === newCourseID).classEntityIds;
+        // console.log('id array : ', classListOfCourse);
+        const classesOfCourse = classes.filter((singleClass) => classListOfCourse.some(c => c === singleClass.id));
+        // console.log('classes of the course : ', classesOfCourse);
+        setClassesOfSelectedCourse(classesOfCourse);
+        
+        const nonClassesOfCourse = classes.filter((singleClass) => !classListOfCourse.some(c => c === singleClass.id));
+        // console.log('non classes of the course : ', nonClassesOfCourse);
+        setNonClassesOfSelectedCourse(nonClassesOfCourse);
     }
 
     return(
@@ -57,13 +73,24 @@ const CourseClassMatching = () => {
                             </option>
                         ))}
                     </select>
+
                     {classesOfSelectedCourse.length !== 0 && (
-                        classesOfSelectedCourse.map((singleClass) => (
-                            <div key={singleClass}>
+                        <>
+                        <p>bu dersi alan sınıflar</p>
+                        {classesOfSelectedCourse.map((singleClass) => (
+                            <span key={singleClass.id}>
                                 <input type="checkbox" />
-                                <span>{singleClass}</span>
-                            </div>
-                        ))
+                                <span>{singleClass.name}</span>
+                            </span>
+                        ))}
+                        <p>bu dersi almayan sınıflar</p>
+                        {nonClassesOfSelectedCourse.map((singleClass) => (
+                            <span key={singleClass.id}>
+                                <input type="checkbox" />
+                                <span>{singleClass.name}</span>
+                            </span>
+                        ))}
+                        </>
                     )}
                 </>
             )}

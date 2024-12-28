@@ -14,8 +14,11 @@ import { useContext, useEffect, useState } from "react";
 import { fetchCssVariable } from '../../../../utils/fileUtils';
 
 import { robotoFont } from '../../../../../public/Roboto-Regular-normal';
+import Loading from '../../../common/Loading/Loading';
 
 const StudentAttendance = () => {
+    const [isLoading, setIsLoading] = useState(false);
+
     const { user } = useContext(AuthContext);
     const [studentClass, setStudentClass] = useState('');
 
@@ -49,12 +52,13 @@ const StudentAttendance = () => {
             setSearchError('Başlangıç tarihi bitiş tarihinden önce olmalıdır.');
             return;
         }
-        setIsSearched(true);
-        const params = {};
-        params.startDate = (startDate ? startDate : gettwoyearsBefore());
-        params.endDate = endDate ? endDate : (new Date().toISOString().split('T')[0]);
-        console.log(params)
         try {
+            setIsLoading(true);
+            setIsSearched(true);
+            const params = {};
+            params.startDate = (startDate ? startDate : gettwoyearsBefore());
+            params.endDate = endDate ? endDate : (new Date().toISOString().split('T')[0]);
+            console.log(params)
             const attendanceHistoryBySubjects = {};
             const historyResponse = await getAttendanceOfStudent(user.id, params, user.accessToken);
             console.log(historyResponse)
@@ -76,6 +80,8 @@ const StudentAttendance = () => {
             setStatsBySubject(attendanceStatsBySubjects);
         }catch(error) {
             setRequestReload(true);
+        }finally {
+            setIsLoading(false);
         }
     }
 
@@ -151,6 +157,8 @@ const StudentAttendance = () => {
     if(requestReload) {
         return(<p>something went wrong, please reload...</p>);
     }
+
+    if(isLoading) {return(<Loading/>)}
 
     return(
         <>

@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { downloadDocument } from '../../../services/assignmentService';
 import { AuthContext } from '../../../contexts/AuthContext';
 
-// import deleteIcon from 'icons/delete.svg';
+import { PiTrashBold } from "react-icons/pi";
 
 const Document = ({file, isRemovable = false, onRemove = null}) => {
     const { user } = useContext(AuthContext);
@@ -32,7 +32,7 @@ const Document = ({file, isRemovable = false, onRemove = null}) => {
             <span className="assignment-document" onClick={handleDocumentDownload}>{file?.name || file?.fileName}</span>
             {isRemovable &&
                 <button type='button' className='delete-icon' onClick={() => onRemove()}>
-                    <img src='icons/delete.svg' alt="remove file"/>
+                    <PiTrashBold className='icon-faded' size={24}/>
                 </button>
             }
         </div>

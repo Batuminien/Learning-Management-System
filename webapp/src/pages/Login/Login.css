@@ -140,9 +140,3 @@ input:checked + .slider:before {
 }
 
 
-.error-message {
-  color: red;
-  font-family: var(--label-font);
-  font-size: var(--label-size);
-  font-weight: var(--label-weight);
-}

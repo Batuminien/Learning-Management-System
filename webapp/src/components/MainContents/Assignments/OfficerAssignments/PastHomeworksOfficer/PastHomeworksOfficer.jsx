@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './PastHomeworksOfficer.css';
 import AssignmentSearch from '../../../../../utils/assignmentSearch/assignmentSearch';
 import GradeAssignment from './GradeAssignment';
+import NoAssignmentFound from '../../NoAssignmentFound';
 
 const PastHomeworksOfficer = () => {
     const [assignments, setAssignments] = useState([]);
@@ -30,7 +31,7 @@ const PastHomeworksOfficer = () => {
                         />
                     ))
                 ) : (
-                    <p>no assignments found</p>
+                    <NoAssignmentFound/>
                 )
             )}
         </>

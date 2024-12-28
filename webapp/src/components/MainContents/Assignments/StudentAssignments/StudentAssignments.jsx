@@ -5,6 +5,9 @@ import { getAssignmentOptions } from '../../../../utils/assignmentOptions';
 
 import Navigator from '../../../common/Navigator/Navigator';
 import SingleAssigment from './SingleAssignment/SingleAssignment';
+import NoAssignmentFound from '../NoAssignmentFound';
+
+import Loading from '../../../common/Loading/Loading';
 
 
 const StudentAssignments = ({ user }) => {
@@ -46,7 +49,7 @@ const StudentAssignments = ({ user }) => {
   };
 
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading />;
   if (error) return <p>Error: {error}</p>;
 
   return (
@@ -69,7 +72,7 @@ const StudentAssignments = ({ user }) => {
           ))}
         </ul>
       ) : (
-        <p>No assignments found</p>
+        <NoAssignmentFound/>
       )}
     </>
   );

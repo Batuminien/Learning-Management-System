@@ -1,27 +1,30 @@
 import { useState } from 'react';
 
+import { ArrowDown } from '../../../../../public/icons/Icons';
+import { ArrowUp } from '../../../../../public/icons/Icons';
+
 const SubjectAttendance = ({ stats, history, forceExpand }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return(
-        <div className="assignment-container">
-            <div className="assignment-header" onClick={() => setIsExpanded((prev) => !prev)}>
-                <div className="assignment-header-info">
+        <div className="unit-container">
+            <div className="unit-header" onClick={() => setIsExpanded((prev) => !prev)}>
+                <div className="unit-header-info">
                     <img src="https://placeholder.pics/svg/32x32" alt="icon" />
-                    <span className="assignment-subject">{stats.courseName}</span>
+                    <span className="unit-subject">{stats.courseName}</span>
                 </div>
                 {!forceExpand && (
                     <button className="expand-btn">
-                        <img src={(isExpanded || forceExpand) ? 'icons/arrow-up.svg' : 'icons/arrow-down.svg'} alt="toggle assignment details" />
+                        {(isExpanded || forceExpand) ? <ArrowUp/> : <ArrowDown/>}
                     </button>
                 )}
             </div>
             {(isExpanded || forceExpand) && 
                 (history ?                
                     (
-                        <div className="assignment-body">
+                        <div className="unit-body">
                             <div style={{border : '1px solid grey'}}></div>
-                            <div className="assignment-body-section">
+                            <div className="unit-body-section">
                                 <table className="attendance-table">
                                     <thead className='table-header'>
                                         <tr>
@@ -48,7 +51,7 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
                                 </table>
                             </div>
                             <div style={{border : '1px solid grey'}}></div>
-                            <div className="assignment-body-section">
+                            <div className="unit-body-section">
                                 <table className="attendance-table">
                                     <thead className='table-header'>
                                         <tr>

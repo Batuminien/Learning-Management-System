@@ -1,4 +1,5 @@
 import './Header.css';
+import { ArrowDown } from '../../../../public/icons/Icons';
 
 const Header = ({title = "Ana Menü", user = {name : 'Name', imgSource : 'https://placeholder.pics/svg/60x60'}}) => {
 
@@ -11,7 +12,7 @@ const Header = ({title = "Ana Menü", user = {name : 'Name', imgSource : 'https:
                     <span className="username">{user.name}</span>
                 </div>
                 <div className="dropdown-icon">
-                    <img src="https://placeholder.pics/svg/24x24" alt="" />
+                    <ArrowDown/>                    
                 </div>
             </div>
         </div>

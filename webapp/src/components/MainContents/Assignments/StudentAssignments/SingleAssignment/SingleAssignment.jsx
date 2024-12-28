@@ -4,6 +4,7 @@ import './SingleAssignment.css';
 import { downloadDocument, submitAssignment, unsubmitStudentAssignment } from '../../../../../services/assignmentService';
 import { AuthContext } from '../../../../../contexts/AuthContext';
 import Document from '../../../../common/Document/Document';
+import { ArrowDown, ArrowUp } from '../../../../../../public/icons/Icons';
 
 const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
     const { user } = useContext(AuthContext);
@@ -13,7 +14,6 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [submissionComment, setSubmissionComment] = useState('');
 
-    console.log(assignment);
     const handleFileUpload = (event) => {
         const file = event.target.files[0];
         setUploadedFile(file);
@@ -50,65 +50,49 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
 
     }
 
-    // TODO
-    const handleDocumentDownload = async () => {
-        console.log('handling document download');
-        console.log(assignment.teacherDocument);
-        try {
-            const response = await downloadDocument(assignment.teacherDocument.documentId, user.accessToken);
-            console.log(response);
-            const objectURL = URL.createObjectURL(response);
-            const a = document.createElement('a');
-            a.href = objectURL;
-            // a.download = 
-        }catch(error) {
-            console.log(error);
-        }
-    }
-
     return(
-        <div className='assignment-container'>
-            <div className='assignment-header' onClick={() => setIsExpanded((prev) => !prev)}>
-                <div className='assignment-header-info'>
+        <div className='unit-container'>
+            <div className='unit-header' onClick={() => setIsExpanded((prev) => !prev)}>
+                <div className='unit-header-info'>
                     <img src='https://placeholder.pics/svg/32x32' alt='icon' />
-                    <span className='assignment-subject'>{assignment.courseName}</span>
-                    <span className='assignment-title'>{assignment.title}</span>
-                    <span className='assignment-dueDate'>{(new Date(assignment.createdDate)).toLocaleDateString('en-GB')} - {(new Date(assignment.dueDate)).toLocaleDateString('en-GB')}</span>
+                    <span className='unit-subject'>{assignment.courseName}</span>
+                    <span className='unit-title'>{assignment.title}</span>
+                    <span className='unit-dueDate'>{(new Date(assignment.createdDate)).toLocaleDateString('en-GB')} - {(new Date(assignment.dueDate)).toLocaleDateString('en-GB')}</span>
                 </div>
                 <button className='expand-btn'>
-                    <img src={isExpanded ? 'icons/arrow-up.svg' : 'icons/arrow-down.svg'} alt='toggle assignment details' />
+                    {isExpanded ? <ArrowUp /> : <ArrowDown />}
                 </button>
             </div>
             {isExpanded && (
-                <div className='assignment-body'>
+                <div className='unit-body'>
                     <div style={{border : '1px solid grey'}}></div>
 
-                    <div className='assignment-body-section'>
-                        <label className='assignment-section-title'>Açıklama</label>
+                    <div className='unit-body-section'>
+                        <label className='unit-section-title'>Açıklama</label>
                         {assignment.description ? (
-                            <p className='assignment-section-text'>{assignment.description}</p>
+                            <p className='unit-section-text'>{assignment.description}</p>
                         ) : (
-                            <i className='assignment-section-text'>Açıklama yok.</i>
+                            <i className='unit-section-text'>Açıklama yok.</i>
                         )}
                     </div>
 
-                    <div className='assignment-body-section'>
-                        <label className='assignment-section-title'>Yardımcı materyaller</label>
+                    <div className='unit-body-section'>
+                        <label className='unit-section-title'>Yardımcı materyaller</label>
                         {assignment.teacherDocument ? (
                             <Document 
                                 file={assignment.teacherDocument}
                             />
                         ) : (
-                            <i className='assignment-section-text'>Döküman eklenmedi.</i>
+                            <i className='unit-section-text'>Döküman eklenmedi.</i>
                         )}
                     </div>
                     
                     {status === 'PENDING' && (
                         <>
-                            <div className='assignment-body-section'>
+                            <div className='unit-body-section'>
                                 {uploadedFile ? (
                                     <>
-                                        <label className='assignment-section-title'>Yüklenen döküman</label>
+                                        <label className='unit-section-title'>Yüklenen döküman</label>
                                         <Document 
                                             file={uploadedFile}
                                             isRemovable={true}
@@ -117,13 +101,13 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                                     </>
                                 ) : (
                                     <>
-                                        <label className='assignment-section-title'>Döküman ekle</label>
+                                        <label className='unit-section-title'>Döküman ekle</label>
                                         <input type='file' onChange={handleFileUpload}/>
                                     </>
                                 )}
                             </div>
-                            <div className='assignment-body-section'>
-                                <label className='assignment-section-title'>Teslim notu</label>
+                            <div className='unit-body-section'>
+                                <label className='unit-section-title'>Teslim notu</label>
                                 <div className='input-container'>
                                     
                                 <textarea
@@ -132,6 +116,8 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                                     style={{resize : 'none', width : '50%', aspectRatio : 5}}
                                     value={submissionComment}
                                     onChange={(event) => setSubmissionComment(event.target.value)}
+                                    lang='tr'
+                                    spellCheck='false'
                                     />
                                     </div>
                             </div>
@@ -141,8 +127,8 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
 
                     {(status === 'GRADED' || status === 'SUBMITTED') && 
                         <>
-                            <div className='assignment-body-section'>
-                                <label className='assignment-section-title'>Eklenen döküman</label>
+                            <div className='unit-body-section'>
+                                <label className='unit-section-title'>Eklenen döküman</label>
                                 {(assignment.mySubmission && assignment.mySubmission.document) ? (
                                     <Document 
                                     file={assignment.mySubmission.document}
@@ -151,10 +137,10 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                                     <i>Döküman eklenmedi.</i>
                                 )}
                             </div>
-                            <div className='assignment-body-section'>
-                                <label className='assignment-section-title'>Teslim notu</label>
+                            <div className='unit-body-section'>
+                                <label className='unit-section-title'>Teslim notu</label>
                                 {(assignment.mySubmission && assignment.mySubmission.comment) ?(
-                                    <p className='assignment-section-text'>{assignment.mySubmission.comment}</p>
+                                    <p className='unit-section-text'>{assignment.mySubmission.comment}</p>
                                 ) : (
                                     <i>Not eklenmedi.</i>
                                 )}
@@ -168,18 +154,18 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                     }
                     {status === 'GRADED' &&
                         <>
-                            <div className='assignment-body-section'>
-                                <label className='assignment-section-title'>Ödev sonucu</label>
+                            <div className='unit-body-section'>
+                                <label className='unit-section-title'>Ödev sonucu</label>
                                 {(assignment.mySubmission && assignment.mySubmission.grade) ? (
                                     <span className='assignment-grade'>{assignment.mySubmission.grade}/100</span>
                                 ) : (
                                     <i>Daha sonuçlandırılmadı</i>
                                 )}
                             </div>
-                            <div className='assignment-body-section'>
-                                <label className='assignment-section-title'>Geri dönüş</label>
+                            <div className='unit-body-section'>
+                                <label className='unit-section-title'>Geri dönüş</label>
                                 {(assignment.mySubmission && assignment.mySubmission.feedback) ? (
-                                    <p className='assignment-section-text'>{assignment.mySubmission.feedback}</p>
+                                    <p className='unit-section-text'>{assignment.mySubmission.feedback}</p>
                                 ) : (
                                     <i> Geri dönüş yapılmadı.</i>
                                 )}

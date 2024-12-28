@@ -2,6 +2,7 @@ import './ActiveHomeworksOfficer.css';
 import AssignmentSearch from '../../../../../utils/assignmentSearch/assignmentSearch';
 import { useState } from 'react';
 import UpdateAssignment from './UpdateAssignment/UpdateAssignment';
+import NoAssignmentFound from '../../NoAssignmentFound';
 
 const ActiveHomeworksOfficer = () => {
     const [isSearched, setIsSearched] = useState(false);
@@ -36,7 +37,7 @@ const ActiveHomeworksOfficer = () => {
                         />
                     ))
                 ) : (
-                    <p>no assignments found</p>
+                    <NoAssignmentFound/>
                 )
             )}
         </>

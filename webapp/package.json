@@ -15,9 +15,11 @@
     "js-cookie": "^3.0.5",
     "js-cookies": "^1.0.4",
     "jspdf": "^2.5.2",
+    "lucide-react": "^0.469.0",
     "react": "^18.3.1",
     "react-date-range": "^2.0.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.4.0",
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {

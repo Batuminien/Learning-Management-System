@@ -7,9 +7,12 @@ import NavigationOption from '../NavigationOption/NavigationOption';
 import { AuthContext } from '../../../contexts/AuthContext';
 import authService from '../../../services/authService';
 
+import { PiSignOutBold } from "react-icons/pi";
+
 const Sidebar = ({options, onSelect}) => {
 
     const [highlightedOption, setHighlightedOption] = useState(0);
+
     
     const { user,logout } = useContext(AuthContext);
 
@@ -31,7 +34,7 @@ const Sidebar = ({options, onSelect}) => {
                         <NavigationOption
                             key={index}
                             title={option.title}
-                            // iconSource={} it will have option.icon later on
+                            IconSource={option.iconSource}
                             isHighlighted={index === highlightedOption}
                             onClick={() => {
                                 setHighlightedOption(index);
@@ -39,9 +42,12 @@ const Sidebar = ({options, onSelect}) => {
                             }}
                         />
                     ))}
+
+
                 <NavigationOption 
                     title='Çıkış Yap'
                     onClick={handleLogout}
+                    IconSource={PiSignOutBold}
                 />
             </div>
         </div>

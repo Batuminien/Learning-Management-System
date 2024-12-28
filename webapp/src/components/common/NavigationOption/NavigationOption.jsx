@@ -1,9 +1,9 @@
 import './NavigationOption.css'
 
-function NavigationOption({title = 'Navigation item', iconSource = 'https://placeholder.pics/svg/32x32', isHighlighted, onClick}) {
+function NavigationOption({title = 'Navigation item', IconSource, isHighlighted, onClick}) {
     return(
         <div className={`navigation-option ${isHighlighted ? 'highlighted' : 'default'}`} onClick={onClick}>
-            <img src={iconSource} alt="icon" className='icon'/>
+            {IconSource && <IconSource className={isHighlighted ? 'icon-highlighted' : 'icon'} size={34}/>}
             <p className="navigation-title">{title}</p>
         </div>
     );

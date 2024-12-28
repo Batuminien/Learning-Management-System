@@ -4,6 +4,9 @@ import NavigationOption from '../../common/NavigationOption/NavigationOption';
 import NewStudentForm from './NewStudentForm';
 import NewTeacherForm from './NewTeacherForm';
 
+import { PiChalkboardTeacherBold } from "react-icons/pi";
+import { PiStudentBold } from "react-icons/pi";
+
 const NewUser = () => {
 
     const [userType, setUserType] = useState('ROLE_STUDENT'); 
@@ -20,6 +23,7 @@ const NewUser = () => {
                     onClick={() => {
                         setUserType('ROLE_STUDENT');
                     }}
+                    IconSource={PiChalkboardTeacherBold}
                 />
                 <NavigationOption 
                     title='Öğretmen'
@@ -27,6 +31,7 @@ const NewUser = () => {
                     onClick={() => {
                         setUserType('ROLE_TEACHER');
                     }}
+                    IconSource={PiStudentBold}
                 />
             </div>
                 {userType === 'ROLE_STUDENT'

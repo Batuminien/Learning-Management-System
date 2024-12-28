@@ -15,12 +15,7 @@ const ClassesDropdown = ({user, onError, onClassChange, classErrorMessage}) => {
 
 
     const handleClassChange = (event) => {
-        const selectedOption = event.target.options[event.target.selectedIndex];
-        const newClassName = selectedOption.value;
-        const newClassID = selectedOption.getAttribute('data-key');
-        const newSelectedClass = {name : newClassName, id : newClassID};
-        setSelectedClass(newSelectedClass);
-        onClassChange(newSelectedClass);
+        
     }
 
     return(
