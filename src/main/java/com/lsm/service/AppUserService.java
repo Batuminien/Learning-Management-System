@@ -38,7 +38,7 @@ public class AppUserService implements UserDetailsService {
 
     @Transactional(readOnly = true)
     public AppUser getCurrentUserWithDetails(Long userId) {
-        return appUserRepository.findUserWithTeacherDetailsAndClasses(userId)
+        return appUserRepository.findUserWithAllDetails(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 }

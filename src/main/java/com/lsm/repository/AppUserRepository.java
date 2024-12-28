@@ -37,5 +37,17 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     """)
     Optional<AppUser> findUserWithTeacherDetailsAndClasses(@Param("userId") Long userId);
 
+    @Query("""
+    SELECT DISTINCT u FROM AppUser u
+    LEFT JOIN FETCH u.teacherDetails td
+    LEFT JOIN FETCH td.teacherCourses tc
+    LEFT JOIN FETCH tc.course c
+    LEFT JOIN FETCH tc.classes cls
+    LEFT JOIN FETCH u.studentDetails sd
+    LEFT JOIN FETCH sd.classEntity
+    WHERE u.id = :userId
+    """)
+    Optional<AppUser> findUserWithAllDetails(@Param("userId") Long userId);
+
     Page<AppUser> findAllByRole(Role role, Pageable pageable);
 }

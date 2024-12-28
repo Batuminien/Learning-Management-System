@@ -21,6 +21,7 @@ import jakarta.persistence.EntityNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,20 +58,40 @@ public class ClassEntityService {
 
     @Transactional
     public ClassEntity getClassById(AppUser loggedInUser, Long id) throws AccessDeniedException, EntityNotFoundException {
+        // First verify class exists
         ClassEntity classEntity = classRepository.findByIdWithAssignments(id)
                 .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
 
-        AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
+        // Get user with details - make this more explicit
+        AppUser user = Optional.ofNullable(appUserService.getCurrentUserWithDetails(loggedInUser.getId()))
+                .orElseThrow(() -> new EntityNotFoundException("User details not found for user: " + loggedInUser.getId()));
 
-        if (user.getRole().equals(Role.ROLE_STUDENT)
-                && !user.getStudentDetails().getClassEntity().getId().equals(classEntity.getId()))
-            throw new AccessDeniedException("Students can't get the class which they are not enrolled.");
+        // Verify user has required details based on role
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
+            if (user.getStudentDetails() == null) {
+                throw new EntityNotFoundException("Student details not found for user: " + user.getId());
+            }
+            if (user.getStudentDetails().getClassEntity() == null) {
+                throw new EntityNotFoundException("No class enrollment found for student: " + user.getId());
+            }
+            if (!user.getStudentDetails().getClassEntity().getId().equals(classEntity.getId())) {
+                throw new AccessDeniedException("Students can't get the class which they are not enrolled.");
+            }
+        }
 
-        if (user.getRole().equals(Role.ROLE_TEACHER)
-                && user.getTeacherDetails().getTeacherCourses().stream()
-                .noneMatch(tc -> tc.getClasses().stream()
-                        .anyMatch(c -> c.getId().equals(classEntity.getId()))))
-            throw new AccessDeniedException("Students can't get the class which they are not teaching.");
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            if (user.getTeacherDetails() == null) {
+                throw new EntityNotFoundException("Teacher details not found for user: " + user.getId());
+            }
+            if (user.getTeacherDetails().getTeacherCourses() == null) {
+                throw new EntityNotFoundException("No courses found for teacher: " + user.getId());
+            }
+            if (user.getTeacherDetails().getTeacherCourses().stream()
+                    .noneMatch(tc -> tc.getClasses().stream()
+                            .anyMatch(c -> c.getId().equals(classEntity.getId())))) {
+                throw new AccessDeniedException("Teacher is not assigned to this class.");
+            }
+        }
 
         return classEntity;
     }
