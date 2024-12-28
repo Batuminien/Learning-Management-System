@@ -1,50 +1,44 @@
 -- V12__Fix_Teacher_Course_Classes_Table.sql
 
--- First verify if table exists and create if it doesn't
-DO $$
-    BEGIN
-        IF NOT EXISTS (
-            SELECT FROM pg_tables
-            WHERE schemaname = 'public'
-              AND tablename = 'teacher_course_classes'
-        ) THEN
-            CREATE TABLE teacher_course_classes (
-                                                    teacher_course_id BIGINT,
-                                                    class_id BIGINT,
-                                                    CONSTRAINT pk_teacher_course_classes PRIMARY KEY (teacher_course_id, class_id)
-            );
+-- Create sequence if not exists
+CREATE SEQUENCE IF NOT EXISTS teacher_course_seq START WITH 1 INCREMENT BY 1;
 
-            -- Add foreign key constraints
-            ALTER TABLE teacher_course_classes
-                ADD CONSTRAINT fk_tcc_teacher_course
-                    FOREIGN KEY (teacher_course_id)
-                        REFERENCES teacher_courses(id)
-                        ON DELETE CASCADE;
+-- Create the join table cleanly
+DROP TABLE IF EXISTS teacher_course_classes;
 
-            ALTER TABLE teacher_course_classes
-                ADD CONSTRAINT fk_tcc_class
-                    FOREIGN KEY (class_id)
-                        REFERENCES classes(id)
-                        ON DELETE CASCADE;
+CREATE TABLE teacher_course_classes (
+                                        teacher_course_id BIGINT NOT NULL,
+                                        class_id BIGINT NOT NULL,
+                                        CONSTRAINT pk_teacher_course_classes PRIMARY KEY (teacher_course_id, class_id),
+                                        CONSTRAINT fk_teacher_course_ref
+                                            FOREIGN KEY (teacher_course_id)
+                                                REFERENCES teacher_courses(id)
+                                                ON DELETE CASCADE,
+                                        CONSTRAINT fk_class_ref
+                                            FOREIGN KEY (class_id)
+                                                REFERENCES classes(id)
+                                                ON DELETE CASCADE
+);
 
-            -- Add indexes for better performance
-            CREATE INDEX idx_tcc_teacher_course ON teacher_course_classes(teacher_course_id);
-            CREATE INDEX idx_tcc_class ON teacher_course_classes(class_id);
-        END IF;
-    END $$;
+-- Add performance indexes
+CREATE INDEX idx_tcc_teacher_course ON teacher_course_classes(teacher_course_id);
+CREATE INDEX idx_tcc_class ON teacher_course_classes(class_id);
 
--- Migrate existing relationships if needed
-DO $$
-    BEGIN
-        -- Insert teacher-class relationships through teacher_courses
-        INSERT INTO teacher_course_classes (teacher_course_id, class_id)
-        SELECT DISTINCT tc.id, c.id
-        FROM teacher_courses tc
-                 CROSS JOIN classes c
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM teacher_course_classes tcc
-            WHERE tcc.teacher_course_id = tc.id
-              AND tcc.class_id = c.id
-        );
-    END $$;
+-- Insert existing relationships
+INSERT INTO teacher_course_classes (teacher_course_id, class_id)
+SELECT tc.id, c.id
+FROM teacher_courses tc
+         CROSS JOIN classes c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM teacher_course_classes tcc
+    WHERE tcc.teacher_course_id = tc.id
+      AND tcc.class_id = c.id
+);
+
+-- Verify the relationships
+SELECT EXISTS (
+    SELECT 1
+    FROM teacher_course_classes
+    LIMIT 1
+) as has_relationships;
