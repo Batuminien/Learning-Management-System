@@ -40,6 +40,18 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
     Optional<ClassEntity> findByIdWithAssignments(@Param("id") Long id);
 
     @Query("""
+    SELECT DISTINCT c FROM ClassEntity c 
+    LEFT JOIN FETCH c.assignments
+    LEFT JOIN FETCH c.students
+    LEFT JOIN FETCH c.teacherCourses tc
+    LEFT JOIN FETCH tc.teacher
+    LEFT JOIN FETCH tc.course
+    LEFT JOIN FETCH tc.classes
+    WHERE c.id = :id
+    """)
+    Optional<ClassEntity> findByIdWithAllDetails(@Param("id") Long id);
+
+    @Query("""
     SELECT DISTINCT c FROM ClassEntity c
     LEFT JOIN FETCH c.teacherCourses tc
     LEFT JOIN FETCH tc.teacher t

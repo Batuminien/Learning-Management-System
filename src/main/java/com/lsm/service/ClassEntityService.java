@@ -59,7 +59,7 @@ public class ClassEntityService {
     @Transactional
     public ClassEntity getClassById(AppUser loggedInUser, Long id) throws AccessDeniedException, EntityNotFoundException {
         // First verify class exists
-        ClassEntity classEntity = classRepository.findByIdWithAssignments(id)
+        ClassEntity classEntity = classRepository.findByIdWithAllDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
 
         // Get user with details - make this more explicit
