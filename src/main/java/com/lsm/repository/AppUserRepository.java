@@ -19,10 +19,23 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByUsernameOrEmail(String username, String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
-    @Query("SELECT DISTINCT dt.deviceToken " +
-            "FROM DeviceToken dt " +
-            "JOIN dt.user u " +
-            "WHERE u.id = :userId")
+    @Query("""
+    SELECT DISTINCT dt.deviceToken 
+    FROM DeviceToken dt 
+    JOIN dt.user u 
+    WHERE u.id = :userId
+    """)
+    Optional<String> findDeviceTokenByUserId(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT DISTINCT u FROM AppUser u
+    JOIN u.teacherDetails td
+    LEFT JOIN FETCH td.teacherCourses tc
+    LEFT JOIN FETCH tc.course c
+    LEFT JOIN FETCH tc.classes cls
+    WHERE u.id = :userId AND u.role = 'ROLE_TEACHER'
+    """)
     Optional<AppUser> findUserWithTeacherDetailsAndClasses(@Param("userId") Long userId);
+
     Page<AppUser> findAllByRole(Role role, Pageable pageable);
 }
