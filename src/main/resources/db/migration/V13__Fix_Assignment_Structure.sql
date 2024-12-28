@@ -1,8 +1,10 @@
 -- V13__Fix_Assignment_Structure.sql
 
--- First verify if column exists
 DO $$
+    DECLARE
+        null_assignments INTEGER;
     BEGIN
+        -- First check if column exists
         IF NOT EXISTS (
             SELECT 1
             FROM information_schema.columns
@@ -12,30 +14,68 @@ DO $$
             -- Add the column if it doesn't exist
             ALTER TABLE assignments
                 ADD COLUMN teacher_course_id BIGINT;
+        END IF;
 
-            -- Add foreign key constraint
-            ALTER TABLE assignments
-                ADD CONSTRAINT fk_assignment_teacher_course
-                    FOREIGN KEY (teacher_course_id)
-                        REFERENCES teacher_courses(id);
+        -- Check for NULL values before update
+        SELECT COUNT(*) INTO null_assignments
+        FROM assignments
+        WHERE teacher_course_id IS NULL;
 
-            -- Update existing assignments with appropriate teacher_course_id
-            UPDATE assignments a
-            SET teacher_course_id = (
-                SELECT tc.id
-                FROM teacher_courses tc
-                WHERE tc.teacher_id = a.assigned_by_teacher_id
-                  AND tc.course_id = a.course_id
-                LIMIT 1
-            )
-            WHERE teacher_course_id IS NULL;
+        RAISE NOTICE 'Found % assignments with NULL teacher_course_id', null_assignments;
 
-            -- Make the column NOT NULL after data migration
+        -- Update assignments without teacher_course_id
+        WITH assignment_updates AS (
+            SELECT
+                a.id as assignment_id,
+                tc.id as teacher_course_id
+            FROM assignments a
+                     JOIN teacher_courses tc ON tc.teacher_id = a.assigned_by_teacher_id
+                AND tc.course_id = a.course_id
+            WHERE a.teacher_course_id IS NULL
+        )
+        UPDATE assignments a
+        SET teacher_course_id = au.teacher_course_id
+        FROM assignment_updates au
+        WHERE a.id = au.assignment_id;
+
+        -- Verify update
+        SELECT COUNT(*) INTO null_assignments
+        FROM assignments
+        WHERE teacher_course_id IS NULL;
+
+        IF null_assignments = 0 THEN
+            -- Add foreign key constraint if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_assignment_teacher_course'
+            ) THEN
+                ALTER TABLE assignments
+                    ADD CONSTRAINT fk_assignment_teacher_course
+                        FOREIGN KEY (teacher_course_id)
+                            REFERENCES teacher_courses(id);
+            END IF;
+
+            -- Make it NOT NULL
             ALTER TABLE assignments
                 ALTER COLUMN teacher_course_id SET NOT NULL;
-        END IF;
-    END $$;
 
--- Add index for better performance
-CREATE INDEX IF NOT EXISTS idx_assignments_teacher_course
-    ON assignments(teacher_course_id);
+            RAISE NOTICE 'Successfully updated all assignments and set NOT NULL constraint';
+        ELSE
+            RAISE NOTICE '% assignments still have NULL teacher_course_id', null_assignments;
+
+            -- Show problematic assignments
+            RAISE NOTICE 'Problematic assignments:';
+            FOR r IN (
+                SELECT id, title, assigned_by_teacher_id, course_id
+                FROM assignments
+                WHERE teacher_course_id IS NULL
+            ) LOOP
+                    RAISE NOTICE 'Assignment ID: %, Title: %, Teacher: %, Course: %',
+                        r.id, r.title, r.assigned_by_teacher_id, r.course_id;
+                END LOOP;
+        END IF;
+
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Error in migration: %', SQLERRM;
+    END $$;
