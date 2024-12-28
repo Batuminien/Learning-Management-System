@@ -63,11 +63,17 @@ public class ClassEntityService {
                 .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
 
         // Get user with details - make this more explicit
-        AppUser user = Optional.ofNullable(appUserService.getCurrentUserWithDetails(loggedInUser.getId()))
-                .orElseThrow(() -> new EntityNotFoundException("User details not found for user: " + loggedInUser.getId()));
+        AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
-        // Verify user has required details based on role
-        if (user.getRole().equals(Role.ROLE_STUDENT)) {
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            // Add this line to eagerly fetch the classes for teacher verification
+            List<ClassEntity> teacherClasses = classRepository.findClassesByTeacherId(user.getId());
+            boolean hasAccess = teacherClasses.stream()
+                    .anyMatch(c -> c.getId().equals(classEntity.getId()));
+            if (!hasAccess) {
+                throw new AccessDeniedException("Teacher is not assigned to this class.");
+            }
+        } else if (user.getRole().equals(Role.ROLE_STUDENT)) {
             if (user.getStudentDetails() == null) {
                 throw new EntityNotFoundException("Student details not found for user: " + user.getId());
             }
@@ -76,20 +82,6 @@ public class ClassEntityService {
             }
             if (!user.getStudentDetails().getClassEntity().getId().equals(classEntity.getId())) {
                 throw new AccessDeniedException("Students can't get the class which they are not enrolled.");
-            }
-        }
-
-        if (user.getRole().equals(Role.ROLE_TEACHER)) {
-            if (user.getTeacherDetails() == null) {
-                throw new EntityNotFoundException("Teacher details not found for user: " + user.getId());
-            }
-            if (user.getTeacherDetails().getTeacherCourses() == null) {
-                throw new EntityNotFoundException("No courses found for teacher: " + user.getId());
-            }
-            if (user.getTeacherDetails().getTeacherCourses().stream()
-                    .noneMatch(tc -> tc.getClasses().stream()
-                            .anyMatch(c -> c.getId().equals(classEntity.getId())))) {
-                throw new AccessDeniedException("Teacher is not assigned to this class.");
             }
         }
 
