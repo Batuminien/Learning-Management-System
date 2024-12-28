@@ -38,11 +38,17 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
             "WHERE c.id = :id")
     Optional<ClassEntity> findByIdWithAssignments(@Param("id") Long id);
 
-    @Query("SELECT DISTINCT c FROM ClassEntity c " +
-            "LEFT JOIN FETCH c.assignments a " +
-            "LEFT JOIN FETCH c.students s " +
-            "LEFT JOIN FETCH c.teacherCourses tc " +
-            "WHERE tc.teacher.id = :teacherId")
+    @Query("""
+    SELECT DISTINCT c FROM ClassEntity c
+    LEFT JOIN FETCH c.teacherCourses tc
+    LEFT JOIN FETCH tc.teacher t
+    LEFT JOIN FETCH tc.course
+    LEFT JOIN FETCH c.assignments a
+    LEFT JOIN FETCH a.course
+    LEFT JOIN FETCH a.teacherCourse
+    LEFT JOIN FETCH c.students s
+    WHERE tc.teacher.id = :teacherId
+    """)
     List<ClassEntity> findClassesByTeacherId(@Param("teacherId") Long teacherId);
 
     Set<ClassEntity> findAllByIdIn(List<Long> ids);
