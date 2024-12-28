@@ -63,7 +63,7 @@ public class ClassEntityService {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
         if (user.getRole().equals(Role.ROLE_STUDENT)
-                && !user.getStudentDetails().getClassEntity().equals(classEntity.getId()))
+                && !user.getStudentDetails().getClassEntity().getId().equals(classEntity.getId()))
             throw new AccessDeniedException("Students can't get the class which they are not enrolled.");
 
         if (user.getRole().equals(Role.ROLE_TEACHER)
