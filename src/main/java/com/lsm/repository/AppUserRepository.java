@@ -42,7 +42,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     LEFT JOIN FETCH u.teacherDetails td
     LEFT JOIN FETCH td.teacherCourses tc
     LEFT JOIN FETCH tc.course c
-    LEFT JOIN FETCH tc.classes cls
+    LEFT JOIN FETCH tc.classes
     LEFT JOIN FETCH u.studentDetails sd
     LEFT JOIN FETCH sd.classEntity
     WHERE u.id = :userId
