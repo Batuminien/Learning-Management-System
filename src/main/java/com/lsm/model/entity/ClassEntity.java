@@ -11,14 +11,12 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Entity
-@Getter
-@Setter
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Table(name = "classes")
 public class ClassEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "class_seq")
     @SequenceGenerator(name = "class_seq", sequenceName = "classes_id_seq", allocationSize = 1)
@@ -33,9 +31,9 @@ public class ClassEntity {
     @Column(length = 500)
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "teacher_id", nullable = false)
-    private AppUser teacher;
+    @ManyToMany(mappedBy = "classes")
+    @Builder.Default
+    private Set<TeacherCourse> teacherCourses = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -43,16 +41,9 @@ public class ClassEntity {
             joinColumns = @JoinColumn(name = "class_id"),
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    @Builder.Default private Set<AppUser> students = new HashSet<>();
+    @Builder.Default
+    private Set<AppUser> students = new HashSet<>();
 
-    @OneToMany(mappedBy = "classEntity", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "classEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Assignment> assignments = new HashSet<>();
-
-    @ManyToMany
-    @JoinTable(
-            name = "class_courses",
-            joinColumns = @JoinColumn(name = "class_id"),
-            inverseJoinColumns = @JoinColumn(name = "course_id")
-    )
-    private Set<Course> courses = new HashSet<>();
 }

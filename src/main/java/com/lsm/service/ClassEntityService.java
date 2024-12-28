@@ -1,10 +1,14 @@
 package com.lsm.service;
 
+import com.lsm.model.DTOs.TeacherCourseDTO;
 import com.lsm.model.entity.ClassEntity;
+import com.lsm.model.entity.Course;
+import com.lsm.model.entity.TeacherCourse;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AppUserRepository;
 import com.lsm.repository.ClassEntityRepository;
+import com.lsm.repository.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,35 +28,25 @@ public class ClassEntityService {
     private final ClassEntityRepository classRepository;
     private final AppUserRepository appUserRepository;
     private final AppUserService appUserService;
+    private final CourseRepository courseRepository;
 
     @Autowired
-    public ClassEntityService(ClassEntityRepository classRepository, AppUserRepository appUserRepository, AppUserService appUserService) {
+    public ClassEntityService(ClassEntityRepository classRepository, AppUserRepository appUserRepository, AppUserService appUserService, CourseRepository courseRepository) {
         this.classRepository = classRepository;
         this.appUserRepository = appUserRepository;
         this.appUserService = appUserService;
+        this.courseRepository = courseRepository;
     }
 
     @Transactional
-    public ClassEntity createClass(AppUser loggedInUser, ClassEntity classEntity, Long teacherId, List<Long> studentIds)
-            throws AccessDeniedException {
-        // Find and set teacher
-        AppUser teacher = appUserRepository.findById(teacherId)
-                .orElseThrow(() -> new EntityNotFoundException("AppUser not found with id: " + teacherId));
-        if (loggedInUser.getRole().equals(Role.ROLE_TEACHER) && !loggedInUser.getId().equals(teacher.getId()))
-            throw new AccessDeniedException("Logged in teacher and the teacher id in the request are different.");
+    public ClassEntity createClass(AppUser loggedInUser, ClassEntity classEntity,
+                                   List<TeacherCourseDTO> teacherCourses, List<Long> studentIds) {
 
-        classEntity.setTeacher(teacher);
+        Set<TeacherCourse> teacherCourseSet = createTeacherCourses(teacherCourses, classEntity);
+        Set<AppUser> students = getStudents(studentIds, classEntity);
 
-        // Find and set students if provided
-        if (studentIds != null && !studentIds.isEmpty()) {
-            Set<AppUser > students = studentIds.stream()
-                    .map(studentId -> appUserRepository.findById(studentId)
-                            .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + studentId)))
-                    .peek(student -> student.getStudentDetails().setClassEntity(classEntity.getId()))
-                    .collect(Collectors.toSet());
-
-            classEntity.setStudents(students);
-        }
+        classEntity.setTeacherCourses(teacherCourseSet);
+        classEntity.setStudents(students);
 
         return classRepository.save(classEntity);
     }
@@ -69,8 +63,9 @@ public class ClassEntityService {
             throw new AccessDeniedException("Students can't get the class which they are not enrolled.");
 
         if (user.getRole().equals(Role.ROLE_TEACHER)
-                && user.getTeacherDetails().getClasses().stream()
-                .noneMatch(classEntity1 -> classEntity1.getId().equals(classEntity.getId())))
+                && user.getTeacherDetails().getTeacherCourses().stream()
+                .noneMatch(tc -> tc.getClasses().stream()
+                        .anyMatch(c -> c.getId().equals(classEntity.getId()))))
             throw new AccessDeniedException("Students can't get the class which they are not teaching.");
 
         return classEntity;
@@ -85,32 +80,50 @@ public class ClassEntityService {
     }
 
     @Transactional
-    public ClassEntity updateClass(AppUser loggedInUser, Long id, ClassEntity classEntity, Long teacherId, List<Long> studentIds)
-            throws AccessDeniedException, EntityNotFoundException {
-        ClassEntity existingClass = getClassById(loggedInUser, id);
+    public ClassEntity updateClass(AppUser loggedInUser, Long id, ClassEntity classEntity,
+                                   List<TeacherCourseDTO> teacherCourses, List<Long> studentIds)
+            throws AccessDeniedException {
 
-        // Update basic fields
+        ClassEntity existingClass = getClassById(loggedInUser, id);
         existingClass.setName(classEntity.getName());
         existingClass.setDescription(classEntity.getDescription());
 
-        // Update teacher if provided
-        if (teacherId != null) {
-            AppUser teacher = appUserRepository.findById(teacherId)
-                    .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
-            existingClass.setTeacher(teacher);
+        if (teacherCourses != null) {
+            Set<TeacherCourse> newTeacherCourses = createTeacherCourses(teacherCourses, existingClass);
+            existingClass.setTeacherCourses(newTeacherCourses);
         }
 
-        // Update students if provided
         if (studentIds != null) {
-            Set<AppUser > students = studentIds.stream()
-                    .map(studentId -> appUserRepository.findById(studentId)
-                            .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + studentId)))
-                    .collect(Collectors.toSet());
-
+            Set<AppUser> students = getStudents(studentIds, existingClass);
             existingClass.setStudents(students);
         }
 
         return classRepository.save(existingClass);
+    }
+
+    private Set<TeacherCourse> createTeacherCourses(List<TeacherCourseDTO> teacherCourses, ClassEntity classEntity) {
+        return teacherCourses.stream()
+                .map(tc -> {
+                    AppUser teacher = appUserRepository.findById(tc.getTeacherId())
+                            .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
+                    Course course = courseRepository.findById(tc.getCourseId())
+                            .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+
+                    return TeacherCourse.builder()
+                            .teacher(teacher)
+                            .course(course)
+                            .classes(Set.of(classEntity))
+                            .build();
+                })
+                .collect(Collectors.toSet());
+    }
+
+    private Set<AppUser> getStudents(List<Long> studentIds, ClassEntity classEntity) {
+        return studentIds.stream()
+                .map(id -> appUserRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Student not found")))
+                .peek(s -> s.getStudentDetails().setClassEntity(classEntity.getId()))
+                .collect(Collectors.toSet());
     }
 
     @Transactional

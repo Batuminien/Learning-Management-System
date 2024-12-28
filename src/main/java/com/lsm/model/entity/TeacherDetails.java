@@ -20,19 +20,7 @@ public class TeacherDetails {
     private String tc;
     private LocalDate birthDate;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "teacher_classes",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "class_id")
-    )
-    @Builder.Default private Set<ClassEntity> classes = new HashSet<>();
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "teacher_courses",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "course_id")
-    )
-    @Builder.Default private Set<Course> courses = new HashSet<>();
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "teacher")
+    @Builder.Default
+    private Set<TeacherCourse> teacherCourses = new HashSet<>();
 }

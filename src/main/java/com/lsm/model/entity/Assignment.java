@@ -51,10 +51,6 @@ public class Assignment {
     @JoinColumn(name = "class_id", nullable = false)
     private ClassEntity classEntity;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
     @NotNull
     @Column(name = "assignment_date", nullable = false)
     private LocalDate date;
@@ -70,6 +66,14 @@ public class Assignment {
     @Builder.Default
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudentSubmission> studentSubmissions = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
+
+    @ManyToOne
+    @JoinColumn(name = "teacher_course_id", nullable = false)
+    private TeacherCourse teacherCourse;
 
     @PrePersist
     protected void onCreate() {

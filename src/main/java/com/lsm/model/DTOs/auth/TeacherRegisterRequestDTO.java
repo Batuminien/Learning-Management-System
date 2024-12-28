@@ -1,5 +1,6 @@
 package com.lsm.model.DTOs.auth;
 
+import com.lsm.model.DTOs.TeacherCourseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +15,5 @@ public class TeacherRegisterRequestDTO extends RegisterRequestDTO {
     private String phone;
     private String tc;
     private LocalDate birthDate;
-    private List<Long> classes;
-    private List<Long> courses;
+    private List<TeacherCourseDTO> teacherCourses;
 }

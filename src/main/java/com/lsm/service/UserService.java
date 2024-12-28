@@ -4,12 +4,10 @@ import com.lsm.exception.DuplicateResourceException;
 import com.lsm.exception.IllegalOperationException;
 import com.lsm.exception.ResourceNotFoundException;
 import com.lsm.model.DTOs.StudentUpdateRequestDTO;
+import com.lsm.model.DTOs.TeacherCourseClassDTO;
 import com.lsm.model.DTOs.TeacherUpdateRequestDTO;
 import com.lsm.model.DTOs.UserUpdateRequestDTO;
-import com.lsm.model.entity.ClassEntity;
-import com.lsm.model.entity.Course;
-import com.lsm.model.entity.StudentDetails;
-import com.lsm.model.entity.TeacherDetails;
+import com.lsm.model.entity.*;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AppUserRepository;
@@ -25,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -133,10 +132,8 @@ public class UserService {
             throw new IllegalOperationException("User with id: " + id + " is not a teacher");
         }
 
-        // Update basic user information first
         updateUser(id, updateRequest);
 
-        // Update teacher-specific details
         TeacherDetails details = teacher.getTeacherDetails();
         if (details == null) {
             details = new TeacherDetails();
@@ -155,25 +152,46 @@ public class UserService {
             details.setBirthDate(updateRequest.getBirthDate());
         }
 
-        // Update classes if provided
-        if (updateRequest.getClassIds() != null && !updateRequest.getClassIds().isEmpty()) {
-            Set<ClassEntity> classes = new HashSet<>(classRepository.findAllByIdIn(updateRequest.getClassIds()));
-            if (classes.size() != updateRequest.getClassIds().size()) {
-                throw new ResourceNotFoundException("One or more classes not found");
-            }
-            details.setClasses(classes);
-        }
+        if (updateRequest.getTeacherCourses() != null && !updateRequest.getTeacherCourses().isEmpty()) {
+            Set<TeacherCourse> teacherCourses = new HashSet<>();
 
-        // Update courses if provided
-        if (updateRequest.getCourseIds() != null && !updateRequest.getCourseIds().isEmpty()) {
-            Set<Course> courses = new HashSet<>(courseRepository.findAllByIdIn(updateRequest.getCourseIds()));
-            if (courses.size() != updateRequest.getCourseIds().size()) {
-                throw new ResourceNotFoundException("One or more courses not found");
+            for (TeacherCourseClassDTO courseDTO : updateRequest.getTeacherCourses()) {
+                Course course = courseRepository.findById(courseDTO.getCourseId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + courseDTO.getCourseId()));
+
+                Set<ClassEntity> classes = new HashSet<>(classRepository.findAllByIdIn(courseDTO.getClassIds()));
+                if (classes.size() != courseDTO.getClassIds().size()) {
+                    throw new ResourceNotFoundException("One or more classes not found");
+                }
+
+                TeacherCourse teacherCourse = TeacherCourse.builder()
+                        .course(course)
+                        .classes(classes)
+                        .teacher(teacher)
+                        .build();
+
+                teacherCourses.add(teacherCourse);
             }
-            details.setCourses(courses);
+
+            details.setTeacherCourses(teacherCourses);
         }
 
         return userRepository.save(teacher);
+    }
+
+    @Transactional
+    public void deleteTeacher(Long id) {
+        AppUser teacher = getUserById(id);
+        if (teacher.getRole() != Role.ROLE_TEACHER) {
+            throw new IllegalOperationException("User with id: " + id + " is not a teacher");
+        }
+
+        TeacherDetails details = teacher.getTeacherDetails();
+        if (details != null && details.getTeacherCourses() != null) {
+            details.getTeacherCourses().clear();
+        }
+
+        userRepository.delete(teacher);
     }
 
     @Transactional
@@ -194,35 +212,6 @@ public class UserService {
         }
 
         userRepository.delete(student);
-    }
-
-    @Transactional
-    public void deleteTeacher(Long id) {
-        AppUser teacher = getUserById(id);
-        if (teacher.getRole() != Role.ROLE_TEACHER) {
-            throw new IllegalOperationException("User with id: " + id + " is not a teacher");
-        }
-
-        TeacherDetails details = teacher.getTeacherDetails();
-        if (details != null) {
-            // Remove teacher from classes
-            if (!details.getClasses().isEmpty()) {
-                details.getClasses().forEach(classEntity -> {
-                    classEntity.setTeacher(null);
-                    classRepository.save(classEntity);
-                });
-            }
-
-            // Remove teacher from courses
-            if (!details.getCourses().isEmpty()) {
-                details.getCourses().forEach(course -> {
-                    course.setTeacher(null);
-                    courseRepository.save(course);
-                });
-            }
-        }
-
-        userRepository.delete(teacher);
     }
 
     // Helper methods

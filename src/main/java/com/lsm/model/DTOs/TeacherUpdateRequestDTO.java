@@ -14,6 +14,6 @@ public class TeacherUpdateRequestDTO extends UserUpdateRequestDTO {
     @TCConstraint
     private String tc;
     private LocalDate birthDate;
-    private List<Long> classIds;
-    private List<Long> courseIds;
+    private List<TeacherCourseClassDTO> teacherCourses;
 }
+

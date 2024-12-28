@@ -2,8 +2,10 @@ package com.lsm.service;
 
 import com.lsm.model.DTOs.CourseDTO;
 import com.lsm.model.DTOs.StudentDTO;
+import com.lsm.model.DTOs.TeacherCourseClassDTO;
 import com.lsm.model.entity.Course;
 import com.lsm.model.entity.ClassEntity;
+import com.lsm.model.entity.TeacherCourse;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AppUserRepository;
@@ -23,8 +25,9 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,20 +78,14 @@ public class CourseService {
 
     @Cacheable(value = "coursesByStudent", key = "#studentId")
     public List<CourseDTO> getCoursesByStudent(Long studentId) {
-        log.debug("Fetching courses for student id: {}", studentId);
-
         AppUser student = appUserRepository.findById(studentId)
-                .orElseThrow(() -> {
-                    log.error("Student not found with id: {}", studentId);
-                    return new ResourceNotFoundException("Student not found with id: " + studentId);
-                });
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
-        // Get class the student is enrolled in
         ClassEntity studentClass = classEntityRepository.findById(student.getStudentDetails().getClassEntity())
                 .orElseThrow(EntityNotFoundException::new);
 
-        return studentClass.getCourses().stream()
-                .map(this::mapToDTO)
+        return studentClass.getTeacherCourses().stream()
+                .map(tc -> mapToDTO(tc.getCourse()))
                 .collect(Collectors.toList());
     }
 
@@ -198,22 +195,14 @@ public class CourseService {
 
     @Cacheable(value = "coursesByTeacher", key = "#teacherId")
     public List<CourseDTO> getCoursesByTeacher(Long teacherId) {
-        log.debug("Fetching courses for teacher id: {}", teacherId);
-
-        AppUser teacher_ = appUserRepository.findById(teacherId)
-                .orElseThrow(() -> {
-                    log.error("Teacher not found with id: {}", teacherId);
-                    return new ResourceNotFoundException("Teacher not found with id: " + teacherId);
-                });
-
-        AppUser teacher = appUserService.getCurrentUserWithDetails(teacher_.getId());
+        AppUser teacher = appUserService.getCurrentUserWithDetails(teacherId);
 
         if (teacher.getRole() != Role.ROLE_TEACHER) {
             throw new IllegalArgumentException("User is not a teacher");
         }
 
-        return courseRepository.findByTeacherId(teacherId).stream()
-                .map(this::mapToDTO)
+        return teacher.getTeacherDetails().getTeacherCourses().stream()
+                .map(tc -> mapToDTO(tc.getCourse()))
                 .collect(Collectors.toList());
     }
 
@@ -252,8 +241,8 @@ public class CourseService {
     }
 
     @CacheEvict(value = {"coursesByTeacher", "courses"}, allEntries = true)
-    public CourseDTO assignTeacherToCourse(Long courseId, Long teacherId) {
-        log.debug("Assigning teacher {} to course {}", teacherId, courseId);
+    public CourseDTO assignTeacherToCourse(Long courseId, Long teacherId, List<Long> classIds) {
+        log.debug("Assigning teacher {} to course {} with classes {}", teacherId, courseId, classIds);
 
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
@@ -265,25 +254,34 @@ public class CourseService {
             throw new IllegalArgumentException("User is not a teacher");
         }
 
-        course.setTeacher(teacher);
+        Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
+        if (classes.size() != classIds.size()) {
+            throw new ResourceNotFoundException("One or more classes not found");
+        }
+
+        TeacherCourse teacherCourse = TeacherCourse.builder()
+                .teacher(teacher)
+                .course(course)
+                .classes(classes)
+                .build();
+
+        course.getTeacherCourses().add(teacherCourse);
         return mapToDTO(courseRepository.save(course));
     }
 
     @CacheEvict(value = {"coursesByTeacher", "courses"}, allEntries = true)
-    public CourseDTO removeTeacherFromCourse(Long courseId) {
-        log.debug("Removing teacher from course {}", courseId);
-
+    public CourseDTO removeTeacherFromCourse(Long courseId, Long teacherId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
 
-        course.setTeacher(null);
+        course.getTeacherCourses().removeIf(tc ->
+                tc.getTeacher().getId().equals(teacherId));
+
         return mapToDTO(courseRepository.save(course));
     }
 
     @CacheEvict(value = {"coursesByTeacher", "courses"}, allEntries = true)
-    public CourseDTO updateCourseTeacher(Long courseId, Long newTeacherId) {
-        log.debug("Updating teacher for course {} to {}", courseId, newTeacherId);
-
+    public CourseDTO updateCourseTeacher(Long courseId, Long newTeacherId, List<Long> classIds) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 
@@ -294,7 +292,22 @@ public class CourseService {
             throw new IllegalArgumentException("User is not a teacher");
         }
 
-        course.setTeacher(newTeacher);
+        Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
+        if (classes.size() != classIds.size()) {
+            throw new ResourceNotFoundException("One or more classes not found");
+        }
+
+        // Remove old teacher course relationship if exists
+        course.getTeacherCourses().clear();
+
+        // Create new teacher course relationship
+        TeacherCourse teacherCourse = TeacherCourse.builder()
+                .teacher(newTeacher)
+                .course(course)
+                .classes(classes)
+                .build();
+
+        course.getTeacherCourses().add(teacherCourse);
         return mapToDTO(courseRepository.save(course));
     }
 
@@ -320,9 +333,17 @@ public class CourseService {
     }
 
     private CourseDTO mapToDTO(Course course) {
+        List<TeacherCourseClassDTO> teacherCourses = course.getTeacherCourses().stream()
+                .map(tc -> TeacherCourseClassDTO.builder()
+                        .courseId(tc.getCourse().getId())
+                        .classIds(tc.getClasses().stream()
+                                .map(ClassEntity::getId)
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+
         return CourseDTO.builder()
                 .id(course.getId())
-                .teacherId(course.getTeacher().getId())
                 .name(course.getName())
                 .description(course.getDescription())
                 .code(course.getCode())
@@ -330,6 +351,7 @@ public class CourseService {
                 .classEntityIds(course.getClasses().stream()
                         .map(ClassEntity::getId)
                         .collect(Collectors.toList()))
+                .teacherCourses(teacherCourses)
                 .build();
     }
 }

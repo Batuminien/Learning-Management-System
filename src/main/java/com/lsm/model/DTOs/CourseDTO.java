@@ -22,20 +22,14 @@ public class CourseDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
-
-    private Long teacherId;
-
     @NotBlank(message = "Course name is required")
     private String name;
-
     private String description;
-
     @NotBlank(message = "Course code is required")
     private String code;
-
     @Min(value = 1, message = "Credits must be at least 1")
     private Integer credits;
-
     @NotNull
     private List<Long> classEntityIds;
+    private List<TeacherCourseClassDTO> teacherCourses;
 }

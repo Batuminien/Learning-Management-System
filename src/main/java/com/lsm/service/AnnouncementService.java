@@ -31,7 +31,6 @@ public class AnnouncementService {
             throws AccessDeniedException, ResourceNotFoundException {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
-        // Verify all classes exist and user has access to them
         Set<ClassEntity> classes = new HashSet<>();
         for (Long classId : dto.getClassIds()) {
             ClassEntity classEntity = classEntityRepository.findById(classId)
@@ -41,10 +40,13 @@ public class AnnouncementService {
                 throw new AccessDeniedException("Students can't create announcements");
             }
 
-            if (user.getRole().equals(Role.ROLE_TEACHER) &&
-                    user.getTeacherDetails().getClasses().stream()
-                            .noneMatch(c -> c.getId().equals(classId))) {
-                throw new AccessDeniedException("Teachers can't create announcements for classes they don't teach");
+            if (user.getRole().equals(Role.ROLE_TEACHER)) {
+                boolean hasAccess = user.getTeacherDetails().getTeacherCourses().stream()
+                        .anyMatch(tc -> tc.getClasses().stream()
+                                .anyMatch(c -> c.getId().equals(classId)));
+                if (!hasAccess) {
+                    throw new AccessDeniedException("Teachers can't create announcements for classes they don't teach");
+                }
             }
 
             classes.add(classEntity);
@@ -69,10 +71,13 @@ public class AnnouncementService {
             throw new AccessDeniedException("Students can't get announcements of other classes");
         }
 
-        if (user.getRole().equals(Role.ROLE_TEACHER) &&
-                user.getTeacherDetails().getClasses().stream()
-                        .noneMatch(c -> c.getId().equals(classId))) {
-            throw new AccessDeniedException("Teachers can't get announcements of classes they don't teach");
+        if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            boolean hasAccess = user.getTeacherDetails().getTeacherCourses().stream()
+                    .anyMatch(tc -> tc.getClasses().stream()
+                            .anyMatch(c -> c.getId().equals(classId)));
+            if (!hasAccess) {
+                throw new AccessDeniedException("Teachers can't get announcements of classes they don't teach");
+            }
         }
 
         return announcementRepository.findByClassesId(classId).stream()
@@ -91,13 +96,13 @@ public class AnnouncementService {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
 
-        // For teachers, check if they have access to all classes in the announcement
         if (user.getRole().equals(Role.ROLE_TEACHER)) {
-            boolean hasAccessToAllClasses = announcement.getClasses().stream()
-                    .allMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
-                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+            boolean hasAccess = announcement.getClasses().stream()
+                    .allMatch(announcementClass -> user.getTeacherDetails().getTeacherCourses().stream()
+                            .anyMatch(tc -> tc.getClasses().stream()
+                                    .anyMatch(c -> c.getId().equals(announcementClass.getId()))));
 
-            if (!hasAccessToAllClasses) {
+            if (!hasAccess) {
                 throw new AccessDeniedException("Teachers can't delete announcements of classes they don't teach");
             }
         }
@@ -116,12 +121,12 @@ public class AnnouncementService {
             throw new AccessDeniedException("Students can't update announcements");
         }
 
-        // For teachers, verify they have access to all current and new classes
         if (user.getRole().equals(Role.ROLE_TEACHER)) {
             // Check access to current classes
             boolean hasAccessToCurrentClasses = existingAnnouncement.getClasses().stream()
-                    .allMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
-                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+                    .allMatch(announcementClass -> user.getTeacherDetails().getTeacherCourses().stream()
+                            .anyMatch(tc -> tc.getClasses().stream()
+                                    .anyMatch(c -> c.getId().equals(announcementClass.getId()))));
 
             if (!hasAccessToCurrentClasses) {
                 throw new AccessDeniedException("Teachers can't update announcements of classes they don't teach");
@@ -130,19 +135,19 @@ public class AnnouncementService {
             // Check access to new classes
             if (announcementDTO.getClassIds() != null) {
                 boolean hasAccessToNewClasses = announcementDTO.getClassIds().stream()
-                        .allMatch(classId -> user.getTeacherDetails().getClasses().stream()
-                                .anyMatch(teacherClass -> teacherClass.getId().equals(classId)));
+                        .allMatch(classId -> user.getTeacherDetails().getTeacherCourses().stream()
+                                .anyMatch(tc -> tc.getClasses().stream()
+                                        .anyMatch(c -> c.getId().equals(classId))));
 
                 if (!hasAccessToNewClasses) {
                     throw new AccessDeniedException("Teachers can't update announcements to include classes they don't teach");
                 }
             }
         }
-        // Update basic fields
+
         existingAnnouncement.setTitle(announcementDTO.getTitle());
         existingAnnouncement.setContent(announcementDTO.getContent());
 
-        // Update classes if provided
         if (announcementDTO.getClassIds() != null && !announcementDTO.getClassIds().isEmpty()) {
             Set<ClassEntity> newClasses = announcementDTO.getClassIds().stream()
                     .map(classId -> classEntityRepository.findById(classId)
@@ -151,9 +156,7 @@ public class AnnouncementService {
             existingAnnouncement.setClasses(newClasses);
         }
 
-        // Save and convert to DTO
-        Announcement updatedAnnouncement = announcementRepository.save(existingAnnouncement);
-        return convertToDTO(updatedAnnouncement);
+        return convertToDTO(announcementRepository.save(existingAnnouncement));
     }
 
     @Transactional
@@ -163,9 +166,7 @@ public class AnnouncementService {
         Announcement announcement = announcementRepository.findById(announcementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
 
-        // Check permissions
         if (user.getRole().equals(Role.ROLE_STUDENT)) {
-            // Check if the announcement belongs to student's class
             boolean hasAccess = announcement.getClasses().stream()
                     .anyMatch(classEntity -> classEntity.getId().equals(user.getStudentDetails().getClassEntity()));
             if (!hasAccess) {
@@ -174,10 +175,10 @@ public class AnnouncementService {
         }
 
         if (user.getRole().equals(Role.ROLE_TEACHER)) {
-            // Check if teacher has access to any of the classes in the announcement
             boolean hasAccess = announcement.getClasses().stream()
-                    .anyMatch(announcementClass -> user.getTeacherDetails().getClasses().stream()
-                            .anyMatch(teacherClass -> teacherClass.getId().equals(announcementClass.getId())));
+                    .anyMatch(announcementClass -> user.getTeacherDetails().getTeacherCourses().stream()
+                            .anyMatch(tc -> tc.getClasses().stream()
+                                    .anyMatch(c -> c.getId().equals(announcementClass.getId()))));
             if (!hasAccess) {
                 throw new AccessDeniedException("Teachers can't access announcements of classes they don't teach");
             }
@@ -187,14 +188,14 @@ public class AnnouncementService {
     }
 
     private AnnouncementDTO convertToDTO(Announcement announcement) {
-        AnnouncementDTO dto = new AnnouncementDTO();
-        dto.setId(announcement.getId());
-        dto.setTitle(announcement.getTitle());
-        dto.setContent(announcement.getContent());
-        dto.setClassIds(announcement.getClasses().stream()
-                .map(ClassEntity::getId)
-                .collect(Collectors.toList()));
-        dto.setCreatedAt(announcement.getCreatedAt().toLocalDate());
-        return dto;
+        return AnnouncementDTO.builder()
+                .id(announcement.getId())
+                .title(announcement.getTitle())
+                .content(announcement.getContent())
+                .classIds(announcement.getClasses().stream()
+                        .map(ClassEntity::getId)
+                        .collect(Collectors.toList()))
+                .createdAt(announcement.getCreatedAt().toLocalDate())
+                .build();
     }
 }

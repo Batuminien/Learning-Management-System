@@ -2,6 +2,7 @@ package com.lsm.mapper;
 
 import com.lsm.model.DTOs.ClassEntityRequestDTO;
 import com.lsm.model.DTOs.ClassEntityResponseDTO;
+import com.lsm.model.DTOs.TeacherCourseResponseDTO;
 import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.ClassEntity;
 import com.lsm.model.entity.base.AppUser;
@@ -13,50 +14,45 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+
 @Component
 public class ClassEntityMapper {
 
     public ClassEntity toEntity(ClassEntityRequestDTO dto) {
-        ClassEntity entity = new ClassEntity();
-        entity.setName(dto.getName());
-        entity.setDescription(dto.getDescription());
-        return entity;
+        return ClassEntity.builder()
+                .name(dto.getName())
+                .description(dto.getDescription())
+                .build();
     }
 
     public ClassEntityResponseDTO toDTO(ClassEntity entity) {
-        ClassEntityResponseDTO dto = new ClassEntityResponseDTO();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setDescription(entity.getDescription());
-        dto.setClassId(entity.getId());
+        List<TeacherCourseResponseDTO> teacherCourses = entity.getTeacherCourses().stream()
+                .map(tc -> TeacherCourseResponseDTO.builder()
+                        .teacherId(tc.getTeacher().getId())
+                        .courseId(tc.getCourse().getId())
+                        .classIds(tc.getClasses().stream()
+                                .map(ClassEntity::getId)
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
 
-        // Map teacher
-        if (entity.getTeacher() != null) {
-            dto.setTeacherId(entity.getTeacher().getId());
-        }
+        Map<Long, String> studentMappings = entity.getStudents().stream()
+                .collect(Collectors.toMap(
+                        AppUser::getId,
+                        student -> student.getName() + " " + student.getSurname()
+                ));
 
-        // Map students with their IDs and names
-        if (entity.getStudents() != null && !entity.getStudents().isEmpty()) {
-            Map<Long, String> studentMappings = entity.getStudents().stream()
-                    .collect(Collectors.toMap(
-                            AppUser::getId,
-                            student -> student.getName() + " " + student.getSurname()
-                    ));
-            dto.setStudentIdAndNames(studentMappings);
-        } else {
-            dto.setStudentIdAndNames(new HashMap<>());
-        }
+        List<Long> assignmentIds = entity.getAssignments().stream()
+                .map(Assignment::getId)
+                .collect(Collectors.toList());
 
-        // Map assignments
-        if (entity.getAssignments() != null && !entity.getAssignments().isEmpty()) {
-            List<Long> assignmentIds = entity.getAssignments().stream()
-                    .map(Assignment::getId)
-                    .collect(Collectors.toList());
-            dto.setAssignmentIds(assignmentIds);
-        } else {
-            dto.setAssignmentIds(new ArrayList<>());
-        }
-
-        return dto;
+        return ClassEntityResponseDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .description(entity.getDescription())
+                .teacherCourses(teacherCourses)
+                .studentIdAndNames(studentMappings)
+                .assignmentIds(assignmentIds)
+                .build();
     }
 }

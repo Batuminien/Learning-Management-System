@@ -8,6 +8,7 @@ CREATE SEQUENCE IF NOT EXISTS assignment_docs_seq START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE IF NOT EXISTS submissions_seq START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE IF NOT EXISTS attendance_id_seq START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE IF NOT EXISTS announcement_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE IF NOT EXISTS teacher_course_seq START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE IF NOT EXISTS app_users (
                                          id BIGINT PRIMARY KEY,
@@ -32,8 +33,7 @@ CREATE TABLE IF NOT EXISTS app_users (
 CREATE TABLE IF NOT EXISTS classes (
                                        id BIGINT PRIMARY KEY,
                                        name VARCHAR(100) NOT NULL,
-                                       description VARCHAR(500),
-                                       teacher_id BIGINT NOT NULL REFERENCES app_users(id)
+                                       description VARCHAR(500)
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -41,8 +41,19 @@ CREATE TABLE IF NOT EXISTS courses (
                                        name VARCHAR(255) NOT NULL,
                                        description TEXT,
                                        code VARCHAR(255) UNIQUE,
-                                       credits INTEGER,
-                                       teacher_id BIGINT REFERENCES app_users(id)
+                                       credits INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS teacher_courses (
+                                               id BIGINT PRIMARY KEY,
+                                               teacher_id BIGINT REFERENCES app_users(id),
+                                               course_id BIGINT REFERENCES courses(id)
+);
+
+CREATE TABLE IF NOT EXISTS teacher_course_classes (
+                                                      teacher_course_id BIGINT REFERENCES teacher_courses(id) ON DELETE CASCADE,
+                                                      class_id BIGINT REFERENCES classes(id) ON DELETE CASCADE,
+                                                      PRIMARY KEY (teacher_course_id, class_id)
 );
 
 CREATE TABLE IF NOT EXISTS assignments (
@@ -56,7 +67,8 @@ CREATE TABLE IF NOT EXISTS assignments (
                                            course_id BIGINT NOT NULL REFERENCES courses(id),
                                            assignment_date DATE NOT NULL,
                                            last_modified_date DATE NOT NULL,
-                                           teacher_document_id BIGINT
+                                           teacher_document_id BIGINT,
+                                           teacher_course_id BIGINT NOT NULL REFERENCES teacher_courses(id)
 );
 
 CREATE TABLE IF NOT EXISTS assignment_documents (
@@ -92,21 +104,15 @@ CREATE TABLE IF NOT EXISTS attendance (
                                           course_id BIGINT REFERENCES courses(id)
 );
 
-CREATE TABLE IF NOT EXISTS class_courses (
-                                             class_id BIGINT REFERENCES classes(id),
-                                             course_id BIGINT REFERENCES courses(id),
-                                             PRIMARY KEY (class_id, course_id)
-);
-
-CREATE TABLE IF NOT EXISTS teacher_classes (
-                                               user_id BIGINT REFERENCES app_users(id),
-                                               class_id BIGINT REFERENCES classes(id),
-                                               PRIMARY KEY (user_id, class_id)
+CREATE TABLE IF NOT EXISTS course_classes (
+                                              course_id BIGINT REFERENCES courses(id) ON DELETE CASCADE,
+                                              class_id BIGINT REFERENCES classes(id) ON DELETE CASCADE,
+                                              PRIMARY KEY (course_id, class_id)
 );
 
 CREATE TABLE IF NOT EXISTS class_students (
-                                              class_id BIGINT REFERENCES classes(id),
-                                              student_id BIGINT REFERENCES app_users(id),
+                                              class_id BIGINT REFERENCES classes(id) ON DELETE CASCADE,
+                                              student_id BIGINT REFERENCES app_users(id) ON DELETE CASCADE,
                                               PRIMARY KEY (class_id, student_id)
 );
 
