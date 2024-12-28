@@ -73,8 +73,9 @@ public class StudentSubmissionService {
     }
 
     private void validateStudentEnrollment(AppUser student, Assignment assignment) throws AccessDeniedException {
-        ClassEntity studentClass = classEntityRepository.findById(student.getStudentDetails().getClassEntity())
-                .orElseThrow(() -> new EntityNotFoundException("Student's class not found"));
+        ClassEntity studentClass = student.getStudentDetails().getClassEntity();
+        if (studentClass == null)
+            throw new EntityNotFoundException("Student's class not found");
 
         boolean isEnrolled = studentClass.getTeacherCourses().stream()
                 .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));

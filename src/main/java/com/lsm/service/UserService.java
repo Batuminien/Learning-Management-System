@@ -117,9 +117,9 @@ public class UserService {
         }
         if (updateRequest.getClassId() != null) {
             // Verify that the class exists
-            classRepository.findById(updateRequest.getClassId())
+            ClassEntity classEntity = classRepository.findById(updateRequest.getClassId())
                     .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + updateRequest.getClassId()));
-            details.setClassEntity(updateRequest.getClassId());
+            details.setClassEntity(classEntity);
         }
 
         return userRepository.save(student);
@@ -203,12 +203,9 @@ public class UserService {
 
         // Remove student from any associated classes
         if (student.getStudentDetails() != null && student.getStudentDetails().getClassEntity() != null) {
-            ClassEntity classEntity = classRepository.findById(student.getStudentDetails().getClassEntity())
-                    .orElse(null);
-            if (classEntity != null) {
-                classEntity.getStudents().remove(student);
-                classRepository.save(classEntity);
-            }
+            ClassEntity classEntity = student.getStudentDetails().getClassEntity();
+            classEntity.getStudents().remove(student);
+            classRepository.save(classEntity);
         }
 
         userRepository.delete(student);

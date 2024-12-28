@@ -15,6 +15,7 @@ import com.lsm.repository.AppUserRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.repository.CourseRepository;
 import com.lsm.repository.RefreshTokenRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.passay.*;
@@ -259,10 +260,11 @@ public class AuthService {
         return userBuilder.build();
     }
 
-    private static StudentDetails getStudentDetails(StudentRegisterRequestDTO registerRequest) {
+    private StudentDetails getStudentDetails(StudentRegisterRequestDTO registerRequest) {
         StudentDetails studentDetails = new StudentDetails();
         studentDetails.setTc(registerRequest.getTc());
-        studentDetails.setClassEntity(registerRequest.getClassEntity());
+        studentDetails.setClassEntity(classEntityRepository.getClassEntityById(registerRequest.getClassEntity())
+                .orElseThrow(() -> new EntityNotFoundException("Class not found")));
         studentDetails.setPhone(registerRequest.getPhone());
         studentDetails.setParentPhone(registerRequest.getParentPhone());
         studentDetails.setBirthDate(registerRequest.getBirthDate());

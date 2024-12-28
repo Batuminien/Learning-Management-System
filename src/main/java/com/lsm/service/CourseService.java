@@ -81,8 +81,9 @@ public class CourseService {
         AppUser student = appUserRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
-        ClassEntity studentClass = classEntityRepository.findById(student.getStudentDetails().getClassEntity())
-                .orElseThrow(EntityNotFoundException::new);
+        ClassEntity studentClass = student.getStudentDetails().getClassEntity();
+        if (studentClass == null)
+            throw new ResourceNotFoundException("Class not found in get courses by student");
 
         return studentClass.getTeacherCourses().stream()
                 .map(tc -> mapToDTO(tc.getCourse()))
@@ -328,7 +329,7 @@ public class CourseService {
                 .registrationDate(user.getStudentDetails().getRegistrationDate())
                 .parentName(user.getStudentDetails().getParentName())
                 .parentPhone(user.getStudentDetails().getParentPhone())
-                .classEntityId(user.getStudentDetails().getClassEntity())
+                .classEntityId(user.getStudentDetails().getClassEntity().getId())
                 .build();
     }
 

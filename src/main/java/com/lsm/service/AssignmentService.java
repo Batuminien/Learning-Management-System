@@ -163,9 +163,15 @@ public class AssignmentService {
             throw new IllegalArgumentException("Specified user is not a student");
         }
 
-        // Get student's class
-        ClassEntity classEntity = classEntityRepository.findById(student.getStudentDetails().getClassEntity())
-                .orElseThrow(() -> new EntityNotFoundException("Class not found by id: " + student.getStudentDetails().getClassEntity()));
+        // Add null checks for student details and class
+        if (student.getStudentDetails() == null) {
+            throw new EntityNotFoundException("Student details not found for student: " + studentId);
+        }
+
+        ClassEntity classEntity = student.getStudentDetails().getClassEntity();
+        if (classEntity == null) {
+            throw new EntityNotFoundException("Class not assigned for student: " + studentId);
+        }
 
         // Get all assignments for the student's class
         Set<Assignment> assignments = assignmentRepository.findByClassEntityOrderByDueDateDesc(classEntity);
@@ -321,8 +327,10 @@ public class AssignmentService {
         if (currentUser.getRole() != Role.ROLE_STUDENT)
             throw new AccessDeniedException("Only students can un-submit assignments");
 
-        ClassEntity classEntity = classEntityRepository.findById(currentUser.getStudentDetails().getClassEntity())
-                .orElseThrow(() -> new EntityNotFoundException("Class not found"));
+        ClassEntity classEntity = currentUser.getStudentDetails().getClassEntity();
+        if (classEntity == null) {
+            throw new EntityNotFoundException("Student is not assigned to any class");
+        }
 
         // Verify the assignment belongs to the student's class through teacher courses
         boolean isEnrolled = classEntity.getTeacherCourses().stream()
@@ -371,8 +379,10 @@ public class AssignmentService {
             assignmentRepository.save(assignment);
         }
 
-        ClassEntity classEntity = classEntityRepository.findById(currentUser.getStudentDetails().getClassEntity())
-                .orElseThrow(() -> new EntityNotFoundException("Class not found"));
+        ClassEntity classEntity = currentUser.getStudentDetails().getClassEntity();
+        if (classEntity == null) {
+            throw new EntityNotFoundException("Student is not assigned to any class");
+        }
 
         boolean isEnrolled = classEntity.getTeacherCourses().stream()
                 .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));

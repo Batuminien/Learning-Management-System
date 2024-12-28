@@ -10,7 +10,6 @@ TRUNCATE TABLE
     teacher_course_classes,
     teacher_courses,
     course_classes,
-    class_students,
     classes,
     courses,
     refresh_tokens,
@@ -51,15 +50,18 @@ INSERT INTO classes (id, name, description) VALUES
                                                 (nextval('classes_id_seq'), '11-B-TM', '11-B TM');
 
 -- Insert Students
+-- Insert Students with their class assignments
 INSERT INTO app_users (id, username, name, surname, email, password, role,
                        student_phone, student_tc, student_birth_date, student_registration_date,
-                       student_parent_name, student_parent_phone) VALUES
-                                                                      (nextval('app_users_seq'), 'student1', 'Alice', 'Brown', 'alice.brown@lms.com',
-                                                                       '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
-                                                                       '5551234567', '12345678901', '2008-01-15', '2023-09-01', 'Robert Brown', '5551234568'),
-                                                                      (nextval('app_users_seq'), 'student2', 'Bob', 'Wilson', 'bob.wilson@lms.com',
-                                                                       '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
-                                                                       '5552345678', '12345678902', '2007-03-20', '2023-09-01', 'Sarah Wilson', '5552345679');
+                       student_parent_name, student_parent_phone, class_id_student) VALUES
+                                                                                        (nextval('app_users_seq'), 'student1', 'Alice', 'Brown', 'alice.brown@lms.com',
+                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
+                                                                                         '5551234567', '12345678901', '2008-01-15', '2023-09-01', 'Robert Brown', '5551234568',
+                                                                                         (SELECT id FROM classes WHERE name = '11-A-MF')),
+                                                                                        (nextval('app_users_seq'), 'student2', 'Bob', 'Wilson', 'bob.wilson@lms.com',
+                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
+                                                                                         '5552345678', '12345678902', '2007-03-20', '2023-09-01', 'Sarah Wilson', '5552345679',
+                                                                                         (SELECT id FROM classes WHERE name = '11-B-TM'));
 
 -- Insert Courses
 INSERT INTO courses (id, name, description, code, credits) VALUES
@@ -100,13 +102,6 @@ INSERT INTO teacher_course_classes (teacher_course_id, class_id) VALUES
                                                                                              JOIN courses c ON tc.course_id = c.id
                                                                        WHERE au.username = 'teacher2' AND c.code = 'FIZ-1'),
                                                                       (SELECT id FROM classes WHERE name = '11-B-TM'));
-
--- Assign Students to Classes
-INSERT INTO class_students (class_id, student_id) VALUES
-                                                      ((SELECT id FROM classes WHERE name = '11-A-MF'),
-                                                       (SELECT id FROM app_users WHERE username = 'student1')),
-                                                      ((SELECT id FROM classes WHERE name = '11-B-TM'),
-                                                       (SELECT id FROM app_users WHERE username = 'student2'));
 
 -- Create Assignments
 INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_id,

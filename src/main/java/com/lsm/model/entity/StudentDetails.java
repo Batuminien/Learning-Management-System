@@ -21,5 +21,8 @@ public class StudentDetails {
     private LocalDate registrationDate;
     private String parentName;
     private String parentPhone;
-    private Long classEntity;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "class_id_student")
+    private ClassEntity classEntity;
 }

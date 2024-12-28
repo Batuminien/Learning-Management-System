@@ -302,6 +302,9 @@ public class AssignmentController {
         } catch (EntityNotFoundException e) {
             log.error("Student not found: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Student not found: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid argument while getting assignments: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, "Invalid argument: " + e.getMessage());
         }
     }
 

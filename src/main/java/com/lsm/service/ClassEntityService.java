@@ -122,7 +122,7 @@ public class ClassEntityService {
         return studentIds.stream()
                 .map(id -> appUserRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Student not found")))
-                .peek(s -> s.getStudentDetails().setClassEntity(classEntity.getId()))
+                .peek(s -> s.getStudentDetails().setClassEntity(classEntity))
                 .collect(Collectors.toSet());
     }
 
@@ -204,7 +204,7 @@ public class ClassEntityService {
     @Transactional(readOnly = true)
     public ClassEntity getStudentClasses(Authentication authentication) throws AccessDeniedException {
         AppUser student = (AppUser) authentication.getPrincipal();
-        return classRepository.findByIdWithAssignments(student.getStudentDetails().getClassEntity())
+        return classRepository.findByIdWithAssignments(student.getStudentDetails().getClassEntity().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " +
                         student.getStudentDetails().getClassEntity()));
     }

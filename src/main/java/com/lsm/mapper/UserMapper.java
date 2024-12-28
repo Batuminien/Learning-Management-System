@@ -81,7 +81,7 @@ public class UserMapper {
                 .registrationDate(details.getRegistrationDate())
                 .parentName(details.getParentName())
                 .parentPhone(details.getParentPhone())
-                .classId(details.getClassEntity())
+                .classId(details.getClassEntity().getId())
                 .build();
     }
 
