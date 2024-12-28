@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 @Component
 public class ClassEntityMapper {
 
@@ -27,24 +26,33 @@ public class ClassEntityMapper {
 
     public ClassEntityResponseDTO toDTO(ClassEntity entity) {
         List<TeacherCourseResponseDTO> teacherCourses = entity.getTeacherCourses().stream()
+                .filter(tc -> tc.getTeacher() != null && tc.getCourse() != null)
                 .map(tc -> TeacherCourseResponseDTO.builder()
                         .teacherId(tc.getTeacher().getId())
                         .courseId(tc.getCourse().getId())
-                        .classIds(tc.getClasses().stream()
-                                .map(ClassEntity::getId)
-                                .collect(Collectors.toList()))
+                        .classIds(tc.getClasses() != null ?
+                                tc.getClasses().stream()
+                                        .map(ClassEntity::getId)
+                                        .collect(Collectors.toList()) :
+                                new ArrayList<>())
                         .build())
                 .collect(Collectors.toList());
 
-        Map<Long, String> studentMappings = entity.getStudents().stream()
-                .collect(Collectors.toMap(
-                        AppUser::getId,
-                        student -> student.getName() + " " + student.getSurname()
-                ));
+        Map<Long, String> studentMappings = entity.getStudents() != null ?
+                entity.getStudents().stream()
+                        .collect(Collectors.toMap(
+                                AppUser::getId,
+                                student -> student.getName() + " " + student.getSurname(),
+                                (existing, replacement) -> existing,
+                                HashMap::new
+                        )) :
+                new HashMap<>();
 
-        List<Long> assignmentIds = entity.getAssignments().stream()
-                .map(Assignment::getId)
-                .collect(Collectors.toList());
+        List<Long> assignmentIds = entity.getAssignments() != null ?
+                entity.getAssignments().stream()
+                        .map(Assignment::getId)
+                        .collect(Collectors.toList()) :
+                new ArrayList<>();
 
         return ClassEntityResponseDTO.builder()
                 .id(entity.getId())

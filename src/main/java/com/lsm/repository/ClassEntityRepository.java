@@ -43,6 +43,7 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
     LEFT JOIN FETCH c.teacherCourses tc
     LEFT JOIN FETCH tc.teacher t
     LEFT JOIN FETCH tc.course
+    LEFT JOIN FETCH tc.classes tcClasses
     LEFT JOIN FETCH c.students
     LEFT JOIN FETCH c.assignments a
     WHERE t.id = :teacherId
