@@ -109,10 +109,7 @@ public class ClassEntityController {
     @GetMapping
     public ResponseEntity<ApiResponse_<List<ClassEntityResponseDTO>>> getAllClasses(Authentication authentication) {
         try {
-            List<ClassEntityResponseDTO> classes = classService.getAllClasses(authentication)
-                    .stream()
-                    .map(classMapper::toDTO)
-                    .collect(Collectors.toList());
+            List<ClassEntityResponseDTO> classes = classService.getAllClassesDTO(authentication);
             ApiResponse_<List<ClassEntityResponseDTO>> response = new ApiResponse_<>(
                     true,
                     "Classes retrieved successfully",

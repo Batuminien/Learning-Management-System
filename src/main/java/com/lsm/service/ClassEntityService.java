@@ -1,5 +1,7 @@
 package com.lsm.service;
 
+import com.lsm.mapper.ClassEntityMapper;
+import com.lsm.model.DTOs.ClassEntityResponseDTO;
 import com.lsm.model.DTOs.TeacherCourseDTO;
 import com.lsm.model.entity.ClassEntity;
 import com.lsm.model.entity.Course;
@@ -29,13 +31,15 @@ public class ClassEntityService {
     private final AppUserRepository appUserRepository;
     private final AppUserService appUserService;
     private final CourseRepository courseRepository;
+    private final ClassEntityMapper classMapper;
 
     @Autowired
-    public ClassEntityService(ClassEntityRepository classRepository, AppUserRepository appUserRepository, AppUserService appUserService, CourseRepository courseRepository) {
+    public ClassEntityService(ClassEntityRepository classRepository, AppUserRepository appUserRepository, AppUserService appUserService, CourseRepository courseRepository, ClassEntityMapper classMapper) {
         this.classRepository = classRepository;
         this.appUserRepository = appUserRepository;
         this.appUserService = appUserService;
         this.courseRepository = courseRepository;
+        this.classMapper = classMapper;
     }
 
     @Transactional
@@ -72,11 +76,14 @@ public class ClassEntityService {
     }
 
     @Transactional(readOnly = true)
-    public List<ClassEntity> getAllClasses(Authentication authentication) {
+    public List<ClassEntityResponseDTO> getAllClassesDTO(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new SecurityException("User is not authenticated");
         }
-        return classRepository.findAllWithAssociations();
+        return classRepository.findAllWithAssociations()
+                .stream()
+                .map(classMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional

@@ -14,11 +14,12 @@ import java.util.Set;
 
 @Repository
 public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> {
-    @Query("SELECT c FROM ClassEntity c " +
+    @Query("SELECT DISTINCT c FROM ClassEntity c " +
             "LEFT JOIN FETCH c.assignments " +
             "LEFT JOIN FETCH c.students " +
             "LEFT JOIN FETCH c.teacherCourses tc " +
-            "LEFT JOIN FETCH tc.course")
+            "LEFT JOIN FETCH tc.course " +
+            "LEFT JOIN FETCH tc.classes")
     List<ClassEntity> findAllWithAssociations();
 
     Optional<ClassEntity> findClassEntityByName(String className);

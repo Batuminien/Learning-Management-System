@@ -1,6 +1,5 @@
 package com.lsm.model.DTOs;
 
-import com.lsm.model.entity.ClassEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
