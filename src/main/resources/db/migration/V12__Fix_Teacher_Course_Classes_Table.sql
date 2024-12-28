@@ -1,32 +1,39 @@
 -- V12__Fix_Teacher_Course_Classes_Table.sql
 
--- Create sequence if not exists
-CREATE SEQUENCE IF NOT EXISTS teacher_course_seq START WITH 1 INCREMENT BY 1;
-
--- Create the join table cleanly
-DROP TABLE IF EXISTS teacher_course_classes;
-
+-- Step 1: Create the base table
 CREATE TABLE teacher_course_classes (
                                         teacher_course_id BIGINT NOT NULL,
-                                        class_id BIGINT NOT NULL,
-                                        CONSTRAINT pk_teacher_course_classes PRIMARY KEY (teacher_course_id, class_id),
-                                        CONSTRAINT fk_teacher_course_ref
-                                            FOREIGN KEY (teacher_course_id)
-                                                REFERENCES teacher_courses(id)
-                                                ON DELETE CASCADE,
-                                        CONSTRAINT fk_class_ref
-                                            FOREIGN KEY (class_id)
-                                                REFERENCES classes(id)
-                                                ON DELETE CASCADE
+                                        class_id BIGINT NOT NULL
 );
 
--- Add performance indexes
-CREATE INDEX idx_tcc_teacher_course ON teacher_course_classes(teacher_course_id);
-CREATE INDEX idx_tcc_class ON teacher_course_classes(class_id);
+-- Step 2: Add primary key
+ALTER TABLE teacher_course_classes
+    ADD CONSTRAINT pk_teacher_course_classes
+        PRIMARY KEY (teacher_course_id, class_id);
 
--- Insert existing relationships
+-- Step 3: Add foreign key for teacher_courses
+ALTER TABLE teacher_course_classes
+    ADD CONSTRAINT fk_teacher_course_ref
+        FOREIGN KEY (teacher_course_id)
+            REFERENCES teacher_courses(id)
+            ON DELETE CASCADE;
+
+-- Step 4: Add foreign key for classes
+ALTER TABLE teacher_course_classes
+    ADD CONSTRAINT fk_class_ref
+        FOREIGN KEY (class_id)
+            REFERENCES classes(id)
+            ON DELETE CASCADE;
+
+-- Step 5: Add performance indexes
+CREATE INDEX idx_tcc_teacher_course
+    ON teacher_course_classes(teacher_course_id);
+CREATE INDEX idx_tcc_class
+    ON teacher_course_classes(class_id);
+
+-- Step 6: Insert existing relationships
 INSERT INTO teacher_course_classes (teacher_course_id, class_id)
-SELECT tc.id, c.id
+SELECT DISTINCT tc.id, c.id
 FROM teacher_courses tc
          CROSS JOIN classes c
 WHERE NOT EXISTS (
@@ -35,10 +42,3 @@ WHERE NOT EXISTS (
     WHERE tcc.teacher_course_id = tc.id
       AND tcc.class_id = c.id
 );
-
--- Verify the relationships
-SELECT EXISTS (
-    SELECT 1
-    FROM teacher_course_classes
-    LIMIT 1
-) as has_relationships;
