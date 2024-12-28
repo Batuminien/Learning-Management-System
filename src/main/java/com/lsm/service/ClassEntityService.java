@@ -198,8 +198,7 @@ public class ClassEntityService {
     @Transactional(readOnly = true)
     public List<ClassEntity> getTeacherClasses(Authentication authentication) throws AccessDeniedException {
         AppUser teacher = (AppUser) authentication.getPrincipal();
-        List<ClassEntity> classes = classRepository.findClassesByTeacherId(teacher.getId());
-        return classRepository.findClassesWithDetails(classes);
+        return classRepository.findClassesByTeacherId(teacher.getId());
     }
 
     @Transactional(readOnly = true)
