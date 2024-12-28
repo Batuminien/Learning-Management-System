@@ -95,6 +95,12 @@ public class AppUser implements UserDetails {
     })
     private TeacherDetails teacherDetails;
 
+    @Column(name = "profile_photo_url")
+    private String profilePhotoUrl;
+
+    @Column(name = "profile_photo_filename")
+    private String profilePhotoFilename;
+
 
     public AppUser(String username, String email, String rawPassword, Role role) {
         this.username = username;

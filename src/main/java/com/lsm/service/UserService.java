@@ -3,10 +3,7 @@ package com.lsm.service;
 import com.lsm.exception.DuplicateResourceException;
 import com.lsm.exception.IllegalOperationException;
 import com.lsm.exception.ResourceNotFoundException;
-import com.lsm.model.DTOs.StudentUpdateRequestDTO;
-import com.lsm.model.DTOs.TeacherCourseClassDTO;
-import com.lsm.model.DTOs.TeacherUpdateRequestDTO;
-import com.lsm.model.DTOs.UserUpdateRequestDTO;
+import com.lsm.model.DTOs.*;
 import com.lsm.model.entity.*;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
@@ -58,7 +55,6 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    // User update operations
     @Transactional
     public AppUser updateUser(Long id, UserUpdateRequestDTO updateRequest) {
         AppUser user = getUserById(id);
@@ -209,6 +205,22 @@ public class UserService {
         }
 
         userRepository.delete(student);
+    }
+
+    @Transactional
+    public AppUser updateUserProfilePhoto(Long userId, ProfilePhotoUpdateRequestDTO photoUpdate) {
+        AppUser user = getUserById(userId);
+        user.setProfilePhotoUrl(photoUpdate.getPhotoUrl());
+        user.setProfilePhotoFilename(photoUpdate.getFilename());
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public AppUser removeUserProfilePhoto(Long userId) {
+        AppUser user = getUserById(userId);
+        user.setProfilePhotoUrl(null);
+        user.setProfilePhotoFilename(null);
+        return userRepository.save(user);
     }
 
     // Helper methods
