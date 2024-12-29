@@ -1,9 +1,8 @@
 package com.example.loginmultiplatform.ui
 
 //noinspection UsingMaterialAndMaterial3Libraries
+import android.annotation.SuppressLint
 import android.content.ContentResolver
-import android.content.Context
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,7 +37,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,17 +60,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.LocalPlatformContext
+import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import com.example.loginmultiplatform.getPlatformResourceContainer
+import com.example.loginmultiplatform.model.Assignment
+import com.example.loginmultiplatform.model.AssignmentDocument
+import com.example.loginmultiplatform.model.TeacherAssignmentRequest
+import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
+import com.mohamedrejeb.calf.io.getName
 import com.mohamedrejeb.calf.picker.FilePickerFileType
 import com.mohamedrejeb.calf.picker.FilePickerSelectionMode
 import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import android.content.Context
+import android.provider.OpenableColumns
+import android.net.Uri
+import androidx.core.net.toUri
+import android.provider.DocumentsContract
 
+
+@SuppressLint("Range")
+fun getFileNameFromUri(context: Context, uri: Uri): String? {
+    val fileName: String?
+    val cursor = context.contentResolver.query(uri, null, null, null, null)
+    cursor?.moveToFirst()
+    fileName = cursor?.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+    cursor?.close()
+    return fileName?: "Explosion"
+}
 @Composable
 fun get_buttons(content_of_assignment: MutableState<Int>, content_value: Int , buttonText : String, classexpanded : MutableState<Boolean>, courseExpanded: MutableState<Boolean>){
 
@@ -130,16 +153,69 @@ fun saveFileFromUri(context: Context, uri: Uri, outputFileName: String): File? {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun TeacherHomeworkPage (title: String) {
+fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentViewModel, teacherId :Int?, username: String) {
+
+    val classes by teacherViewModel.teacherClasses.collectAsState()
+
+    val courses by teacherViewModel.courseId.collectAsState()
+
+    val coursesSearch by teacherViewModel.courseSearchId.collectAsState()
+
+    val coursesPast by teacherViewModel.coursePastId.collectAsState()
+
+    val errorMessage by teacherViewModel.errorMessage.collectAsState()
+
+    val bulkOperationStatus by teacherViewModel.bulkOperationStatus.collectAsState()
+
+
+    LaunchedEffect(Unit) {
+        teacherViewModel.fetchTeacherClasses()
+
+    }
+
+
+
+
     var content_of_assignment = remember { mutableStateOf(1) }
 
     var classexpanded = remember { mutableStateOf(false) }
+
     var selectedClass by remember { mutableStateOf("Sınıf Seçiniz") }
-    val classoptions = listOf("Sınıf 1", "Sınıf 2", "Sınıf 3", "Sınıf 4", "Sınıf 5")
+
+    var selectedClassId by remember { mutableStateOf( 0 ) }
+
     var courseexpanded = remember { mutableStateOf(false) }
-    var selectedCourse by remember { mutableStateOf("Ders Seçiniz") }
-    val courseoptions = listOf("Mat", "Türkçe", "İngilizce", "Fizik", "Kimya")
+
+    var selectedCourse by remember { mutableStateOf<String?>("Ders Seçiniz") }
+
+    var selectedCourseId by remember { mutableStateOf(0) }
+
     var selectedDateLast by remember { mutableStateOf("gg.aa.yyyy") }
+
+    val context = LocalPlatformContext.current
+
+    LaunchedEffect(selectedClass){
+        try{
+            if (selectedClass != "Sınıf Seçiniz"){
+                teacherId?.let { teacherViewModel.fetchTeacherCourses(it) }
+                Toast.makeText(
+                    context,
+                    "Dersler yükleniyor",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+        }catch ( e : Exception){
+            Toast.makeText(
+                context,
+                e.toString(),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+
+
+    }
 
 
 
@@ -168,38 +244,50 @@ fun TeacherHomeworkPage (title: String) {
     var description by remember { mutableStateOf("Açıklama giriniz") }
     var isFocusedDesc by remember { mutableStateOf(false) }
 
+    var assignmentDocument by remember { mutableStateOf<AssignmentDocument?>(null) }
 
     val scope = rememberCoroutineScope()
-    val context = LocalPlatformContext.current
 
-    val pickerLauncher = rememberFilePickerLauncher(
-        type = FilePickerFileType.Pdf,
-        selectionMode = FilePickerSelectionMode.Single,
-        onResult = { files ->
-            // Process the selected file(s)
-            if (files.isNotEmpty()) {
-                val pickedFileUri = files.firstOrNull()?.uri
 
-                pickedFileUri?.let { uri ->
-                    // Launch a coroutine to handle file saving
-                    scope.launch {
-                        val savedFile = saveFileFromUri(context, uri, "picked_file.pdf")
-                        if (savedFile != null) {
-                            println("File saved successfully at: ${savedFile.absolutePath}")
-                        } else {
-                            println("Failed to save file")
-                        }
-                    }
-                }
+    var showFilePicker by remember { mutableStateOf(false) }
+
+    var fileSelected by remember { mutableStateOf(false) }
+
+    val fileType = listOf("pdf")
+    FilePicker(show = showFilePicker, fileExtensions = fileType) { platformFile ->
+        showFilePicker = false
+        // do something with the file
+        val file = platformFile?.path?.let { File(it) }
+
+        if (file != null) {
+            assignmentDocument = getFileNameFromUri(context, file.toUri())?.let {
+                AssignmentDocument(
+                    assignmentId = 5 ,
+                    documentId =  10,
+                    fileName = platformFile.path,
+                    fileType =  "pdf",
+                    filePath =  file.path,
+                    fileSize =  file.length(),
+                    uploadTime =  LocalDate.toString(),
+                    uploadedByUsername =  username
+                )
             }
+
+            fileSelected = true
         }
-    )
+    }
+
+
 
     var searchExpand  by remember { mutableStateOf(false) }
 
     var selectedClassSearch by remember { mutableStateOf("Sınıf Seçiniz") }
 
-    var selectedCourseSearch by remember { mutableStateOf("Ders Seçiniz") }
+    var selectedClassSearchId by remember { mutableStateOf( 0 ) }
+
+    var selectedCourseSearch by remember { mutableStateOf<String?>("Ders Seçiniz") }
+
+    var selectedCourseSearchId by remember { mutableStateOf(0) }
 
     var selectedDateLastSearch by remember { mutableStateOf("gg.aa.yyyy") }
 
@@ -208,11 +296,34 @@ fun TeacherHomeworkPage (title: String) {
 
     var selectedClassPast by remember { mutableStateOf("Sınıf Seçiniz") }
 
-    var selectedCoursePast by remember { mutableStateOf("Ders Seçiniz") }
+    var selectedClassPastId by remember { mutableStateOf( 0 ) }
+
+    var selectedCoursePast by remember { mutableStateOf<String?>("Ders Seçiniz") }
+
+    var selectedCoursePastId by remember { mutableStateOf(0) }
 
     var selectedDateLastPast by remember { mutableStateOf("gg.aa.yyyy") }
 
 
+    LaunchedEffect(selectedClassSearch){
+        try{
+            teacherId?.let { teacherViewModel.fetchTeacherCoursesSearch(it) }
+
+
+        }catch (e : Exception){
+            Toast.makeText(
+                context,
+                e.toString(),
+                Toast.LENGTH_SHORT
+            ).show()
+
+        }
+
+    }
+
+    LaunchedEffect(selectedClassPast){
+        teacherId?.let { teacherViewModel.fetchTeacherCoursesPast(it) }
+    }
 
     Box(
         modifier = Modifier
@@ -267,9 +378,45 @@ fun TeacherHomeworkPage (title: String) {
                         ) {
 
                             Button (
+                                modifier = Modifier.offset(y = 700.dp).fillMaxWidth().height(50.dp),
+                                onClick = {
+                                    if (teacherId != null ) {
+                                        var descriptionSent: String?
+                                        if (description == "Açıklama giriniz" )
+                                            descriptionSent = null
+                                        else
+                                            descriptionSent = description
+                                        /*teacherViewModel.addAssignment(
+                                            TeacherAssignmentRequest(
+                                                teacherId = teacherId,
+                                                title = title,
+                                                description = descriptionSent,
+                                                dueDate = selectedDateLast,
+                                                classId = selectedClassId,
+                                                courseId = selectedCourseId,
+                                                document = assignmentDocument
+
+                                                )
+                                        )*/
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color.Transparent
+                                )
+                            ){
+                                Text("Yükle")
+                            }
+
+                            Text(
+                                modifier = Modifier.fillMaxWidth().offset(y = 650.dp),
+                                text = assignmentDocument?.fileName ?: "There is no file",
+                                textAlign = TextAlign.Center
+                            )
+
+                            Button (
                                 modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(50.dp),
                                 onClick = {
-                                    pickerLauncher.launch()
+                                    showFilePicker = true
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     backgroundColor = Color.Transparent
@@ -406,7 +553,7 @@ fun TeacherHomeworkPage (title: String) {
                                     .padding(12.dp)
 
                             ) {
-                                Text(text = selectedCourse, color = Color.Black)
+                                selectedCourse?.let { Text(text = it, color = Color.Black) }
                             }
 
                             Text (
@@ -420,26 +567,33 @@ fun TeacherHomeworkPage (title: String) {
                                     background(Color.Transparent).
                                     offset(y = 195.dp)
                                 ){
-                                    courseoptions.forEach { option ->
+
+
+                                    courses.forEach { option ->
                                         item {
                                             Row (
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedCourse = option
+                                                        selectedCourse = option.name
+                                                        selectedCourseId = option.id
                                                         courseexpanded.value = false
                                                         print("Clicked\n")
                                                     }
                                                 ).background(color = Color.White)
                                             ){
                                                 Spacer(modifier = Modifier.width(10.dp))
-                                                Text(
-                                                    text = option
-                                                )
+                                                option.name?.let {
+                                                    Text(
+                                                        text = it
+                                                    )
+                                                }
                                             }
 
                                         }
                                     }
+
+
                                 }
                             }
 
@@ -476,13 +630,14 @@ fun TeacherHomeworkPage (title: String) {
                                     background(Color.Transparent).
                                     offset(y = 95.dp)
                                 ){
-                                    classoptions.forEach { option ->
+                                    classes.forEach { option ->
                                         item {
                                             Row (
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedClass = option
+                                                        selectedClass = option.name
+                                                        selectedClassId = option.id
                                                         classexpanded.value = false
                                                         print("Clicked\n")
                                                     }
@@ -490,7 +645,7 @@ fun TeacherHomeworkPage (title: String) {
                                             ){
                                                 Spacer(modifier = Modifier.width(10.dp))
                                                 Text(
-                                                    text = option
+                                                    text = option.name
                                                 )
                                             }
 
@@ -664,7 +819,7 @@ fun TeacherHomeworkPage (title: String) {
                                             .padding(12.dp)
 
                                     ) {
-                                        Text(text = selectedCourseSearch, color = Color.Black)
+                                        selectedCourseSearch?.let { Text(text = it, color = Color.Black) }
                                     }
 
                                     Text (
@@ -678,22 +833,25 @@ fun TeacherHomeworkPage (title: String) {
                                             background(Color.Transparent).
                                             offset(y = 165.dp)
                                         ){
-                                            courseoptions.forEach { option ->
+                                            coursesSearch.forEach { option ->
                                                 item {
                                                     Row (
                                                         modifier = Modifier.fillMaxWidth().height(40.dp).
                                                         clickable(
                                                             onClick = {
-                                                                selectedCourseSearch = option
+                                                                selectedCourseSearch = option.name
+                                                                selectedClassSearchId = option.id
                                                                 courseexpanded.value = false
                                                                 print("Clicked\n")
                                                             }
                                                         ).background(color = Color.White)
                                                     ){
                                                         Spacer(modifier = Modifier.width(10.dp))
-                                                        Text(
-                                                            text = option
-                                                        )
+                                                        option.name?.let {
+                                                            Text(
+                                                                text = it
+                                                            )
+                                                        }
                                                     }
 
                                                 }
@@ -734,13 +892,14 @@ fun TeacherHomeworkPage (title: String) {
                                             background(Color.Transparent).
                                             offset(y = 65.dp)
                                         ){
-                                            classoptions.forEach { option ->
+                                            classes.forEach { option ->
                                                 item {
                                                     Row (
                                                         modifier = Modifier.fillMaxWidth().height(40.dp).
                                                         clickable(
                                                             onClick = {
-                                                                selectedClassSearch = option
+                                                                selectedClassSearch = option.name
+                                                                selectedClassSearchId = option.id
                                                                 classexpanded.value = false
                                                                 print("Clicked\n")
                                                             }
@@ -748,7 +907,7 @@ fun TeacherHomeworkPage (title: String) {
                                                     ){
                                                         Spacer(modifier = Modifier.width(10.dp))
                                                         Text(
-                                                            text = option
+                                                            text = option.name
                                                         )
                                                     }
 
@@ -920,7 +1079,7 @@ fun TeacherHomeworkPage (title: String) {
                                             .padding(12.dp)
 
                                     ) {
-                                        Text(text = selectedCoursePast, color = Color.Black)
+                                        selectedCoursePast?.let { Text(text = it, color = Color.Black) }
                                     }
 
                                     Text (
@@ -934,22 +1093,21 @@ fun TeacherHomeworkPage (title: String) {
                                             background(Color.Transparent).
                                             offset(y = 165.dp)
                                         ){
-                                            courseoptions.forEach { option ->
+                                            coursesPast.forEach { option ->
                                                 item {
                                                     Row (
                                                         modifier = Modifier.fillMaxWidth().height(40.dp).
                                                         clickable(
                                                             onClick = {
-                                                                selectedCoursePast = option
+                                                                selectedCoursePast = option.name
+                                                                selectedCoursePastId = option.id
                                                                 courseexpanded.value = false
                                                                 print("Clicked\n")
                                                             }
                                                         ).background(color = Color.White)
                                                     ){
                                                         Spacer(modifier = Modifier.width(10.dp))
-                                                        Text(
-                                                            text = option
-                                                        )
+                                                        option.name?.let { Text ( text = it) }
                                                     }
 
                                                 }
@@ -990,13 +1148,14 @@ fun TeacherHomeworkPage (title: String) {
                                             background(Color.Transparent).
                                             offset(y = 65.dp)
                                         ){
-                                            classoptions.forEach { option ->
+                                            classes.forEach { option ->
                                                 item {
                                                     Row (
                                                         modifier = Modifier.fillMaxWidth().height(40.dp).
                                                         clickable(
                                                             onClick = {
-                                                                selectedClassPast = option
+                                                                selectedClassPast = option.name
+                                                                selectedClassPastId = option.id
                                                                 classexpanded.value = false
                                                                 print("Clicked\n")
                                                             }
@@ -1004,7 +1163,7 @@ fun TeacherHomeworkPage (title: String) {
                                                     ){
                                                         Spacer(modifier = Modifier.width(10.dp))
                                                         Text(
-                                                            text = option
+                                                            text = option.name
                                                         )
                                                     }
 

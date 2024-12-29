@@ -19,11 +19,12 @@ import com.example.loginmultiplatform.ui.components.BottomNavigationBar
 import com.example.loginmultiplatform.ui.components.TopBar
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, navController: NavController) {
+actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, teacherHomeworkViewModel : TeacherAssignmentViewModel ,navController: NavController) {
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val username by loginViewModel.username.collectAsState()
     val teacherId by loginViewModel.id.collectAsState()
@@ -41,7 +42,7 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: At
             when (page) {
                 0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController, teacherId)
                 1 -> TeacherDashboardPage(username ?: "-")
-                2 -> TeacherHomeworkPage("odev")
+                2 -> TeacherHomeworkPage("odev", teacherHomeworkViewModel , teacherId, username ?: "-")
             }
         }
     }

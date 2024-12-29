@@ -7,8 +7,10 @@ import com.example.loginmultiplatform.model.CourseStatisticsResponse
 import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.StudentCourseResponse
+import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
+import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -70,5 +72,23 @@ interface ApiService {
         @Path("attendanceId") attendanceId: Int,
         @Body attendanceList: TeacherAttendanceRequest
     ): ResponseWrapper<AttendanceResponse>
+
+    @GET("/api/v1/assignments/teacher/{teacherId}")
+    suspend fun fetcTeacherHomeworks (
+        @Path("teacherId") teacherId: Int
+    ) :  ResponseWrapper<List<TeacherAssignmentResponse>>
+
+    @GET("/api/v1/courses/class/{classId}")
+    suspend fun fetchClassCourses (
+        @Path("classId") classId: Int,
+    ): ResponseWrapper<List<TeacherCourseResponse>>
+
+
+
+    @POST("/api/v1/assignments/createAssignment")
+    suspend fun newAssignment (
+        @Body newAssignment : TeacherAssignmentRequest
+    ): ResponseWrapper<Int>
+
 }
 
