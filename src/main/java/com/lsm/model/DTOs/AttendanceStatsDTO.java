@@ -21,5 +21,6 @@ public class AttendanceStatsDTO {
     private Long presentCount;
     private Long absentCount;
     private Long lateCount;
+    private Long excusedCount;
     private List<AttendanceDTO> recentAttendance;
 }

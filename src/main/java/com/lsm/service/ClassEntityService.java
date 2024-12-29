@@ -222,10 +222,18 @@ public class ClassEntityService {
     }
 
     @Transactional(readOnly = true)
-    public ClassEntity getStudentClasses(Authentication authentication) throws AccessDeniedException {
-        AppUser student = (AppUser) authentication.getPrincipal();
-        return classRepository.findByIdWithAssignments(student.getStudentDetails().getClassEntity().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " +
-                        student.getStudentDetails().getClassEntity()));
+    public ClassEntity getStudentClasses(Long studentId) throws AccessDeniedException {
+        AppUser user = appUserService.getCurrentUserWithDetails(studentId);
+
+        // Add null checks
+        if (user.getStudentDetails() == null) {
+            throw new EntityNotFoundException("Student details not found for user: " + user.getId());
+        }
+
+        ClassEntity classEntity = classRepository.findByIdWithAllDetails(user.getStudentDetails().getClassEntity().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + user.getStudentDetails().getClassEntity().getId()));
+
+        return classRepository.findByIdWithAssignments(classEntity.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classEntity.getId()));
     }
 }

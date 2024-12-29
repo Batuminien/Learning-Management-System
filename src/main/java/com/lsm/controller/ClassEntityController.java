@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -305,10 +306,15 @@ public class ClassEntityController {
             @ApiResponse(responseCode = "403", description = "Insufficient permissions")
     })
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
-    @GetMapping("/student")
-    public ResponseEntity<ApiResponse_<ClassEntityResponseDTO>> getStudentClasses(Authentication authentication) {
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<ApiResponse_<ClassEntityResponseDTO>> getStudentClasses(
+            Authentication authentication,
+            @PathVariable Long studentId) {
         try {
-            ClassEntity classEntity = classService.getStudentClasses(authentication);
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            if (loggedInUser.getRole().equals(Role.ROLE_STUDENT) && !loggedInUser.getId().equals(studentId))
+                throw new AccessDeniedException("Logged in student and requested student doesn't match.");
+            ClassEntity classEntity = classService.getStudentClasses(studentId);
             ApiResponse_<ClassEntityResponseDTO> response = new ApiResponse_<>(
                     true,
                     "Student classes retrieved successfully",
@@ -318,6 +324,9 @@ public class ClassEntityController {
         } catch (AccessDeniedException e) {
             log.error("Access denied: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (EntityNotFoundException e) {
+            log.error("Entity not found: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());

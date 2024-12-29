@@ -236,6 +236,9 @@ public class AttendanceService {
                             .filter(a -> AttendanceStatus.ABSENT.equals(a.getStatus()))
                             .count();
                     long lateCount = courseOrStudentAttendances.stream()
+                            .filter(a -> AttendanceStatus.LATE.equals(a.getStatus()))
+                            .count();
+                    long excusedCount = courseOrStudentAttendances.stream()
                             .filter(a -> AttendanceStatus.EXCUSED.equals(a.getStatus()))
                             .count();
 
@@ -265,6 +268,7 @@ public class AttendanceService {
                                 .presentCount(presentCount)
                                 .absentCount(absentCount)
                                 .lateCount(lateCount)
+                                .excusedCount(excusedCount)
                                 .attendancePercentage(Math.round(attendancePercentage * 100.0) / 100.0)
                                 .recentAttendance(recentAttendances)
                                 .build();
@@ -296,6 +300,7 @@ public class AttendanceService {
                             .presentCount(presentCount)
                             .absentCount(absentCount)
                             .lateCount(lateCount)
+                            .excusedCount(excusedCount)
                             .attendancePercentage(Math.round(attendancePercentage * 100.0) / 100.0)
                             .recentAttendance(recentAttendances)
                             .build();
