@@ -1,13 +1,11 @@
 package com.lsm.repository;
 
 import com.lsm.model.entity.ClassEntity;
-import com.lsm.model.entity.Course;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,9 +38,10 @@ public interface ClassEntityRepository extends JpaRepository<ClassEntity, Long> 
     Optional<ClassEntity> findByIdWithAssignments(@Param("id") Long id);
 
     @Query("""
-    SELECT DISTINCT c FROM ClassEntity c 
+    SELECT DISTINCT c FROM ClassEntity c
     LEFT JOIN FETCH c.assignments
-    LEFT JOIN FETCH c.students
+    LEFT JOIN FETCH c.students s
+    LEFT JOIN FETCH s.studentDetails
     LEFT JOIN FETCH c.teacherCourses tc
     LEFT JOIN FETCH tc.teacher
     LEFT JOIN FETCH tc.course

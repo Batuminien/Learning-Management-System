@@ -12,10 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.lsm.model.DTOs.*;
-import com.lsm.model.entity.StudentSubmission;
-import com.lsm.model.entity.AssignmentDocument;
-import com.lsm.model.entity.ClassEntity;
-import com.lsm.model.entity.Course;
+import com.lsm.model.entity.*;
 import com.lsm.model.entity.enums.AssignmentStatus;
 import com.lsm.repository.*;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 
-import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
 
@@ -46,6 +42,7 @@ public class AssignmentService {
     private final AppUserService appUserService;
     private final AssignmentDocumentService assignmentDocumentService;
     private final StudentSubmissionService studentSubmissionService;
+    private final TeacherCourseRepository teacherCourseRepository;
 
     @Value("${assignment.max-title-length:100}")
     private int maxTitleLength;
@@ -54,7 +51,11 @@ public class AssignmentService {
     private int minDueDateDays;
 
     @Autowired
-    public AssignmentService(AssignmentRepository assignmentRepository, AppUserRepository appUserRepository, ClassEntityRepository classEntityRepository, AssignmentDocumentRepository assignmentDocumentRepository, StudentSubmissionRepository studentSubmissionRepository, CourseRepository courseRepository, AppUserService appUserService, AssignmentDocumentService assignmentDocumentService, StudentSubmissionService studentSubmissionService) {
+    public AssignmentService(AssignmentRepository assignmentRepository, AppUserRepository appUserRepository,
+                             ClassEntityRepository classEntityRepository, AssignmentDocumentRepository assignmentDocumentRepository,
+                             StudentSubmissionRepository studentSubmissionRepository, CourseRepository courseRepository,
+                             AppUserService appUserService, AssignmentDocumentService assignmentDocumentService,
+                             StudentSubmissionService studentSubmissionService, TeacherCourseRepository teacherCourseRepository) {
         this.assignmentRepository = assignmentRepository;
         this.appUserRepository = appUserRepository;
         this.classEntityRepository = classEntityRepository;
@@ -64,6 +65,7 @@ public class AssignmentService {
         this.appUserService = appUserService;
         this.assignmentDocumentService = assignmentDocumentService;
         this.studentSubmissionService = studentSubmissionService;
+        this.teacherCourseRepository = teacherCourseRepository;
     }
 
     @Transactional
@@ -96,9 +98,12 @@ public class AssignmentService {
             Course course = courseRepository.findById(dto.getCourseId())
                     .orElseThrow(() -> new EntityNotFoundException("Course not found"));
 
+            TeacherCourse teacherCourse = teacherCourseRepository.findByTeacherAndCourse(teacher, course)
+                    .orElseThrow(() -> new EntityNotFoundException("Teacher is not assigned to this course"));
+
             validateTeacherAccess(teacher, classEntity);
 
-            Assignment assignment = createAssignmentEntity(dto, teacher, classEntity, course);
+            Assignment assignment = createAssignmentEntity(dto, teacher, classEntity, course, teacherCourse); // Pass teacherCourse
 
             log.info("Assignment created successfully with ID: {}", assignment.getId());
             return assignmentRepository.save(assignment);
@@ -109,21 +114,22 @@ public class AssignmentService {
         }
     }
 
+
     @Transactional
     public List<AssignmentDTO> getAssignmentsByTeacher(Long teacherId,
                                                        Long classId, Long courseId, LocalDate dueDate,
                                                        AppUser loggedInUser)
             throws AccessDeniedException, EntityNotFoundException {
         // Find teacher
-        AppUser  teacher = appUserRepository.findById(teacherId)
+        AppUser teacher = appUserRepository.findById(teacherId)
                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
 
         // Validate that user is actually a teacher
-        if (teacher.getRole() != Role.ROLE_TEACHER) {
+        if (teacher.getRole().equals(Role.ROLE_STUDENT)) {
             throw new IllegalArgumentException("Specified user is not a teacher");
         }
 
-        if (!loggedInUser.getId().equals(teacher.getId()))
+        if (teacher.getRole().equals(Role.ROLE_TEACHER) && !loggedInUser.getId().equals(teacher.getId()))
             throw new AccessDeniedException("Mismatch between logged in user id and the teacher id.");
 
         // Get all assignments created by the teacher
@@ -243,42 +249,28 @@ public class AssignmentService {
             throw new AccessDeniedException("You can only delete your own assignments");
         }
 
-        // Clear teacher document
+        // Delete physical files if they exist
         if (assignment.getTeacherDocument() != null) {
-            AssignmentDocument teacherDoc = assignment.getTeacherDocument();
-            assignment.setTeacherDocument(null);
-            assignmentDocumentRepository.delete(teacherDoc);
-        }
-
-        // Clear student submissions and their documents
-        if (!assignment.getStudentSubmissions().isEmpty()) {
-            for (StudentSubmission submission : new ArrayList<>(assignment.getStudentSubmissions())) {
-                // Clear document reference and delete document first
-                if (submission.getDocument() != null) {
-                    AssignmentDocument doc = submission.getDocument();
-                    submission.setDocument(null);
-                    studentSubmissionRepository.save(submission);
-                    assignmentDocumentRepository.delete(doc);
-                }
-                // Then delete the submission
-                studentSubmissionRepository.delete(submission);
+            try {
+                Files.deleteIfExists(Paths.get(assignment.getTeacherDocument().getFilePath()));
+            } catch (IOException e) {
+                log.error("Could not delete teacher document file: {}", e.getMessage());
             }
-            assignment.getStudentSubmissions().clear();
         }
 
-        // Remove assignment from class entity
-        ClassEntity classEntity = assignment.getClassEntity();
-        classEntity.getAssignments().remove(assignment);
-        classEntityRepository.save(classEntity);
+        // Delete student submission files
+        for (StudentSubmission submission : assignment.getStudentSubmissions()) {
+            if (submission.getDocument() != null) {
+                try {
+                    Files.deleteIfExists(Paths.get(submission.getDocument().getFilePath()));
+                } catch (IOException e) {
+                    log.error("Could not delete student submission file: {}", e.getMessage());
+                }
+            }
+        }
 
-        // Remove assignment from course
-        Course course = assignment.getCourse();
-        course.getAssignments().remove(assignment);
-        courseRepository.save(course);
-
-        // Finally delete the assignment
+        // The cascade settings will handle all the database relationships
         assignmentRepository.delete(assignment);
-        assignmentRepository.flush(); // Force immediate database synchronization
     }
 
     @Transactional
@@ -319,28 +311,31 @@ public class AssignmentService {
 
     @Transactional
     public Assignment unsubmitAssignment(Long assignmentId, AppUser currentUser) throws AccessDeniedException {
+        AppUser user = appUserService.getCurrentUserWithDetails(currentUser.getId());
         Assignment assignment = findById(assignmentId);
 
         if (assignment.getDueDate().isBefore(LocalDate.now()))
             throw new IllegalStateException("Can only un-submit assignments that have been due.");
 
-        if (currentUser.getRole() != Role.ROLE_STUDENT)
+        if (user.getRole() != Role.ROLE_STUDENT)
             throw new AccessDeniedException("Only students can un-submit assignments");
 
-        ClassEntity classEntity = currentUser.getStudentDetails().getClassEntity();
+        ClassEntity classEntity = user.getStudentDetails().getClassEntity();
         if (classEntity == null) {
             throw new EntityNotFoundException("Student is not assigned to any class");
         }
 
         // Verify the assignment belongs to the student's class through teacher courses
-        boolean isEnrolled = classEntity.getTeacherCourses().stream()
-                .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));
+        boolean isEnrolled = teacherCourseRepository.existsByClassAndCourse(
+                user.getStudentDetails().getClassEntity().getId(),
+                assignment.getCourse().getId()
+        );
 
         if (!isEnrolled)
             throw new AccessDeniedException("You can only un-submit your own assignments");
 
         StudentSubmission studentSubmission = assignment.getStudentSubmissions().stream()
-                .filter(submission -> submission.getStudent().getId().equals(currentUser.getId()))
+                .filter(submission -> submission.getStudent().getId().equals(user.getId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("Student didn't submit assignment"));
 
@@ -358,13 +353,15 @@ public class AssignmentService {
     @Transactional
     public StudentSubmission submitAssignment(Long assignmentId, SubmitAssignmentDTO submitDTO, AppUser currentUser)
             throws IllegalStateException, IOException {
+        AppUser user = appUserService.getCurrentUserWithDetails(currentUser.getId());
+
         Assignment assignment = findById(assignmentId);
 
         if (LocalDate.now().isAfter(assignment.getDueDate()))
             throw new IllegalStateException("Assignment deadline has passed");
 
         Optional<StudentSubmission> optionalSubmission = assignment.getStudentSubmissions().stream()
-                .filter(studentSubmission -> studentSubmission.getStudent().getId().equals(currentUser.getId()))
+                .filter(studentSubmission -> studentSubmission.getStudent().getId().equals(user.getId()))
                 .findFirst();
 
         if (optionalSubmission.isPresent()) {
@@ -379,13 +376,15 @@ public class AssignmentService {
             assignmentRepository.save(assignment);
         }
 
-        ClassEntity classEntity = currentUser.getStudentDetails().getClassEntity();
+        ClassEntity classEntity = user.getStudentDetails().getClassEntity();
         if (classEntity == null) {
             throw new EntityNotFoundException("Student is not assigned to any class");
         }
 
-        boolean isEnrolled = classEntity.getTeacherCourses().stream()
-                .anyMatch(tc -> tc.getCourse().getId().equals(assignment.getCourse().getId()));
+        boolean isEnrolled = teacherCourseRepository.existsByClassAndCourse(
+                user.getStudentDetails().getClassEntity().getId(),
+                assignment.getCourse().getId()
+        );
 
         if (!isEnrolled) {
             throw new AccessDeniedException("You can only submit your own assignments");
@@ -394,7 +393,7 @@ public class AssignmentService {
         StudentSubmission studentSubmission = studentSubmissionService.submitAssignment(
                 assignmentId,
                 submitDTO,
-                currentUser
+                user
         );
         assignment.getStudentSubmissions().add(studentSubmission);
         assignmentRepository.save(assignment);
@@ -466,7 +465,8 @@ public class AssignmentService {
             AssignmentRequestDTO dto,
             AppUser teacher,
             ClassEntity classEntity,
-            Course course) {
+            Course course,
+            TeacherCourse teacherCourse) { // Add teacherCourse parameter
         return Assignment.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -475,6 +475,7 @@ public class AssignmentService {
                 .lastModifiedBy(teacher)
                 .classEntity(classEntity)
                 .course(course)
+                .teacherCourse(teacherCourse) // Set the teacherCourse
                 .date(LocalDate.now())
                 .lastModified(LocalDate.now())
                 .studentSubmissions(new ArrayList<>())

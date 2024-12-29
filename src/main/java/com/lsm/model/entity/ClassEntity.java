@@ -35,7 +35,7 @@ public class ClassEntity {
     @Builder.Default
     private Set<TeacherCourse> teacherCourses = new HashSet<>();
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "class_students",
             joinColumns = @JoinColumn(name = "class_id"),

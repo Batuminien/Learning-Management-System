@@ -10,6 +10,7 @@ TRUNCATE TABLE
     teacher_course_classes,
     teacher_courses,
     course_classes,
+    class_students,
     classes,
     courses,
     refresh_tokens,
@@ -109,6 +110,12 @@ INSERT INTO teacher_course_classes (teacher_course_id, class_id) VALUES
                                                                                              JOIN courses c ON tc.course_id = c.id
                                                                        WHERE au.username = 'teacher2' AND c.code = 'FIZ-1'),
                                                                       (SELECT id FROM classes WHERE name = '11-B-TM'));
+
+-- Populate it from existing relationships
+INSERT INTO class_students (class_id, student_id)
+SELECT class_id_student, id
+FROM app_users
+WHERE role = 'ROLE_STUDENT' AND class_id_student IS NOT NULL;
 
 -- Create Assignments
 INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_id,
