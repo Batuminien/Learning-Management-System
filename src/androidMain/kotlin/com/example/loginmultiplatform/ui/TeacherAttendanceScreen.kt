@@ -9,10 +9,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -151,7 +153,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     }
 
     val studentComments = remember { mutableStateMapOf<Int, String>() }
-
+    val scrollState = rememberScrollState()
     val context = LocalContext.current
 
     val startDate = "2024-01-01"
@@ -232,7 +234,9 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .padding(16.dp)) {
+        .padding(16.dp)
+        .verticalScroll(scrollState))
+    {
 
         Spacer(modifier = Modifier.height(16.dp))
 

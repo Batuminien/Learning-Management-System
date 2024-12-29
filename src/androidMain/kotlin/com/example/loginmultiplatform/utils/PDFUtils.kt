@@ -28,7 +28,8 @@ fun CreateAttendancePDF(
     endDate: String,
     statistics: List<AttendanceStats>,
     courses: List<StudentCourseResponse>,
-    classId: Int) {
+    classId: Int
+) {
 
     val pdfDocument = PdfDocument()
     val pageWidth = 595
@@ -43,7 +44,7 @@ fun CreateAttendancePDF(
     val primaryBlue = Color.rgb(51,75,190)
     val darkTextColor = Color.BLACK
     val tableHeaderColor = Color.rgb(51,75,190)
-    val tableRowColor2 = Color.rgb(51,75,190)
+    //val tableRowColor2 = Color.rgb(51,75,190)
     val tableRowColor1 = Color.rgb(237,242,254)
     val whiteColor = Color.WHITE
 
@@ -69,7 +70,7 @@ fun CreateAttendancePDF(
     paint.textSize = 30f
     paint.color = Color.WHITE
     paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_bold)
-    val studentName = statistics[0].studentName
+    val studentName = statistics.firstOrNull()?.studentName ?: "-"
     val studentNameWidth = paint.measureText(studentName)
     canvas.drawText(studentName, pageWidth - studentNameWidth - 20f, 65f, paint)
 
@@ -147,45 +148,47 @@ fun CreateAttendancePDF(
         // Tablo satırları
         paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_medium)
         attendances.forEachIndexed { index, attendance ->
-            if (attendance.status != "PRESENT") {
-                val rowHeight = 30f
-                val top = yOffset
-                val bottom = yOffset + rowHeight
 
-                // Satır arka plan rengi alternatifi
-                paint.style = Paint.Style.FILL
-                paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
-                canvas.drawRect(tableLeft, top, tableRight, bottom, paint)
+            val rowHeight = 30f
+            val top = yOffset
+            val bottom = yOffset + rowHeight
 
-                paint.style = Paint.Style.STROKE
-                paint.color = tableHeaderColor
-                paint.strokeWidth = 1f
-                canvas.drawRect(tableLeft + 1f, top, tableRight - 1f, bottom - 1f, paint)
+            paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_medium)
+            // Satır arka plan rengi alternatifi
+            paint.style = Paint.Style.FILL
+            //paint.color = if (index % 2 == 0) tableRowColor1 else tableRowColor2
+            paint.color = tableRowColor1
+            canvas.drawRect(tableLeft, top, tableRight, bottom, paint)
 
-                paint.style = Paint.Style.FILL
+            paint.style = Paint.Style.STROKE
+            paint.color = tableHeaderColor
+            paint.strokeWidth = 1f
+            canvas.drawRect(tableLeft + 1f, top, tableRight - 1f, bottom - 1f, paint)
 
-                // Metinler
-                paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
-                paint.textSize = 12f
-                val attendanceDate =
-                    SimpleDateFormat("yyyy-MM-dd", Locale("tr")).parse(attendance.date)
-                val outputFormat = SimpleDateFormat("d MMMM yyyy EEEE", Locale("tr"))
-                val formattedDate = if (attendanceDate != null)
-                    outputFormat.format(attendanceDate)
-                else
-                    attendance.date
+            paint.style = Paint.Style.FILL
 
-                canvas.drawText(attendance.status, durumX, top + 20f, paint)
-                canvas.drawText(formattedDate, tarihX, top + 20f, paint)
-                canvas.drawText(
-                    attendance.comment ?: "Açıklama yapılmadı.",
-                    aciklamaX,
-                    top + 20f,
-                    paint
-                )
+            // Metinler
+            //paint.color = if (index % 2 == 0) Color.BLACK else Color.WHITE
+            paint.color = Color.BLACK
+            paint.textSize = 12f
+            val attendanceDate =
+                SimpleDateFormat("yyyy-MM-dd", Locale("tr")).parse(attendance.date)
+            val outputFormat = SimpleDateFormat("d MMMM yyyy EEEE", Locale("tr"))
+            val formattedDate = if (attendanceDate != null)
+                outputFormat.format(attendanceDate)
+            else
+                attendance.date
 
-                yOffset += rowHeight
-            }
+            canvas.drawText(attendance.status, durumX, top + 20f, paint)
+            canvas.drawText(formattedDate, tarihX, top + 20f, paint)
+            canvas.drawText(
+                attendance.comment ?: "Açıklama yapılmadı.",
+                aciklamaX,
+                top + 20f,
+                paint
+            )
+
+            yOffset += rowHeight
         }
 
         yOffset += 20f
@@ -206,6 +209,7 @@ fun CreateAttendancePDF(
             yOffset += 100f
         } else {
             // Eğer istatistik bulunamazsa
+            paint.typeface = ResourcesCompat.getFont(context, R.font.montserrat_bolditalic)
             canvas.drawText("İstatistik bulunamadı.", 40f, yOffset, paint)
             yOffset += 60f
         }
@@ -215,7 +219,7 @@ fun CreateAttendancePDF(
 
     // Dosyayı yazma ve açma
     val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-    val file = File(downloadDir, "${studentName}_${SimpleDateFormat("d_MMMM_yyyy", Locale("tr")).format(Date())}.pdf")
+    val file = File(downloadDir, "${studentName}_Yoklama_Raporu.pdf")
 
     try {
         pdfDocument.writeTo(FileOutputStream(file))
