@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.LocalPlatformContext
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import com.example.loginmultiplatform.getPlatformResourceContainer
-import com.example.loginmultiplatform.model.Assignment
+import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.AssignmentDocument
 import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
@@ -82,17 +82,13 @@ import android.provider.OpenableColumns
 import android.net.Uri
 import androidx.core.net.toUri
 import android.provider.DocumentsContract
+import androidx.compose.ui.platform.LocalContext
+import com.example.loginmultiplatform.ui.components.SharedDocument
+import com.example.loginmultiplatform.ui.components.rememberDocumentManager
 
 
-@SuppressLint("Range")
-fun getFileNameFromUri(context: Context, uri: Uri): String? {
-    val fileName: String?
-    val cursor = context.contentResolver.query(uri, null, null, null, null)
-    cursor?.moveToFirst()
-    fileName = cursor?.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
-    cursor?.close()
-    return fileName?: "Explosion"
-}
+
+
 @Composable
 fun get_buttons(content_of_assignment: MutableState<Int>, content_value: Int , buttonText : String, classexpanded : MutableState<Boolean>, courseExpanded: MutableState<Boolean>){
 
@@ -147,6 +143,230 @@ fun saveFileFromUri(context: Context, uri: Uri, outputFileName: String): File? {
     return outputFile
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
+
+    var displayExpand by remember { mutableStateOf(false) }
+    var dateDisplayExpanded by remember { mutableStateOf(false) }
+    var checkedDisplayDate by remember { mutableStateOf(false) }
+
+    val context = LocalPlatformContext.current
+
+    var selectedDateLastDisplay by remember { mutableStateOf("gg.aa.yyyy") }
+
+
+    Card(
+        modifier = Modifier.fillMaxWidth().height( if (displayExpand)  450.dp else 80.dp).padding(10.dp),
+        elevation = 8.dp,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column (
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (!displayExpand){
+                Row(
+                    modifier = Modifier.fillMaxWidth().height( 80.dp).
+                    clickable{
+                        displayExpand = !displayExpand
+                    },
+                    verticalAlignment = Alignment.CenterVertically
+                ){
+                    Text(
+                        text = "Ödev Ara",
+                        modifier = Modifier.fillMaxWidth(0.85f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Icon(
+                        imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(10.dp)
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height( 60.dp).
+                    clickable{
+                        displayExpand = !displayExpand
+                    },
+                    verticalAlignment = Alignment.CenterVertically
+                ){
+                    Text(
+                        text = "",
+                        modifier = Modifier.fillMaxWidth(0.85f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Icon(
+                        imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(10.dp)
+                    )
+                }
+
+
+                Divider(modifier = Modifier.fillMaxWidth())
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+
+                ) {
+                    Text(text = assignment.className, color = Color.Black)
+                }
+
+                Text (
+                    text = "Bankaiiiii",
+                    modifier = Modifier
+                )
+
+                Text (
+                    text = "   Sınıf Adı",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Box(
+                    modifier = Modifier
+
+                        .fillMaxWidth()
+                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+
+                ) {
+                    Text(text = assignment.courseName, color = Color.Black)
+                }
+
+                Text (
+                    text = "Bankaiiiii",
+                    modifier = Modifier
+                )
+
+
+                Text (
+                    text = "   Ders Adı",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
+
+                Spacer(modifier =Modifier.height(10.dp))
+
+
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { dateDisplayExpanded = !dateDisplayExpanded }
+                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+
+                ) {
+                    Text(text = if (checkedDisplayDate) selectedDateLastDisplay else "Bitiş tarihini seçiniz", color = Color.Black)
+                }
+
+                Text (
+                    text = "Bankaiiiii",
+                    modifier = Modifier
+                )
+
+                if (dateDisplayExpanded){
+                    val datePickerState = rememberDatePickerState()
+                    DatePickerDialog(
+                        onDismissRequest = { /*TODO*/  },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                    val selectedDate = Calendar.getInstance().apply {
+                                        timeInMillis = datePickerState.selectedDateMillis!!
+                                    }
+                                    if (selectedDate.after(Calendar.getInstance())) {
+                                        Toast.makeText(
+                                            context,
+                                            "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        selectedDateLastDisplay = dateFormatter.format(selectedDate.time)
+                                        dateDisplayExpanded = false
+                                        checkedDisplayDate = true
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Seçilen tarih geçmemiş bir tarih olmalı lütfen başka bir tarih seçiniz",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            ) { Text("Tamam") }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    dateDisplayExpanded= false
+                                }
+                            ) { Text("İptal") }
+                        }
+                    )
+                    {
+                        DatePicker(state = datePickerState)
+                    }
+
+                }
+
+                Text (
+                    text = "   Bitiş Tarihi",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(80.dp),
+
+                    ){
+                    Button(
+                        modifier = Modifier.align(Alignment.Center),
+                        onClick = {
+                            displayExpand = !displayExpand
+
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF334BBE )
+                        )
+
+                    ){
+                        Text(
+                            text = "Ara",
+                            color = Color.White
+                        )
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
+            }
+        }
+
+    }
+
+
+
+
+}
+
 
 
 
@@ -166,6 +386,10 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     val errorMessage by teacherViewModel.errorMessage.collectAsState()
 
     val bulkOperationStatus by teacherViewModel.bulkOperationStatus.collectAsState()
+
+    val teacherAssignments by teacherViewModel.teacherAssignments.collectAsState()
+
+    val isLoad by teacherViewModel.isLoading.collectAsState()
 
 
     LaunchedEffect(Unit) {
@@ -192,6 +416,8 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     var selectedDateLast by remember { mutableStateOf("gg.aa.yyyy") }
 
+    var searchHomework by remember { mutableStateOf(false) }
+
     val context = LocalPlatformContext.current
 
     LaunchedEffect(selectedClass){
@@ -216,6 +442,8 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
 
     }
+
+
 
 
 
@@ -249,33 +477,17 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     val scope = rememberCoroutineScope()
 
 
-    var showFilePicker by remember { mutableStateOf(false) }
+    // Callback to handle the selected document
+    val onDocumentSelected: (SharedDocument?) -> Unit = { document ->
+        if (document != null) {
+            val fileName = document.fileName()
+            val fileContent = document.toText() ?: "Empty content"
+            Toast.makeText(context, "Selected file: $fileName", Toast.LENGTH_SHORT).show()
 
-    var fileSelected by remember { mutableStateOf(false) }
-
-    val fileType = listOf("pdf")
-    FilePicker(show = showFilePicker, fileExtensions = fileType) { platformFile ->
-        showFilePicker = false
-        // do something with the file
-        val file = platformFile?.path?.let { File(it) }
-
-        if (file != null) {
-            assignmentDocument = getFileNameFromUri(context, file.toUri())?.let {
-                AssignmentDocument(
-                    assignmentId = 5 ,
-                    documentId =  10,
-                    fileName = platformFile.path,
-                    fileType =  "pdf",
-                    filePath =  file.path,
-                    fileSize =  file.length(),
-                    uploadTime =  LocalDate.toString(),
-                    uploadedByUsername =  username
-                )
-            }
-
-            fileSelected = true
         }
     }
+
+    val documentManager = rememberDocumentManager(onResult = onDocumentSelected)
 
 
 
@@ -283,11 +495,11 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     var selectedClassSearch by remember { mutableStateOf("Sınıf Seçiniz") }
 
-    var selectedClassSearchId by remember { mutableStateOf( 0 ) }
+    var selectedClassSearchId by remember { mutableStateOf( -1 ) }
 
     var selectedCourseSearch by remember { mutableStateOf<String?>("Ders Seçiniz") }
 
-    var selectedCourseSearchId by remember { mutableStateOf(0) }
+    var selectedCourseSearchId by remember { mutableStateOf(-1) }
 
     var selectedDateLastSearch by remember { mutableStateOf("gg.aa.yyyy") }
 
@@ -296,11 +508,11 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     var selectedClassPast by remember { mutableStateOf("Sınıf Seçiniz") }
 
-    var selectedClassPastId by remember { mutableStateOf( 0 ) }
+    var selectedClassPastId by remember { mutableStateOf( -1 ) }
 
     var selectedCoursePast by remember { mutableStateOf<String?>("Ders Seçiniz") }
 
-    var selectedCoursePastId by remember { mutableStateOf(0) }
+    var selectedCoursePastId by remember { mutableStateOf(-1) }
 
     var selectedDateLastPast by remember { mutableStateOf("gg.aa.yyyy") }
 
@@ -319,6 +531,51 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
         }
 
+    }
+
+
+    LaunchedEffect(searchHomework){
+        if (teacherId != null ) {
+            println("Exploooosion")
+            println(selectedCourseSearchId)
+            println(selectedClassSearchId)
+            println(selectedDateLastSearch)
+            if ( selectedClassSearchId != -1 && selectedCourseSearchId != -1 ) {
+
+                if (selectedDateLastSearch == "gg.aa.yyyy"){
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        selectedClassSearchId,
+                        selectedCourseSearchId,
+                        ""
+                    )
+                }else{
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        selectedClassSearchId,
+                        selectedCourseSearchId,
+                        selectedDateLastSearch
+                    )
+                }
+
+
+
+                if (isLoad || errorMessage != null) {
+                    Toast.makeText(
+                        context,
+                        "Bir hata var ${(errorMessage != null) ?: errorMessage}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Ödevler Yüklendi. Ödev miktarı: ${teacherAssignments.size}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    description = teacherAssignments.toString()
+                }
+            }
+        }
     }
 
     LaunchedEffect(selectedClassPast){
@@ -416,7 +673,8 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                             Button (
                                 modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(50.dp),
                                 onClick = {
-                                    showFilePicker = true
+
+                                    documentManager.launch()
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     backgroundColor = Color.Transparent
@@ -499,7 +757,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                     confirmButton = {
                                         TextButton(
                                             onClick = {
-                                                val dateFormatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                                                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                                                 val selectedDate = Calendar.getInstance().apply {
                                                     timeInMillis = datePickerState.selectedDateMillis!!
                                                 }
@@ -677,6 +935,25 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                 modifier = Modifier.fillMaxSize()
             ) {
 
+                LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize().background(Color.Red)) {
+                    teacherAssignments.forEach { assignment ->
+                        item {
+                            Spacer(modifier = Modifier.height(15.dp))
+                        }
+
+                        item {
+
+                            DisplayHomeworks(assignment)
+                        }
+
+
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(15.dp))
+                    }
+                }
+
                 Text (
                     text = "Exploosion",
                     modifier = Modifier.offset(y = 170.dp).padding(start = 4.dp)
@@ -688,6 +965,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                     shape = RoundedCornerShape(8.dp)
 
                 ){
+
                     LazyColumn {
                         item {
                             Row(
@@ -727,6 +1005,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                             modifier = Modifier.align(Alignment.Center),
                                             onClick = {
                                                 searchExpand = !searchExpand
+                                                searchHomework = !searchHomework
                                             },
                                             colors = ButtonDefaults.buttonColors(
                                                 backgroundColor = Color(0xFF334BBE )
@@ -765,7 +1044,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                             confirmButton = {
                                                 TextButton(
                                                     onClick = {
-                                                        val dateFormatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                                                        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                                                         val selectedDate = Calendar.getInstance().apply {
                                                             timeInMillis = datePickerState.selectedDateMillis!!
                                                         }
@@ -840,7 +1119,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                                         clickable(
                                                             onClick = {
                                                                 selectedCourseSearch = option.name
-                                                                selectedClassSearchId = option.id
+                                                                selectedCourseSearchId = option.id
                                                                 courseexpanded.value = false
                                                                 print("Clicked\n")
                                                             }
@@ -1025,7 +1304,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                             confirmButton = {
                                                 TextButton(
                                                     onClick = {
-                                                        val dateFormatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                                                        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                                                         val selectedDate = Calendar.getInstance().apply {
                                                             timeInMillis = datePickerState.selectedDateMillis!!
                                                         }

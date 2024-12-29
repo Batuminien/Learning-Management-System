@@ -3,8 +3,10 @@ package com.example.loginmultiplatform.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.TeacherAssignmentRequest
+import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.repository.TeacherHomeworkRepository
@@ -17,6 +19,9 @@ import retrofit2.HttpException
 class TeacherAssignmentViewModel : ViewModel(){
 
     private val repository = TeacherHomeworkRepository()
+
+    private val _teacherAssignments = MutableStateFlow<List<TeacherAssignmentResponse>>(emptyList())
+    val teacherAssignments : StateFlow<List<TeacherAssignmentResponse>> = _teacherAssignments
 
     private val _teacherClasses = MutableStateFlow<List<TeacherClassResponse>>(emptyList())
     val teacherClasses: StateFlow<List<TeacherClassResponse>> = _teacherClasses
@@ -32,7 +37,7 @@ class TeacherAssignmentViewModel : ViewModel(){
     val coursePastId: StateFlow<List<TeacherCourseResponse>> = _coursePastId
 
     private val _isLoading = MutableStateFlow(false)
-    //val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -46,6 +51,28 @@ class TeacherAssignmentViewModel : ViewModel(){
 
     private val _saveError = MutableStateFlow<String?>(null)
 
+
+    fun fetchTeacherAssignments (teacherId: Int, classId: Int, courseId : Int, dueDate :String){
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            try{
+                val assignments = repository.fetchTeacherAssignments(teacherId, classId, courseId, dueDate)
+
+                if (assignments.success){
+
+                    _teacherAssignments.value = assignments.data
+                }else{
+                    _errorMessage.value = assignments.message
+                }
+            } catch (e : Exception){
+                _errorMessage.value = "Bir hata oluştu ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
 
     fun addAssignment (newAssignment : TeacherAssignmentRequest) {
         viewModelScope.launch {

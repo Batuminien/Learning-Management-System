@@ -1,12 +1,7 @@
 package com.example.loginmultiplatform.model
 
-data class TeacherAssignmentResponse (
-    val success : Boolean,
-    val message : String,
-    val data : List <Assignment>
-)
 
-data class Assignment (
+data class TeacherAssignmentResponse (
     val id: Long,
     val title : String,
     val description : String,
@@ -43,7 +38,7 @@ data class StudentSubmission (
     val id : Long,
     val studentId : Int,
     val studentName : String,
-    val status : String, // Three different situation will be asked
+    val status : String, // Three different situation will be asked PENDING SUBMITTING GRADED
     val document : AssignmentDocument,
     val submissionDate : String , // date and time format
     val comment : String,

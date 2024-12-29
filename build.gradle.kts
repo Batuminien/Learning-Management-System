@@ -80,6 +80,7 @@ kotlin {
 
                 // File picker (Melikşah)
                 implementation("com.darkrockstudios:mpfilepicker:3.1.0")
+                implementation("com.google.accompanist:accompanist-permissions:0.33.1-alpha")
 
             }
         }
@@ -143,6 +144,7 @@ kotlin {
 
                 // File Picker (Melikşah)
                 implementation("com.darkrockstudios:mpfilepicker:3.1.0")
+                implementation("com.google.accompanist:accompanist-permissions:0.33.1-alpha")
 
             }
         }

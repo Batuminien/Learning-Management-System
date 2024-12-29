@@ -73,10 +73,7 @@ interface ApiService {
         @Body attendanceList: TeacherAttendanceRequest
     ): ResponseWrapper<AttendanceResponse>
 
-    @GET("/api/v1/assignments/teacher/{teacherId}")
-    suspend fun fetcTeacherHomeworks (
-        @Path("teacherId") teacherId: Int
-    ) :  ResponseWrapper<List<TeacherAssignmentResponse>>
+
 
     @GET("/api/v1/courses/class/{classId}")
     suspend fun fetchClassCourses (
@@ -89,6 +86,16 @@ interface ApiService {
     suspend fun newAssignment (
         @Body newAssignment : TeacherAssignmentRequest
     ): ResponseWrapper<Int>
+
+
+    @GET("/api/v1/assignments/teacher/{teacherId}")
+    suspend fun fetchTeacherAssignments (
+        @Path("teacherId") teacherId: Int,
+        @Query("classId") classId: Int,
+        @Query("courseId") courseId: Int,
+        @Query("dueDate") dueDate: String
+    ): ResponseWrapper<List<TeacherAssignmentResponse>>
+
 
 }
 
