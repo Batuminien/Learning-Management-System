@@ -3,10 +3,6 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { getAllCourses } from "../../../services/coursesService";
 import { getAllClasses } from "../../../services/classesService";
 
-
-
-
-
 const CourseClassMatching = () => {
     const { user } = useContext(AuthContext);
 
@@ -21,13 +17,9 @@ const CourseClassMatching = () => {
         const fetchCourses = async () => {
             try{
                 const allCourses = await getAllCourses(user.accessToken);
-                console.log('courses : ', allCourses.data);
                 setCourses(allCourses.data);
-                
                 const allClasses = await getAllClasses(user.accessToken);
-                console.log('classes : ', allClasses.data);
                 setClasses(allClasses.data);
-
             }catch(error){
                 console.log(error)
             }
@@ -41,15 +33,10 @@ const CourseClassMatching = () => {
         const newCourseID = Number(selectedOption.getAttribute('data-key'));
         const newSelectedCourse = {name : newCourseName, id : newCourseID};
         setSelectedCourse(newSelectedCourse);
-
         const classListOfCourse = courses.find(course => course.id === newCourseID).classEntityIds;
-        // console.log('id array : ', classListOfCourse);
         const classesOfCourse = classes.filter((singleClass) => classListOfCourse.some(c => c === singleClass.id));
-        // console.log('classes of the course : ', classesOfCourse);
         setClassesOfSelectedCourse(classesOfCourse);
-        
         const nonClassesOfCourse = classes.filter((singleClass) => !classListOfCourse.some(c => c === singleClass.id));
-        // console.log('non classes of the course : ', nonClassesOfCourse);
         setNonClassesOfSelectedCourse(nonClassesOfCourse);
     }
 

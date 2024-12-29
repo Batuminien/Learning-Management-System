@@ -2,8 +2,6 @@ import Header from "../../components/common/Header/Header";
 import Sidebar from "../../components/common/Sidebar/Sidebar";
 import MainContent from "../../components/common/MainContent/MainContent";
 
-import './Dashboard.css'
-
 import { useContext, useState } from "react";
 import { AuthContext } from '../../contexts/AuthContext';
 import { getSidebarOptions } from "../../utils/userOptions";

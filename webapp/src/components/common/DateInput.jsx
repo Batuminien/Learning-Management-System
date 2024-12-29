@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { isDateInFuture } from "../../../utils/dateUtils";
+import { useState, useEffect } from 'react';
+import { isDateInFuture } from '../../utils/dateUtils';
 
 
 const DateInput = ({title = 'Tarih', initialDate = '', isFutureInput = false, onInput, errorMessage = ''}) => {
@@ -25,15 +25,16 @@ const DateInput = ({title = 'Tarih', initialDate = '', isFutureInput = false, on
     };
     
     return(
-        <div className="input-container">
-            <label className="label">{title}</label>
+        <div className='input-container'>
+            <label className='label'>{title}</label>
             <input
                 className='input'
                 type='date'
                 value={currentDate}
                 onChange={handleDateChange}
             />
-            {dateError && <p className='error-message'>{dateError}</p>}    
+            {dateError && <p className='error-message'>{dateError}</p>}
+            {/* <p className='error-message' style={{visibility : dateError ? 'visible' : 'hidden'}}>{dateError}</p> */}
         </div>
     );
 }

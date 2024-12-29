@@ -100,21 +100,17 @@ export const submitAssignment = async (assignmentID, fileData, accessToken) => {
 }
 
 export const unsubmitStudentAssignment = async (assignmentID, accessToken) => {
-    try {
-        const response = await axios.patch(
-            `${BASE_URL}/api/v1/assignments/${assignmentID}/unsubmit`,
-            {},
-            {
-                headers : {
-                    'Content-Type' : 'application/json',
-                    Authorization : `Bearer ${accessToken}`
-                },
-            }
-        );
-        return response.data;
-    }catch(error) {
-        console.log(error);
-    }
+    const response = await axios.patch(
+        `${BASE_URL}/api/v1/assignments/${assignmentID}/unsubmit`,
+        null,
+        {
+            headers : {
+                'Content-Type' : 'application/json',
+                Authorization : `Bearer ${accessToken}`
+            },
+        }
+    );
+    return response.data;
 }
 
 export const getAssignments = async (userRole, userID, filter, accessToken) => {

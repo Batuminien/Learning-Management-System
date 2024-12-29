@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllSubjectsOf } from "../../../services/coursesService";
+import { getAllSubjectsOf } from "../services/coursesService";
 
 
 

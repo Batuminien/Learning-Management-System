@@ -1,9 +1,7 @@
-import { useContext, useEffect, useState } from "react";
-import InputField from "../../common/InputField/InputField";
-import DateInput from "../../common/DateInput/DateInput";
-import ClassesDropdown from "../../common/ClassesDropdown/ClassesDropdown";
+import { useContext, useState } from "react";
+import InputField from "../../common/InputField";
+import DateInput from "../../common/DateInput";
 import { AuthContext } from "../../../contexts/AuthContext";
-import ClassCourseMatching from "./ClassCourseMatching";
 import CourseClassMatching from "./CourseClassMatching";
 
 

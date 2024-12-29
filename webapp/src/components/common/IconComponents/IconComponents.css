@@ -1,6 +1,6 @@
-.no-result-container {
-    width: 100%;
+.icon-component-container {
     height: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -11,5 +11,5 @@
     font-size: var(--subtitle-size);
     font-weight: var(--subtitle-weight);
     color: var(--icon-color);
-  }
-  
+    row-gap: 16px;
+}

@@ -1,6 +1,6 @@
-import InputField from "../../common/InputField/InputField";
-import DateInput from "../../common/DateInput/DateInput";
-import ClassesDropdown from "../../common/ClassesDropdown/ClassesDropdown";
+import InputField from "../../common/InputField";
+import DateInput from "../../common/DateInput";
+import ClassesDropdown from "../../common/ClassesDropdown";
 
 import { useContext, useState } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -8,8 +8,8 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { generateRandomPassword, isValidEmail, isValidName, isValidPhoneNumber, isValidTC } from "./NewUserUtils";
 
 import authService from "../../../services/authService";
-import { addStudent } from "../../../services/classesService";
 import { updateStudentInfo } from "../../../services/studentService";
+import { addStudent } from "../../../services/classesService";
 
 const NewStudentForm = ({onCreationSuccess, onSubmit, onCreationError}) => {
     const { user } = useContext(AuthContext);
@@ -70,6 +70,9 @@ const NewStudentForm = ({onCreationSuccess, onSubmit, onCreationError}) => {
         }
         try {
             const creationResponse = await authService.register(registerPayload);
+            console.log(creationResponse);
+            const classResponse = await addStudent(creationResponse.data.userId, Number(selectedClass.id), user.accessToken);
+            console.log(classResponse);
             const updatePayload = {
                 email : registerPayload.email,
                 firstName : registerPayload.firstName,

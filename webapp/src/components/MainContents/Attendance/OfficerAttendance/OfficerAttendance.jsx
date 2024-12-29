@@ -1,16 +1,21 @@
 import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import { getClassByID } from '../../../../services/classesService';
-
-import DateInput from '../../../common/DateInput/DateInput';
 import { getCoursesGivenBy } from '../../../../services/coursesService';
 
-import Loading from '../../../common/Loading/Loading';
-import NoResult from '../../../common/NoResult/NoResult';
 import ClassAttendance from './ClassAttendance';
+
+import DateInput from '../../../common/DateInput';
+import Loading from '../../../common/Loading/Loading';
+import NoResult from '../../../common/IconComponents/NoResult';
+import Warning from '../../../common/IconComponents/Warning';
+
 const OfficerAttendance = () => {
     const [loading, setLoading] = useState(false);
-    const [isSearched, setIsSearched] = useState(false);    
+    const [searching, setSearching] = useState(false);
+    const [isSearched, setIsSearched] = useState(false);
+    const [reloadRequest, setReloadRequest] = useState(false); 
+
     const { user } = useContext(AuthContext);
 
     const [courses, setCourses] = useState([]);
@@ -19,30 +24,28 @@ const OfficerAttendance = () => {
     const [classes, setClasses] = useState([]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().slice(0, 10));
 
-
     useEffect(() => {
         const fetchData = async () => {
             try{
                 setLoading(true);
-                const courses = await getCoursesGivenBy(user.role, user.accessToken, user.id);
-                setCourses(courses.data);
-
+                const coursesData = await getCoursesGivenBy(user.role, user.accessToken, user.id);
+                setCourses(coursesData.data);
             }catch(error){
                 console.log(error);
+                setReloadRequest(true);
             }finally{
                 setLoading(false);
             }
         }
-
         fetchData();
     }, []);
 
 
     const handleSearch = async () => {
         if(!selectedCourse.name) {setCourseError('Lütfen sınıf seçiniz'); return;}
-        console.log(`get attendance record for ${selectedCourse.name} in ${attendanceDate}`);
-
         try {
+            setIsSearched(true);
+            setSearching(true);
             const classIDs = courses.find((course) => course.id === selectedCourse.id).classEntityIds;
             const classPromises = classIDs.map((classID) =>
                 getClassByID(classID, user.accessToken)
@@ -50,14 +53,13 @@ const OfficerAttendance = () => {
 
             const classResponses = await Promise.all(classPromises);
             const fetchedClasses = classResponses.map((response) => response.data.data);
-
-            fetchedClasses.forEach((singleClass) => console.log(singleClass.name));
             setClasses(fetchedClasses);
         } catch (error) {
             console.error("Error fetching classes:", error);
+            setReloadRequest(true);
+        }finally {
+            setSearching(false);
         }
-
-        setIsSearched(true);
     }
 
     const handleCourseChange = (event) => {
@@ -67,10 +69,10 @@ const OfficerAttendance = () => {
         const newCourseID = Number(selectedOption.getAttribute('data-key'));
         const newSelectedCourse = { name: newCourseName, id: newCourseID };
         setSelectedCourse(newSelectedCourse);
-        if(!newCourseName) {setClasses([]);}
     };
 
     if(loading) {return(<Loading/>);}
+    if(reloadRequest) {return(<Warning/>)}
     return(
         <>
             <div className='search'>
@@ -96,6 +98,7 @@ const OfficerAttendance = () => {
                             )}
                         </select>
                         {courseError && <p className='error-message'>{courseError}</p>}
+                        {/* <p className='error-message' style={{visibility : courseError ? 'visible' : 'hidden'}}>{courseError}</p> */}
                     </div>
                     <DateInput
                         title='Yoklama Tarihi'
@@ -106,17 +109,20 @@ const OfficerAttendance = () => {
                 </div>
             </div>
             {isSearched && (
-                classes.length !== 0 ? (
-                    classes.map((singleClass) => (
-                        <ClassAttendance 
-                            course={selectedCourse}
-                            currentClass={singleClass}
-                            attendanceDate={attendanceDate}
-                        />
-                    ))
+                searching ? (
+                    <Loading/>
                 ) : (
-                    <NoResult/>
+                    classes.length !== 0 ? (
+                        classes.map((singleClass) => (
+                            <ClassAttendance
+                                key={singleClass.id}
+                                course={selectedCourse}
+                                currentClass={singleClass}
+                                attendanceDate={attendanceDate}
+                            />
+                        ))) : (<NoResult/>)
                 )
+                
             )}
         </>
     );

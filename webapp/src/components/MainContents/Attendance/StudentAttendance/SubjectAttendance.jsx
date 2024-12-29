@@ -55,9 +55,10 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
                                 <table className="attendance-table">
                                     <thead className='table-header'>
                                         <tr>
-                                            <th className="table-header">Katıldığı dersler</th>
-                                            <th className="table-header">Geç kaldığı dersler</th>
-                                            <th className="table-header">Gelmediği dersler</th>
+                                            <th className="table-header">Katıldığı</th>
+                                            <th className="table-header">Katılmadığı</th>
+                                            <th className="table-header">Geç kalma</th>
+                                            <th className="table-header">Mazeretli</th>
                                             <th className="table-header">Katılım Yüzdesi</th>
                                         </tr>
                                     </thead>
@@ -66,6 +67,7 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
                                             <th className="table-row-element">{stats.presentCount}</th>
                                             <th className="table-row-element">{stats.lateCount}</th>
                                             <th className="table-row-element">{stats.absentCount}</th>
+                                            <th className="table-row-element">{stats.excusedCount}</th>
                                             <th className="table-row-element">{stats.attendancePercentage}%</th>
                                         </tr>
                                     </tbody>

@@ -1,8 +1,7 @@
 import { AuthContext } from '../../contexts/AuthContext';
-import { getAssignments, getAssignmentsForTeacher } from '../../services/assignmentService';
+import { getAssignments } from '../../services/assignmentService';
 import { getClasses } from '../../services/classesService';
 import { getAllSubjectsOf } from '../../services/coursesService';
-import './AssignmentSearch.css';
 import { useContext, useEffect, useState } from 'react';
 
 

@@ -8,7 +8,6 @@ export const isValidName = (name) => {
     const nameRegex = /^[a-zA-ZğüşöçıĞÜŞÖÇİ]+$/;
     return nameRegex.test(name);
   };
-  
 
 export const isValidTC = (TC) => {
     // Ensure TC is a string to validate properly

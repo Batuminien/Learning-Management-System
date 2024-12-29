@@ -5,7 +5,7 @@ import { AuthContext } from "../../../../contexts/AuthContext";
 import { getStudentClass } from "../../../../services/classesService";
 
 import SubjectAttendance from "./SubjectAttendance";
-import DateInput from "../../../common/DateInput/DateInput";
+import DateInput from "../../../common/DateInput";
 
 import React from 'react';
 import jsPDF from "jspdf";
@@ -15,9 +15,12 @@ import { fetchCssVariable } from '../../../../utils/fileUtils';
 
 import { robotoFont } from '../../../../../public/Roboto-Regular-normal';
 import Loading from '../../../common/Loading/Loading';
+import Warning from '../../../common/IconComponents/Warning';
+import { gettwoyearsBefore } from '../../../../utils/dateUtils';
 
 const StudentAttendance = () => {
     const [isLoading, setIsLoading] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
 
     const { user } = useContext(AuthContext);
     const [studentClass, setStudentClass] = useState('');
@@ -36,14 +39,20 @@ const StudentAttendance = () => {
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     
     useEffect(() => {
-        getStudentClass(user.accessToken)
-            .then(response => {
+        const fetchClasses = async () => {
+            try{
+                setIsLoading(true);
+                const response = await getStudentClass(user.id, user.accessToken);
                 console.log("user class : ", response);
-                setStudentClass(response.data.classId);
-            })
-            .catch(error => {
+                setStudentClass(response.data.id);
+            }catch(error){
+                console.log(error);
                 setRequestReload(true);
-            })
+            }finally{
+                setIsLoading(false);
+            }
+        }
+        fetchClasses();
     }, []);
 
     const handleSearch = async () => {
@@ -53,15 +62,14 @@ const StudentAttendance = () => {
             return;
         }
         try {
-            setIsLoading(true);
+            setIsSearching(true);
             setIsSearched(true);
             const params = {};
             params.startDate = (startDate ? startDate : gettwoyearsBefore());
             params.endDate = endDate ? endDate : (new Date().toISOString().split('T')[0]);
-            console.log(params)
+
             const attendanceHistoryBySubjects = {};
             const historyResponse = await getAttendanceOfStudent(user.id, params, user.accessToken);
-            console.log(historyResponse)
             historyResponse.data.forEach(attendance => {
                 if(!attendanceHistoryBySubjects[attendance.courseId]){
                     attendanceHistoryBySubjects[attendance.courseId] = [];
@@ -79,17 +87,11 @@ const StudentAttendance = () => {
             console.log(attendanceStatsBySubjects);
             setStatsBySubject(attendanceStatsBySubjects);
         }catch(error) {
+            console.log(error);
             setRequestReload(true);
         }finally {
-            setIsLoading(false);
+            setIsSearching(false);
         }
-    }
-
-    const gettwoyearsBefore = () => {
-        const currentDate = new Date();
-        currentDate.setFullYear(currentDate.getFullYear() - 2);
-        const twoYearsAgo = currentDate.toISOString().split('T')[0];
-        return twoYearsAgo;
     }
 
     const handleReportRequest = async () => {
@@ -98,7 +100,7 @@ const StudentAttendance = () => {
         // Wait for the next render cycle to ensure all components update
         await new Promise(resolve => setTimeout(resolve, 0));
     
-        const containers = document.querySelectorAll('.assignment-container');
+        const containers = document.querySelectorAll('.unit-container');
     
         const pdf = new jsPDF();
         pdf.addFileToVFS('Roboto-Regular-normal.ttf', robotoFont);
@@ -151,13 +153,7 @@ const StudentAttendance = () => {
         setIsGeneratingReport(false);
     };
     
-    
-    
-
-    if(requestReload) {
-        return(<p>something went wrong, please reload...</p>);
-    }
-
+    if(requestReload) return <Warning/>;
     if(isLoading) {return(<Loading/>)}
 
     return(
@@ -178,17 +174,19 @@ const StudentAttendance = () => {
             </div>
 
             {isSearched && (
-                <>
-                    {Object.keys(statsBySubject).map(key => (
-                        <SubjectAttendance
+                isSearching ? (<Loading/>) : (
+                    <>
+                        {Object.keys(statsBySubject).map(key => (
+                            <SubjectAttendance
                             key={key}
                             stats={statsBySubject[key]}
                             history={historyBySubjects[key]}
                             forceExpand={isGeneratingReport}
-                        />
-                    ))}
-                    <button className='btn' onClick={handleReportRequest}>Rapor oluştur</button>
-                </>
+                            />
+                        ))}
+                        <button className='btn' onClick={handleReportRequest}>Rapor oluştur</button>
+                    </>
+                )
             )}
         </>
     );

@@ -47,9 +47,9 @@ export const getClasses = async (userRole, accessToken) => {
   else if(userRole === 'ROLE_ADMIN' || userRole === 'ROLE_COORDINATOR') return await getAllClasses(accessToken);
 }
 
-export const getStudentClass = async (accessToken) => {
+export const getStudentClass = async (studentID, accessToken) => {
   const response = await axios.get(
-    `${BASE_URL}/api/v1/classes/student`,
+    `${BASE_URL}/api/v1/classes/student/${studentID}`,
     {
       headers : {
         Authorization : `Bearer ${accessToken}`,
@@ -61,7 +61,6 @@ export const getStudentClass = async (accessToken) => {
 
 
 export const addStudent = async (studentID, classID, accessToken) => {
-  // console.log(studentID, classID, accessToken);
   const response = await axios.post(
     `${BASE_URL}/api/v1/classes/${classID}/students/${studentID}`,
     {},

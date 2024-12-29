@@ -38,6 +38,7 @@ export const getStudentCourses = async (studentID, accessToken) => {
 }
 
 export const getTeacherCourses = async (ID, accessToken) => {
+  console.log('teacher courses')
   const response = await axios.get(
     `${BASE_URL}/api/v1/courses/teacher/${ID}`,
     {

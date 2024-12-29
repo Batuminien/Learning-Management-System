@@ -12,7 +12,7 @@ const Header = ({title = "Ana Menü", user = {name : 'Name', imgSource : 'https:
                     <span className="username">{user.name}</span>
                 </div>
                 <div className="dropdown-icon">
-                    <ArrowDown/>                    
+                    <ArrowDown/>
                 </div>
             </div>
         </div>

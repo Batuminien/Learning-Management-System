@@ -15,7 +15,7 @@ const NewUser = () => {
     const [creationError, setCreationError] = useState(''); 
 
     return(
-        <div className="new-user">
+        <div className="main-content-container">
             <div className="options">
                 <NavigationOption 
                     title='Öğrenci'
@@ -44,16 +44,16 @@ const NewUser = () => {
                     <NewTeacherForm/>
                 )}
             {creationSuccess && (
-                <>
-                    <p className='register-response' style={{color : 'green'}}>Kayıt Başarılı</p>
-                    <p className='register-response' style={{color : 'green'}}>Kullanıcı Şifresi : {creationSuccess}</p>
-                </>
+                    <div>
+                        <p className='register-response' style={{color : 'green'}}>Kayıt Başarılı</p>
+                        <p className='register-response' style={{color : 'green'}}>Kullanıcı Şifresi : {creationSuccess}</p>
+                    </div>
             )}
             {creationError && (
-                <>
-                    <p className='register-response' style={{color : 'red'}}>Kayıt Başarısız</p>
-                    <p className='register-response' style={{color : 'red'}}>{creationError}</p>
-                </>
+                    <div>
+                        <p className='register-response' style={{color : 'red'}}>Kayıt Başarısız</p>
+                        <p className='register-response' style={{color : 'red'}}>{creationError}</p>
+                    </div>
             )}
         </div>
     );

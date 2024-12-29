@@ -1,4 +1,3 @@
-import './InputField.css';
 
 const InputField = ({type = 'text', label, placeholder, value, onChange, style, name, errorMessage = ''}) => {
     return(

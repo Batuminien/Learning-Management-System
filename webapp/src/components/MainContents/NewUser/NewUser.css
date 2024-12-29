@@ -1,9 +1,3 @@
-.new-user {
-    display: flex;
-    flex-direction: column;
-    row-gap: 24px;
-}
-
 .options {
     display: flex;
     column-gap: 16px;

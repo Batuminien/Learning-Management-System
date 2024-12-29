@@ -1,13 +1,13 @@
-import './StudentAssignments.css';
 import { useState, useEffect } from 'react';
 import { getAssignmentsForStudent } from '../../../../services/assignmentService';
 import { getAssignmentOptions } from '../../../../utils/assignmentOptions';
 
 import Navigator from '../../../common/Navigator/Navigator';
 import SingleAssigment from './SingleAssignment/SingleAssignment';
-import NoAssignmentFound from '../NoAssignmentFound';
+import NoAssignmentFound from '../../../common/IconComponents/NoAssignmentFound';
 
 import Loading from '../../../common/Loading/Loading';
+import Warning from '../../../common/IconComponents/Warning';
 
 
 const StudentAssignments = ({ user }) => {
@@ -50,7 +50,7 @@ const StudentAssignments = ({ user }) => {
 
 
   if (loading) return <Loading />;
-  if (error) return <p>Error: {error}</p>;
+  if (error) return <Warning/>;
 
   return (
     <>

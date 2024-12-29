@@ -1,9 +1,9 @@
 import { useContext, useState } from 'react';
 
 import './SingleAssignment.css';
-import { downloadDocument, submitAssignment, unsubmitStudentAssignment } from '../../../../../services/assignmentService';
+import { submitAssignment, unsubmitStudentAssignment } from '../../../../../services/assignmentService';
 import { AuthContext } from '../../../../../contexts/AuthContext';
-import Document from '../../../../common/Document/Document';
+import Document from '../../../../common/Document';
 import { ArrowDown, ArrowUp } from '../../../../../../public/icons/Icons';
 
 const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
@@ -38,16 +38,13 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
     }
     
     const handleAssignmentUnsubmit = async () => {
-        console.log('handling assignment unsubmit');
-        unsubmitStudentAssignment(assignment.id, user.accessToken)
-            .then(response => {
-                console.log(response);
-                refreshAssignments();
-            })
-            .catch(error => {
-                console.log(error);
-            })
-
+        try{
+            const response = await unsubmitStudentAssignment(assignment.id, user.accessToken);
+            console.log(response);
+            refreshAssignments();
+        }catch(error){
+            console.log(error);
+        }
     }
 
     return(

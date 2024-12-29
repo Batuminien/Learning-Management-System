@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
-import { downloadDocument } from '../../../services/assignmentService';
-import { AuthContext } from '../../../contexts/AuthContext';
+import { downloadDocument } from '../../services/assignmentService';
+import { AuthContext } from '../../contexts/AuthContext';
 
 import { PiTrashBold } from "react-icons/pi";
 

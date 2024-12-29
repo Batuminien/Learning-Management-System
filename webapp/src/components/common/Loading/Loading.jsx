@@ -4,11 +4,9 @@ import './Loading.css';
 
 const Loading = () => {
     return(
-        <div className="loading-container">
-            <div className="loading-content">
+        <div className="icon-component-container">
                 <Loader2 className="loading-spinner" />
-                <p className="loading-text">Loading</p>
-            </div>
+                <p className="icon-component-text">Loading</p>
         </div>
     );
 }
