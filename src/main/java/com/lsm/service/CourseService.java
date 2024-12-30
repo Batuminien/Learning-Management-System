@@ -1,8 +1,10 @@
 package com.lsm.service;
 
+import com.lsm.model.DTOs.ClassEntityResponseDTO;
 import com.lsm.model.DTOs.CourseDTO;
 import com.lsm.model.DTOs.StudentDTO;
 import com.lsm.model.DTOs.TeacherCourseClassDTO;
+import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.Course;
 import com.lsm.model.entity.ClassEntity;
 import com.lsm.model.entity.TeacherCourse;
@@ -14,7 +16,6 @@ import com.lsm.repository.CourseRepository;
 import com.lsm.exception.DuplicateResourceException;
 import com.lsm.exception.ResourceNotFoundException;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,6 +28,7 @@ import org.springframework.cache.annotation.CachePut;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -312,6 +314,63 @@ public class CourseService {
         return mapToDTO(courseRepository.save(course));
     }
 
+    public List<ClassEntityResponseDTO> getTeacherCourseClasses(Long courseId, Long teacherId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+
+        AppUser teacher = appUserService.getCurrentUserWithDetails(teacherId);
+
+        return course.getTeacherCourses().stream()
+                .filter(tc -> tc.getTeacher().getId().equals(teacherId))
+                .flatMap(tc -> tc.getClasses().stream())
+                .map(this::mapToClassEntityResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    private ClassEntityResponseDTO mapToClassEntityResponseDTO(ClassEntity classEntity) {
+        Map<Long, String> studentIdAndNames = classEntity.getStudents().stream()
+                .collect(Collectors.toMap(
+                        AppUser::getId,
+                        student -> student.getName() + " " + student.getSurname()
+                ));
+
+        return ClassEntityResponseDTO.builder()
+                .id(classEntity.getId())
+                .name(classEntity.getName())
+                .description(classEntity.getDescription())
+                .studentIdAndNames(studentIdAndNames)
+                .assignmentIds(classEntity.getAssignments().stream()
+                        .map(Assignment::getId)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    public CourseDTO updateTeacherCourseClasses(Long courseId, Long teacherId, List<Long> classIds) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+
+        AppUser teacher = appUserRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
+
+        if (teacher.getRole() != Role.ROLE_TEACHER) {
+            throw new IllegalArgumentException("User is not a teacher");
+        }
+
+        Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
+        if (classes.size() != classIds.size()) {
+            throw new ResourceNotFoundException("One or more classes not found");
+        }
+
+        // Find and update existing TeacherCourse
+        TeacherCourse teacherCourse = course.getTeacherCourses().stream()
+                .filter(tc -> tc.getTeacher().getId().equals(teacherId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher is not assigned to this course"));
+
+        teacherCourse.setClasses(classes);
+        return mapToDTO(courseRepository.save(course));
+    }
+
     private StudentDTO mapToStudentDTO(AppUser user) {
         if (user.getRole() != Role.ROLE_STUDENT || user.getStudentDetails() == null) {
             throw new IllegalArgumentException("User is not a student");
@@ -336,6 +395,8 @@ public class CourseService {
     private CourseDTO mapToDTO(Course course) {
         List<TeacherCourseClassDTO> teacherCourses = course.getTeacherCourses().stream()
                 .map(tc -> TeacherCourseClassDTO.builder()
+                        .teacherId(tc.getTeacher().getId())
+                        .teacherName(tc.getTeacher().getName())
                         .courseId(tc.getCourse().getId())
                         .classIds(tc.getClasses().stream()
                                 .map(ClassEntity::getId)

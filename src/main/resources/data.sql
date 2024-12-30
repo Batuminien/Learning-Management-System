@@ -14,7 +14,10 @@ TRUNCATE TABLE
     classes,
     courses,
     refresh_tokens,
-    app_users
+    app_users,
+    subject_results,
+    student_exam_results,
+    past_exams
 CASCADE;
 
 -- Reset sequences
@@ -27,6 +30,9 @@ ALTER SEQUENCE refresh_token_seq RESTART WITH 1;
 ALTER SEQUENCE assignment_docs_seq RESTART WITH 1;
 ALTER SEQUENCE submissions_seq RESTART WITH 1;
 ALTER SEQUENCE attendance_id_seq RESTART WITH 1;
+ALTER SEQUENCE past_exams_seq RESTART WITH 1;
+ALTER SEQUENCE student_exam_results_seq RESTART WITH 1;
+ALTER SEQUENCE subject_results_seq RESTART WITH 1;
 
 -- Insert System Users (Admin & Coordinator)
 INSERT INTO app_users (id, username, name, surname, email, password, role, profile_photo_url, profile_photo_filename) VALUES
@@ -175,6 +181,93 @@ INSERT INTO attendance (id, student_id, date_a, attendance, comment, class_id, c
      (SELECT id FROM classes WHERE name = '11-A-MF'),
      (SELECT id FROM courses WHERE code = 'MAT-1'));
 
+-- Insert sample TYT exam
+INSERT INTO past_exams (id, name, exam_type, overall_average) VALUES
+    (nextval('past_exams_seq'), '2024 Ocak TYT Deneme', 'TYT', 65.75);
+
+-- Insert student exam results for student1 (Alice Brown)
+INSERT INTO student_exam_results (id, exam_id, student_id) VALUES
+    (nextval('student_exam_results_seq'),
+     (SELECT id FROM past_exams WHERE name = '2024 Ocak TYT Deneme'),
+     (SELECT id FROM app_users WHERE username = 'student1'));
+
+-- Insert subject results for student1's TYT exam
+INSERT INTO subject_results (id, exam_result_id, subject_name, correct_answers, incorrect_answers, blank_answers, net_score) VALUES
+                                                                                                                                 -- Turkish Language
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')),
+                                                                                                                                  'Türkçe', 28, 8, 4, 26.0),
+                                                                                                                                 -- Social Sciences (History, Geography, Religion, Philosophy)
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')),
+                                                                                                                                  'Sosyal Bilimler', 15, 3, 2, 14.25),
+                                                                                                                                 -- Basic Mathematics
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')),
+                                                                                                                                  'Temel Matematik', 32, 4, 4, 31.0),
+                                                                                                                                 -- Science (Physics, Chemistry, Biology)
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')),
+                                                                                                                                  'Fen Bilimleri', 18, 2, 0, 17.5);
+
+-- Insert student exam results for student2 (Bob Wilson)
+INSERT INTO student_exam_results (id, exam_id, student_id) VALUES
+    (nextval('student_exam_results_seq'),
+     (SELECT id FROM past_exams WHERE name = '2024 Ocak TYT Deneme'),
+     (SELECT id FROM app_users WHERE username = 'student2'));
+
+-- Insert subject results for student2's TYT exam
+INSERT INTO subject_results (id, exam_result_id, subject_name, correct_answers, incorrect_answers, blank_answers, net_score) VALUES
+                                                                                                                                 -- Turkish Language
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student2')),
+                                                                                                                                  'Türkçe', 25, 10, 5, 22.5),
+                                                                                                                                 -- Social Sciences
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student2')),
+                                                                                                                                  'Sosyal Bilimler', 12, 5, 3, 10.75),
+                                                                                                                                 -- Basic Mathematics
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student2')),
+                                                                                                                                  'Temel Matematik', 28, 8, 4, 26.0),
+                                                                                                                                 -- Science
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student2')),
+                                                                                                                                  'Fen Bilimleri', 16, 4, 0, 15.0);
+
+-- Insert sample AYT exam
+INSERT INTO past_exams (id, name, exam_type, overall_average) VALUES
+    (nextval('past_exams_seq'), '2024 Ocak AYT Deneme', 'AYT', 58.25);
+
+-- Insert student exam results for student1 (Alice Brown) - AYT
+INSERT INTO student_exam_results (id, exam_id, student_id) VALUES
+    (nextval('student_exam_results_seq'),
+     (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme'),
+     (SELECT id FROM app_users WHERE username = 'student1'));
+
+-- Insert subject results for student1's AYT exam (MF track)
+INSERT INTO subject_results (id, exam_result_id, subject_name, correct_answers, incorrect_answers, blank_answers, net_score) VALUES
+                                                                                                                                 -- Advanced Mathematics
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')
+                                                                                                                                                                         AND exam_id = (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme')),
+                                                                                                                                  'İleri Matematik', 28, 8, 4, 26.0),
+                                                                                                                                 -- Physics
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')
+                                                                                                                                                                         AND exam_id = (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme')),
+                                                                                                                                  'Fizik', 10, 2, 1, 9.5),
+                                                                                                                                 -- Chemistry
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')
+                                                                                                                                                                         AND exam_id = (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme')),
+                                                                                                                                  'Kimya', 8, 3, 2, 7.25),
+                                                                                                                                 -- Biology
+                                                                                                                                 (nextval('subject_results_seq'),
+                                                                                                                                  (SELECT id FROM student_exam_results WHERE student_id = (SELECT id FROM app_users WHERE username = 'student1')
+                                                                                                                                                                         AND exam_id = (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme')),
+                                                                                                                                  'Biyoloji', 9, 2, 2, 8.5);
+
 -- Update sequences to current max values
 SELECT setval('app_users_seq', (SELECT MAX(id) FROM app_users));
 SELECT setval('classes_id_seq', (SELECT MAX(id) FROM classes));
@@ -185,3 +278,6 @@ SELECT setval('refresh_token_seq', COALESCE((SELECT MAX(id) FROM refresh_tokens)
 SELECT setval('assignment_docs_seq', (SELECT MAX(id) FROM assignment_documents));
 SELECT setval('submissions_seq', (SELECT MAX(id) FROM student_submissions));
 SELECT setval('attendance_id_seq', (SELECT MAX(id) FROM attendance));
+SELECT setval('past_exams_seq', (SELECT MAX(id) FROM past_exams));
+SELECT setval('student_exam_results_seq', (SELECT MAX(id) FROM student_exam_results));
+SELECT setval('subject_results_seq', (SELECT MAX(id) FROM subject_results));

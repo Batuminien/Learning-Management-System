@@ -1,5 +1,6 @@
 package com.lsm.controller;
 
+import com.lsm.model.DTOs.ClassEntityResponseDTO;
 import com.lsm.model.DTOs.CourseDTO;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
@@ -208,7 +209,7 @@ public class CourseController {
                     courseService.updateCourse(id, courseDTO)
             ));
         } catch (EntityNotFoundException e) {
-            log.error("Course not found with ID {}: {}", id, e.getMessage());
+            log.error("Course not found with ID {} while updating course: {}", id, e.getMessage());
             return ApiResponse_.httpError(HttpStatus.NOT_FOUND, "Course not found: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error updating course {}: {}", id, e.getMessage());
@@ -237,7 +238,7 @@ public class CourseController {
                     null
             ));
         } catch (EntityNotFoundException e) {
-            log.error("Course not found with ID {}: {}", id, e.getMessage());
+            log.error("Course not found with ID {} while deleting course: {}", id, e.getMessage());
             return ApiResponse_.httpError(HttpStatus.NOT_FOUND, "Course not found: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error deleting course {}: {}", id, e.getMessage());
@@ -401,6 +402,84 @@ public class CourseController {
         } catch (Exception e) {
             log.error("Error updating course teacher: {}", e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating teacher: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{courseId}/teacher/{teacherId}/classes")
+    @Operation(summary = "Get classes for a teacher-course combination",
+            description = "Retrieve all classes assigned to a specific teacher for a course")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Classes retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Course or teacher not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR', 'ROLE_TEACHER')")
+    public ResponseEntity<ApiResponse_<List<ClassEntityResponseDTO>>> getTeacherCourseClasses(
+            @Parameter(description = "ID of the course", required = true)
+            @PathVariable @Positive Long courseId,
+            @Parameter(description = "ID of the teacher", required = true)
+            @PathVariable @Positive Long teacherId,
+            Authentication authentication
+    ) {
+        try {
+            AppUser currentUser = (AppUser) authentication.getPrincipal();
+
+            // Teachers can only view their own classes
+            if (currentUser.getRole() == Role.ROLE_TEACHER && !currentUser.getId().equals(teacherId)) {
+                throw new AccessDeniedException("Teachers can only view their own classes");
+            }
+
+            log.info("Retrieving classes for teacher {} in course {}", teacherId, courseId);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Classes retrieved successfully",
+                    courseService.getTeacherCourseClasses(courseId, teacherId)
+            ));
+        } catch (EntityNotFoundException e) {
+            log.error("Resource not found in get teacher course classes: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (AccessDeniedException e) {
+            log.error("Access denied: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error retrieving classes: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving classes: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{courseId}/teacher/{teacherId}/classes")
+    @Operation(summary = "Update classes for a teacher-course combination",
+            description = "Update the classes assigned to a specific teacher for a course")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Classes updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Course, teacher or classes not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    public ResponseEntity<ApiResponse_<CourseDTO>> updateTeacherCourseClasses(
+            @Parameter(description = "ID of the course", required = true)
+            @PathVariable @Positive Long courseId,
+            @Parameter(description = "ID of the teacher", required = true)
+            @PathVariable @Positive Long teacherId,
+            @RequestBody List<Long> classIds
+    ) {
+        try {
+            log.info("Updating classes for teacher {} in course {} with classes {}", teacherId, courseId, classIds);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Classes updated successfully",
+                    courseService.updateTeacherCourseClasses(courseId, teacherId, classIds)
+            ));
+        } catch (EntityNotFoundException e) {
+            log.error("Resource not found in update teacher course classes: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid request: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating classes: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating classes: " + e.getMessage());
         }
     }
 }
