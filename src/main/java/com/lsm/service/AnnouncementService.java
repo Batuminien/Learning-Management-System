@@ -67,7 +67,7 @@ public class AnnouncementService {
         AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
         if (user.getRole().equals(Role.ROLE_STUDENT) &&
-                !user.getStudentDetails().getClassEntity().equals(classId)) {
+                !user.getStudentDetails().getClassEntity().getId().equals(classId)) {
             throw new AccessDeniedException("Students can't get announcements of other classes");
         }
 
@@ -168,7 +168,7 @@ public class AnnouncementService {
 
         if (user.getRole().equals(Role.ROLE_STUDENT)) {
             boolean hasAccess = announcement.getClasses().stream()
-                    .anyMatch(classEntity -> classEntity.getId().equals(user.getStudentDetails().getClassEntity()));
+                    .anyMatch(classEntity -> classEntity.getId().equals(user.getStudentDetails().getClassEntity().getId()));
             if (!hasAccess) {
                 throw new AccessDeniedException("Students can't access announcements of other classes");
             }

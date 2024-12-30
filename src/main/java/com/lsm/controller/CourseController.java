@@ -137,9 +137,10 @@ public class CourseController {
         try {
             AppUser currentUser = (AppUser) authentication.getPrincipal();
             log.info("Retrieving courses for student ID: {}", studentId);
+            log.info("Retrieving courses for loggedInUser ID: {}", currentUser.getId());
 
             // Students can only view their own courses
-            if (currentUser.getRole() == Role.ROLE_STUDENT && !currentUser.getId().equals(studentId)) {
+            if (currentUser.getRole().equals(Role.ROLE_STUDENT) && !currentUser.getId().equals(studentId)) {
                 throw new AccessDeniedException("Students can only view their own courses");
             }
 

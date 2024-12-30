@@ -54,6 +54,10 @@ INSERT INTO app_users (id, username, name, surname, email, password, role,
                                                                       (nextval('app_users_seq'), 'teacher2', 'Mary', 'Johnson', 'mary.johnson@lms.com',
                                                                        '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
                                                                        '5551112234', '12345678908', '1982-08-20',
+                                                                       null, null),
+                                                                      (nextval('app_users_seq'), 'teacher3', 'Elsa', 'Frozen', 'elsa.frozen@lms.com',
+                                                                       '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
+                                                                       '5551112235', '12345678909', '1981-07-07',
                                                                        null, null);
 
 -- Insert Classes
@@ -92,7 +96,7 @@ INSERT INTO teacher_courses (id, teacher_id, course_id) VALUES
                                                              (SELECT id FROM app_users WHERE username = 'teacher2'),
                                                              (SELECT id FROM courses WHERE code = 'FIZ-1')),
                                                             (nextval('teacher_course_seq'),
-                                                             (SELECT id FROM app_users WHERE username = 'teacher2'),
+                                                             (SELECT id FROM app_users WHERE username = 'teacher3'),
                                                              (SELECT id FROM courses WHERE code = 'EDB-1'));
 
 -- Link Classes with Courses
@@ -100,9 +104,9 @@ INSERT INTO course_classes (course_id, class_id) VALUES
                                                      ((SELECT id FROM courses WHERE code = 'MAT-1'),
                                                       (SELECT id FROM classes WHERE name = '11-A-MF')),
                                                      ((SELECT id FROM courses WHERE code = 'FIZ-1'),
-                                                      (SELECT id FROM classes WHERE name = '11-B-TM')),
+                                                      (SELECT id FROM classes WHERE name = '11-A-MF')),
                                                      ((SELECT id FROM courses WHERE code = 'EDB-1'),
-                                                      (SELECT id FROM classes WHERE name = '11-A-MF'));
+                                                      (SELECT id FROM classes WHERE name = '11-B-TM'));
 
 -- Link TeacherCourses with Classes
 INSERT INTO teacher_course_classes (teacher_course_id, class_id) VALUES
@@ -115,6 +119,11 @@ INSERT INTO teacher_course_classes (teacher_course_id, class_id) VALUES
                                                                                              JOIN app_users au ON tc.teacher_id = au.id
                                                                                              JOIN courses c ON tc.course_id = c.id
                                                                        WHERE au.username = 'teacher2' AND c.code = 'FIZ-1'),
+                                                                      (SELECT id FROM classes WHERE name = '11-A-MF')),
+                                                                     ((SELECT tc.id FROM teacher_courses tc
+                                                                                             JOIN app_users au ON tc.teacher_id = au.id
+                                                                                             JOIN courses c ON tc.course_id = c.id
+                                                                       WHERE au.username = 'teacher3' AND c.code = 'EDB-1'),
                                                                       (SELECT id FROM classes WHERE name = '11-B-TM'));
 
 -- Populate it from existing relationships
@@ -139,14 +148,14 @@ INSERT INTO assignments (id, title, description, due_date, assigned_by_teacher_i
                                                                    CURRENT_DATE,
                                                                    CURRENT_DATE),
                                                                   (nextval('assignments_seq'), 'Literacy Report', 'Write report on turkish literacy', CURRENT_DATE + INTERVAL '10 days',
-                                                                   (SELECT id FROM app_users WHERE username = 'teacher2'),
-                                                                   (SELECT id FROM app_users WHERE username = 'teacher2'),
+                                                                   (SELECT id FROM app_users WHERE username = 'teacher3'),
+                                                                   (SELECT id FROM app_users WHERE username = 'teacher3'),
                                                                    (SELECT id FROM classes WHERE name = '11-B-TM'),
                                                                    (SELECT id FROM courses WHERE code = 'EDB-1'),
                                                                    (SELECT tc.id FROM teacher_courses tc
                                                                                           JOIN app_users au ON tc.teacher_id = au.id
                                                                                           JOIN courses c ON tc.course_id = c.id
-                                                                    WHERE au.username = 'teacher2' AND c.code = 'EDB-1'),
+                                                                    WHERE au.username = 'teacher3' AND c.code = 'EDB-1'),
                                                                    CURRENT_DATE,
                                                                    CURRENT_DATE);
 
