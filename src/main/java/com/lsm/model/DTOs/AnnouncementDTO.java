@@ -3,7 +3,7 @@ package com.lsm.model.DTOs;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -13,5 +13,5 @@ public class AnnouncementDTO {
     @NotNull private String title;
     @NotNull private String content;
     @NotNull private List<Long> classIds;
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 }

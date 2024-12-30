@@ -203,6 +203,18 @@ public class SecurityConfig {
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**")
                             .hasAuthority("ROLE_ADMIN");
 
+                    // Past exam endpoints
+                    registry.requestMatchers(HttpMethod.POST, "/api/v1/past-exams/**")
+                            .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/past-exams/student/**")
+                            .hasAnyAuthority("ROLE_STUDENT", "ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/past-exams/**")
+                            .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/past-exams/**")
+                            .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/past-exams/**")
+                            .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");
+
 
                     // Default policy
                     registry.anyRequest().authenticated();

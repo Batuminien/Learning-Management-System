@@ -195,7 +195,7 @@ public class AnnouncementService {
                 .classIds(announcement.getClasses().stream()
                         .map(ClassEntity::getId)
                         .collect(Collectors.toList()))
-                .createdAt(announcement.getCreatedAt().toLocalDate())
+                .createdAt(announcement.getCreatedAt())
                 .build();
     }
 }
