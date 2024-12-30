@@ -2,9 +2,11 @@ package com.lsm.service;
 
 import com.lsm.model.DTOs.AnnouncementDTO;
 import com.lsm.model.entity.Announcement;
+import com.lsm.model.entity.AnnouncementReadStatus;
 import com.lsm.model.entity.ClassEntity;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
+import com.lsm.repository.AnnouncementReadStatusRepository;
 import com.lsm.repository.AnnouncementRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.exception.ResourceNotFoundException;
@@ -14,8 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -25,6 +29,7 @@ public class AnnouncementService {
     private final AnnouncementRepository announcementRepository;
     private final ClassEntityRepository classEntityRepository;
     private final AppUserService appUserService;
+    private final AnnouncementReadStatusRepository readStatusRepository;
 
     @Transactional
     public AnnouncementDTO createAnnouncement(AppUser loggedInUser, AnnouncementDTO dto)
@@ -58,7 +63,7 @@ public class AnnouncementService {
         announcement.setClasses(classes);
 
         announcement = announcementRepository.save(announcement);
-        return convertToDTO(announcement);
+        return convertToDTO(announcement, user);
     }
 
     @Transactional
@@ -81,7 +86,7 @@ public class AnnouncementService {
         }
 
         return announcementRepository.findByClassesId(classId).stream()
-                .map(this::convertToDTO)
+                .map(announcement -> convertToDTO(announcement, loggedInUser))
                 .collect(Collectors.toList());
     }
 
@@ -156,7 +161,7 @@ public class AnnouncementService {
             existingAnnouncement.setClasses(newClasses);
         }
 
-        return convertToDTO(announcementRepository.save(existingAnnouncement));
+        return convertToDTO(announcementRepository.save(existingAnnouncement), user);
     }
 
     @Transactional
@@ -184,10 +189,31 @@ public class AnnouncementService {
             }
         }
 
-        return convertToDTO(announcement);
+        return convertToDTO(announcement, user);
     }
 
-    private AnnouncementDTO convertToDTO(Announcement announcement) {
+    @Transactional
+    public void markAsRead(AppUser user, Long announcementId) {
+        Announcement announcement = announcementRepository.findById(announcementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
+
+        AnnouncementReadStatus readStatus = readStatusRepository
+                .findByAnnouncementIdAndUserId(announcementId, user.getId())
+                .orElseGet(() -> {
+                    AnnouncementReadStatus newStatus = new AnnouncementReadStatus();
+                    newStatus.setAnnouncement(announcement);
+                    newStatus.setUser(user);
+                    return newStatus;
+                });
+
+        readStatus.setReadAt(LocalDateTime.now());
+        readStatusRepository.save(readStatus);
+    }
+
+    private AnnouncementDTO convertToDTO(Announcement announcement, AppUser currentUser) {
+        Optional<AnnouncementReadStatus> readStatus = readStatusRepository
+                .findByAnnouncementIdAndUserId(announcement.getId(), currentUser.getId());
+
         return AnnouncementDTO.builder()
                 .id(announcement.getId())
                 .title(announcement.getTitle())
@@ -196,6 +222,8 @@ public class AnnouncementService {
                         .map(ClassEntity::getId)
                         .collect(Collectors.toList()))
                 .createdAt(announcement.getCreatedAt())
+                .isRead(readStatus.isPresent())
+                .readAt(readStatus.map(AnnouncementReadStatus::getReadAt).orElse(null))
                 .build();
     }
 }

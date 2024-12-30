@@ -261,6 +261,31 @@ public class AnnouncementController {
         }
     }
 
+    @Operation(summary = "Mark announcement as read")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcement marked as read successfully"),
+            @ApiResponse(responseCode = "404", description = "Announcement not found")
+    })
+    @PostMapping("/{announcementId}/read")
+    public ResponseEntity<ApiResponse_<Void>> markAsRead(
+            @PathVariable Long announcementId,
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            announcementService.markAsRead(loggedInUser, announcementId);
+
+            ApiResponse_<Void> response = new ApiResponse_<>(
+                    true,
+                    "Announcement marked as read successfully",
+                    null
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error marking announcement as read: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error marking announcement as read: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "Send push notification for an announcement",
             description = "Sends push notification to all students in all classes associated with the announcement")
     @ApiResponses(value = {

@@ -14,4 +14,6 @@ public class AnnouncementDTO {
     @NotNull private String content;
     @NotNull private List<Long> classIds;
     private LocalDateTime createdAt;
+    private boolean isRead;
+    private LocalDateTime readAt;
 }
