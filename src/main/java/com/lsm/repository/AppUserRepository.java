@@ -50,4 +50,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findUserWithAllDetails(@Param("userId") Long userId);
 
     Page<AppUser> findAllByRole(Role role, Pageable pageable);
+
+    boolean findByStudentDetails_Tc(String studentDetailsTc);
+
+    boolean findByTeacherDetails_Tc(String teacherDetailsTc);
 }

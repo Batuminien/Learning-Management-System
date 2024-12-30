@@ -131,11 +131,11 @@ public class AnnouncementController {
             @ApiResponse(responseCode = "404", description = "Announcement not found")
     })
     @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
-    @DeleteMapping("/{assignmentId}")
-    public ResponseEntity<ApiResponse_<Void>> deleteAnnouncement(@PathVariable Long assignmentId, Authentication authentication) {
+    @DeleteMapping("/{announcementId}")
+    public ResponseEntity<ApiResponse_<Void>> deleteAnnouncement(@PathVariable Long announcementId, Authentication authentication) {
         try {
             AppUser loggedInUser = (AppUser) authentication.getPrincipal();
-            announcementService.deleteAnnouncement(loggedInUser, assignmentId);
+            announcementService.deleteAnnouncement(loggedInUser, announcementId);
             ApiResponse_<Void> response = new ApiResponse_<>(
                     true,
                     "Announcement deleted successfully",

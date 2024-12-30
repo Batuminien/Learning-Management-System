@@ -262,6 +262,8 @@ public class AuthService {
 
     private StudentDetails getStudentDetails(StudentRegisterRequestDTO registerRequest) {
         StudentDetails studentDetails = new StudentDetails();
+        if (appUserRepository.findByStudentDetails_Tc(registerRequest.getTc()))
+            throw new IllegalArgumentException("Student with TC: " + registerRequest.getTc() + " already exists");
         studentDetails.setTc(registerRequest.getTc());
         studentDetails.setClassEntity(classEntityRepository.getClassEntityById(registerRequest.getClassEntity())
                 .orElseThrow(() -> new EntityNotFoundException("Class not found")));
@@ -275,6 +277,8 @@ public class AuthService {
 
     private TeacherDetails getTeacherDetails(TeacherRegisterRequestDTO registerRequest) {
         TeacherDetails teacherDetails = new TeacherDetails();
+        if (appUserRepository.findByTeacherDetails_Tc(registerRequest.getTc()))
+            throw new IllegalArgumentException("Teacher with TC: " + registerRequest.getTc() + " already exists");
         teacherDetails.setTc(registerRequest.getTc());
         teacherDetails.setPhone(registerRequest.getPhone());
         teacherDetails.setBirthDate(registerRequest.getBirthDate());
