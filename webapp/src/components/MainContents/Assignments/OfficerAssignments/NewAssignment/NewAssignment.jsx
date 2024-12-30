@@ -71,7 +71,7 @@ const NewAssignment = () => {
     const loadClassesOf = async (courseID) => {
         try{
             const targetCourse = allCourses.find(course => course.id === courseID);
-            console.log(targetCourse.classEntityIds);
+            console.log(targetCourse);
             const classPromises = targetCourse.classEntityIds.map((classID) => (
                 getClassByID(classID, user.accessToken)
             ))
@@ -80,6 +80,7 @@ const NewAssignment = () => {
             setAllClasses(fetchedClasses);
 
         }catch(error) {
+            console.log(error);
             setReloadRequest(true);
         }
     }

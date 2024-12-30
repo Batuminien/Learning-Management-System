@@ -184,7 +184,7 @@ const StudentAttendance = () => {
                             forceExpand={isGeneratingReport}
                             />
                         ))}
-                        <button className='btn' onClick={handleReportRequest}>Rapor oluştur</button>
+                        <button className='btn save-btn' onClick={handleReportRequest}>Rapor oluştur</button>
                     </>
                 )
             )}

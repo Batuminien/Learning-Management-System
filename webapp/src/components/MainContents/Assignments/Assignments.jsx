@@ -9,11 +9,7 @@ import OfficerAssignments from './OfficerAssignments/OfficerAssignments';
 const Assignments = () => {
     const { user } = useContext(AuthContext);
     return(
-        <div className="main-content-container"
-            style={{
-                height : '100%'
-            }}
-        >
+        <div className="main-content-container">
             {user.role === 'ROLE_STUDENT'
                 ? <StudentAssignments user={user}/>
                 : <OfficerAssignments user={user}/>

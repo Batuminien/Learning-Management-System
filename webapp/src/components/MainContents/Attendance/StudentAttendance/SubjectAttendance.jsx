@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ArrowDown } from '../../../../../public/icons/Icons';
 import { ArrowUp } from '../../../../../public/icons/Icons';
 
 const SubjectAttendance = ({ stats, history, forceExpand }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+
+    useEffect(() => {
+        history.sort((a, b) => new Date(b.date) - new Date(a.date))
+    }, []);
 
     return(
         <div className="unit-container">

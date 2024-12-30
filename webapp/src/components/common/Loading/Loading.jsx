@@ -5,8 +5,8 @@ import './Loading.css';
 const Loading = () => {
     return(
         <div className="icon-component-container">
-                <Loader2 className="loading-spinner" />
-                <p className="icon-component-text">Loading</p>
+            <Loader2 className="loading-spinner" />
+            <p className="icon-component-text">Loading</p>
         </div>
     );
 }

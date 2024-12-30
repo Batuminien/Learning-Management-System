@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const getAttendanceOfStudent = async (studentID, params, accessToken) => {
     const response = await axios.get(
-        `${BASE_URL}/api/v1/attendance/${studentID}`,
+        `${BASE_URL}/api/v1/attendance/student/${studentID}`,
         {
             headers : {
                 Authorization : `Bearer ${accessToken}`,

@@ -19,7 +19,7 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
     const [attendanceRecords, setAttendanceRecords] = useState({});
 
     useEffect(() => {
-        console.log(course);
+        // console.log(course);
         const studentsInfo = Object.entries(currentClass.studentIdAndNames).map(([id, name]) => ({
             id: Number(id),
             name: name,
