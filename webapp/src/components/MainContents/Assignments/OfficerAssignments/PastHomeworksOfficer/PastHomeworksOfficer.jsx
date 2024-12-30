@@ -3,10 +3,12 @@ import './PastHomeworksOfficer.css';
 import AssignmentSearch from '../../../../../utils/assignmentSearch/assignmentSearch';
 import GradeAssignment from './GradeAssignment';
 import NoAssignmentFound from '../../../../common/IconComponents/NoAssignmentFound';
+import Loading from '../../../../common/Loading/Loading';
 
 const PastHomeworksOfficer = () => {
     const [assignments, setAssignments] = useState([]);
     const [isSearched, setIsSearched] = useState(false);
+    const [searching, setSearching] = useState(false);
 
     const handleSearchResults = (response) => {
         setAssignments([]);
@@ -20,18 +22,24 @@ const PastHomeworksOfficer = () => {
 
     return(
         <>
-            <AssignmentSearch onSearchResults={handleSearchResults} />
+            <AssignmentSearch
+                onSearchResults={handleSearchResults}
+                onSearch={(value) => setSearching(value)}
+                isFuture={false}    
+            />
             {isSearched && (
-                assignments.length > 0 ? (
-                    assignments.map((assignment) => (
-                        <GradeAssignment
+                searching ? (<Loading/>) : (
+                    assignments.length > 0 ? (
+                        assignments.map((assignment) => (
+                            <GradeAssignment
                             key={assignment.id}
                             assignment={assignment}
                             onUpdate={handleAssignmentUpdate}
-                        />
-                    ))
-                ) : (
-                    <NoAssignmentFound/>
+                            />
+                        ))
+                    ) : (
+                        <NoAssignmentFound/>
+                    )
                 )
             )}
         </>

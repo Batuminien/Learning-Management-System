@@ -3,9 +3,12 @@ import AssignmentSearch from '../../../../../utils/assignmentSearch/assignmentSe
 import { useState } from 'react';
 import UpdateAssignment from './UpdateAssignment/UpdateAssignment';
 import NoAssignmentFound from '../../../../common/IconComponents/NoAssignmentFound';
+import Loading from '../../../../common/Loading/Loading';
 
 const ActiveHomeworksOfficer = () => {
     const [isSearched, setIsSearched] = useState(false);
+    const [searching, setSearching] = useState(false);
+    
     const [assignments, setAssignments] = useState([]);
 
     const handleSearchResults = (response) => {
@@ -26,19 +29,23 @@ const ActiveHomeworksOfficer = () => {
 
     return (
         <>
-            <AssignmentSearch onSearchResults={handleSearchResults} />
+            <AssignmentSearch
+                onSearchResults={handleSearchResults}
+                onSearch={(value) => setSearching(value)}
+                isFuture={true}
+            />
             {isSearched && (
-                assignments.length > 0 ? (
-                    assignments.map((assignment) => (
-                        <UpdateAssignment
-                            key={assignment.id}
-                            assignment={assignment}
-                            onUpdate={handleAssignmentUpdate}
-                        />
-                    ))
-                ) : (
-                    <NoAssignmentFound/>
-                )
+                searching ? (<Loading/>) : (
+                    assignments.length > 0 ? (
+                        assignments.map((assignment) => (
+                                <UpdateAssignment
+                                    key={assignment.id}
+                                    assignment={assignment}
+                                    onUpdate={handleAssignmentUpdate}
+                                />
+                            ))
+                        ) : (<NoAssignmentFound/>)
+                    )
             )}
         </>
     );
