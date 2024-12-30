@@ -27,6 +27,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.utils.IOUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -199,7 +200,7 @@ public class AssignmentController {
         try {
             AppUser currentUser = (AppUser) authentication.getPrincipal();
             // Additional security check to ensure teachers can only view their own assignments
-            if (currentUser.getRole() == Role.ROLE_TEACHER && !currentUser.getId().equals(teacherId)) {
+            if (currentUser.getRole().equals(Role.ROLE_TEACHER) && !currentUser.getId().equals(teacherId)) {
                 throw new AccessDeniedException("Teachers can only view their own assignments");
             }
 
@@ -241,7 +242,7 @@ public class AssignmentController {
             log.info("Deleting document: {}, user: {}", documentId, currentUser.getUsername());
 
             // Check if the user is a teacher and owns the assignment
-            if (currentUser.getRole() == Role.ROLE_TEACHER) {
+            if (currentUser.getRole().equals(Role.ROLE_TEACHER)) {
                 AssignmentDocument document = documentService.findById(documentId);
                 if (!currentUser.getId().equals(document.getAssignment().getAssignedBy().getId())) {
                     throw new AccessDeniedException("Teachers can only delete documents from their own assignments");

@@ -51,7 +51,7 @@ public class FileStorageService {
         // Create and return AssignmentDocument entity
         return AssignmentDocument.builder()
                 .fileName(file.getOriginalFilename())
-                .filePath(relativePath)
+                .filePath(fullPath.toString())
                 .uploadTime(LocalDateTime.now())
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
