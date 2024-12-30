@@ -81,7 +81,7 @@ public class AttendanceController {
             @ApiResponse(responseCode = "404", description = "Student not found")
     })
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_COORDINATOR')")
-    @GetMapping("/{studentId}")
+    @GetMapping("/student/{studentId}")
     public ResponseEntity<ApiResponse_<List<AttendanceDTO>>> getAttendanceByStudentId(
             @Parameter(description = "ID of the student", required = true)
             @PathVariable @Positive Long studentId,
