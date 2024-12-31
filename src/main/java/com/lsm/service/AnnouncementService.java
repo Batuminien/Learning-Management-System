@@ -112,6 +112,10 @@ public class AnnouncementService {
             }
         }
 
+        // First delete all read status records for this announcement
+        readStatusRepository.deleteByAnnouncementId(id);
+
+        // Then delete the announcement
         announcementRepository.deleteById(id);
     }
 
@@ -150,16 +154,25 @@ public class AnnouncementService {
             }
         }
 
-        existingAnnouncement.setTitle(announcementDTO.getTitle());
-        existingAnnouncement.setContent(announcementDTO.getContent());
+        // If the classes are being changed, we should delete the read statuses
+        // as the announcement might be visible to a different set of users
+        if (announcementDTO.getClassIds() != null && !announcementDTO.getClassIds().isEmpty() &&
+                !existingAnnouncement.getClasses().stream()
+                        .map(ClassEntity::getId)
+                        .collect(Collectors.toSet())
+                        .equals(new HashSet<>(announcementDTO.getClassIds()))) {
 
-        if (announcementDTO.getClassIds() != null && !announcementDTO.getClassIds().isEmpty()) {
+            readStatusRepository.deleteByAnnouncementId(id);
+
             Set<ClassEntity> newClasses = announcementDTO.getClassIds().stream()
                     .map(classId -> classEntityRepository.findById(classId)
                             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId)))
                     .collect(Collectors.toSet());
             existingAnnouncement.setClasses(newClasses);
         }
+
+        existingAnnouncement.setTitle(announcementDTO.getTitle());
+        existingAnnouncement.setContent(announcementDTO.getContent());
 
         return convertToDTO(announcementRepository.save(existingAnnouncement), user);
     }
