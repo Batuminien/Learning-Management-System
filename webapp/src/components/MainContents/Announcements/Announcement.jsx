@@ -1,11 +1,8 @@
 import { useContext } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
 
-import OfficerAnnouncements from "./OfficerAnnouncemets";
+import OfficerAnnouncements from "./OfficerAnnouncements/OfficerAnnouncemets";
 import StudentAnnouncements from "./StudentAnnouncements";
-
-
-
 
 const Announcements = () => {
     const { user } = useContext(AuthContext);

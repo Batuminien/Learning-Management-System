@@ -12,6 +12,7 @@ const Navigator = ({ options, onSelect, currentOption = 0}) => {
                 <NavigationOption
                     key={index}
                     title={option.title}
+                    IconSource={option?.iconSource}
                     isHighlighted={index === highlightedOption}
                     onClick={() => {
                         setHighlightedOption(index);
