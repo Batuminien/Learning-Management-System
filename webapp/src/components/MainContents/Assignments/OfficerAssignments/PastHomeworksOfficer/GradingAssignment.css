@@ -1,0 +1,40 @@
+.grading-body {
+    /* display: flex;
+    flex-direction: column;
+    row-gap: 12px; */
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    gap: 12px;
+}
+
+.grading-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    border-radius: 12px;
+}
+
+.grading-table th, .grading-table td {
+    padding: 12px 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.grading-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+.grading-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.error-input {
+    border: 2px solid red;
+    background-color: #ffe6e6;
+}
+
+.grade-input {
+    max-width: 80px;
+} 
+

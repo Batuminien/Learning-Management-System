@@ -263,3 +263,9 @@ ul li {
     font-weight: var(--subtitle-weight);
     color: var(--title);
 }
+
+.unit-section-text {
+    max-width: 75ch; /* Restrict width to 50 characters */
+    word-wrap: break-word; /* Break long words if necessary */
+    overflow-wrap: break-word; /* Ensures breaking long words for modern browsers */
+}
