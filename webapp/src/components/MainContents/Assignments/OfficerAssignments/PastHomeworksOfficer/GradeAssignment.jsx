@@ -80,7 +80,7 @@ const GradeAssignment = ({ assignment, onUpdate }) => {
 
     return (
         <div className="unit-container">
-            <div className="unit-header">
+            <div className="unit-header" onClick={() => setIsExpanded((prev) => !prev)}>
                 <div className="unit-header-info">
                     <img src="https://placeholder.pics/svg/32x32" alt="icon" />
                     <span className="unit-subject">{assignment.courseName}</span>
@@ -89,7 +89,7 @@ const GradeAssignment = ({ assignment, onUpdate }) => {
                         {(new Date(assignment.createdDate)).toLocaleDateString("en-GB")} - {(new Date(assignment.dueDate)).toLocaleDateString("en-GB")}
                     </span>
                 </div>
-                <button className="expand-btn" onClick={() => setIsExpanded((prev) => !prev)}>
+                <button className="expand-btn">
                     {isExpanded ? <ArrowUp /> : <ArrowDown />}
                 </button>
             </div>
@@ -157,84 +157,9 @@ const GradeAssignment = ({ assignment, onUpdate }) => {
                             </div>
                         )
                     })}
-                    {/* <table className="grading-table">
-                        <thead>
-                            <tr>
-                                <th>Öğrenci adı</th>
-                                <th>Yüklenen döküman</th>
-                                <th>Teslim notu</th>
-                                <th>Puan</th>
-                                <th>Geri dönüş</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students.map((student) => {
-                                const studentSubmission = assignment.studentSubmissions.find(
-                                    (submission) => submission.studentId === student.id && submission.document
-                                );
-
-                                inputsRef.current[student.id] = inputsRef.current[student.id] || {};
-
-                                return (
-                                    <tr key={student.id}>
-                                        <td>{student.name}</td>
-                                        {studentSubmission ? (
-                                            <td>r</td>
-                                        ) : (
-                                            <td colSpan={2} >ödev teslim edilmedi</td>
-                                        )}
-                                        
-                                        <td>
-                                            {studentSubmission ? (
-                                                <Document
-                                                    file={studentSubmission.document}
-                                                    isRemovable={false}
-                                                />
-                                            ) : (
-                                                <p>
-                                                    Döküman eklenmedi
-                                                </p>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {studentSubmission ? (
-                                                {studentSubmission.comment}
-                                            ) : (
-                                                <p>Teslim notu eklenmedi.</p>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <input
-                                                ref={(el) => (inputsRef.current[student.id].grade = el)}
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                className={`input grade-input ${
-                                                    errorStudents.includes(student.id) ? "error-input" : ""
-                                                }`}
-                                                placeholder="0 - 100"
-                                                defaultValue={studentSubmission ? studentSubmission.grade : ''}
-                                            />
-                                        </td>
-                                        <td>
-                                            <input
-                                                ref={(el) => (inputsRef.current[student.id].feedback = el)}
-                                                type="text"
-                                                className="input student-feedback"
-                                                placeholder="Enter feedback"
-                                                defaultValue={studentSubmission ? studentSubmission.feedback : ''}
-                                            />
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table> */}
-
-
                     {errorStudents.length > 0 && (
                         <div className="error-message">
-                            Please enter grades for all students.
+                            Lütfen her öğrenci için not giriniz.
                         </div>
                     )}
                     <button

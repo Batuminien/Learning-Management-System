@@ -112,6 +112,7 @@ body{
     border-radius: 8px;
     background-color: var(--input-background);
     padding: 8px;
+    width: 100%;
 }
 
 .input::placeholder {

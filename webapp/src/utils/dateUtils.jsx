@@ -21,7 +21,13 @@ export const gettwoyearsBefore = () => {
     return twoYearsAgo;
 }
 
-export const getPreviousDay = (dateString) => {
+export const get7DaysBefore = (date = new Date()) => {
+    const newDate = new Date(date); // Copy the given date (or current date if none provided)
+    newDate.setDate(newDate.getDate() - 7); // Subtract 7 days
+    return newDate;
+  };
+  
+export const getPreviousDay = (dateString = new Date().toISOString().split('T')[0]) => {
     // Parse the input date string into a Date object
     const givenDate = new Date(dateString);
 
@@ -46,4 +52,15 @@ export const areDatesEqual = (date1, date2) => {
         d1.getMonth() === d2.getMonth() &&
         d1.getDate() === d2.getDate()
     );
+}
+
+export const isToday = (dateString) => {
+    const givenDate = new Date(dateString);
+    const currentDate = new Date();
+  
+    // Set both dates to midnight to ignore the time part
+    givenDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+  
+    return givenDate.getTime() === currentDate.getTime();
 }

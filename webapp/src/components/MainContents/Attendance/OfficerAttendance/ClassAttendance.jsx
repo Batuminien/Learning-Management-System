@@ -3,11 +3,14 @@ import { ArrowDown, ArrowUp } from "../../../../../public/icons/Icons";
 import Loading from "../../../common/Loading/Loading";
 import { getAttendanceOfStudent, markAttendance, updateAttendance } from "../../../../services/attendanceService";
 import { AuthContext } from "../../../../contexts/AuthContext";
-import { areDatesEqual, getPreviousDay } from "../../../../utils/dateUtils";
+import { areDatesEqual, get7DaysBefore, getPreviousDay, isToday } from "../../../../utils/dateUtils";
 import Warning from "../../../common/IconComponents/Warning";
 
 const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
     const { user } = useContext(AuthContext);
+
+    const [canEdit, setCanEdit] = useState(true);
+    const [newAttendance, setNewAttendance] = useState(true);
 
     const [fetchError, setFetchError] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -17,9 +20,11 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
     const [loading, setLoading] = useState(false);
     const [students, setStudents] = useState([]);
     const [attendanceRecords, setAttendanceRecords] = useState({});
+    const [attendanceError, setAttendanceError] = useState('');
 
     useEffect(() => {
-        // console.log(course);
+        // if(user.role === 'ROLE_TEACHER' && !isToday(attendanceDate)) {setCanEdit(false);}
+        // else if(user.role === 'ROLE_COORDINATOR' && new Date(attendanceDate) < new Date(get7DaysBefore())) {setCanEdit(false);}
         const studentsInfo = Object.entries(currentClass.studentIdAndNames).map(([id, name]) => ({
             id: Number(id),
             name: name,
@@ -41,14 +46,14 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
                     getAttendanceOfStudent(student.id, params, user.accessToken)
                 );
                 const attendanceResponses = await Promise.all(attendancePromises);
+                let isNew = true
                 const studentAttendanceRecords = attendanceResponses.map((studentAttendance) => {
-                    console.log(studentAttendance);
                     if (studentAttendance.data.length === 0)
                         return { comment: '', status: '', initial: false };
                     const targetDate = studentAttendance.data.find((attendance) =>
                         areDatesEqual(attendanceDate, attendance.date) && attendance.courseId == course.id
                     );
-                    console.log(targetDate);
+                    if(targetDate) {isNew = false, setNewAttendance(false);}
                     return targetDate
                         ? { comment: targetDate.comment, status: targetDate.status, initial: true, attendanceID : targetDate.attendanceId }
                         : { comment: '', status: '', initial: false };
@@ -58,6 +63,9 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
                     recordsObject[student.id] = studentAttendanceRecords[index];
                 });
                 setAttendanceRecords(recordsObject);
+                if(user.role === 'ROLE_TEACHER' && !isToday(attendanceDate) && !isNew) {setCanEdit(false);}
+                else if(user.role === 'ROLE_COORDINATOR' && (new Date(attendanceDate) < new Date(get7DaysBefore())) && !isNew) {setCanEdit(false);}
+
             } catch (error) {
                 console.log(error);
                 setFetchError(true);
@@ -90,6 +98,18 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
     const handleSubmit = async () => {
         setSaveError(false);
         setSaveSuccess(false);
+        setAttendanceError('');
+
+        let errorCount = 0;
+        Object.entries(attendanceRecords).forEach(([id, record]) => {
+            if(record.status === '') {errorCount++;}
+        })
+
+        if(errorCount > 0) {
+            setAttendanceError('Her öğrencinin katılım bilgisi girilmelidir!');    
+            return;
+        }
+
         try {
             const attendancePromises = Object.entries(attendanceRecords).map(async ([studentId, record]) => {
                 const attendanceData = {
@@ -102,9 +122,7 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
                 };
                 return record.initial
                     ? updateAttendance(record.attendanceID, attendanceData, user.accessToken)
-                    : markAttendance(attendanceData, user.accessToken)
-    
-                
+                    : markAttendance(attendanceData, user.accessToken)   
             });
     
             const responses = await Promise.all(attendancePromises);
@@ -147,44 +165,49 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {students.map((student, index) => (
-                                        <tr className="table-row" key={student.id}>
-                                            <td className="table-row-element">{index}</td>
-                                            <td className="table-row-element">{student.name}</td>
-                                            <td className="table-row-element">
-                                                <select
-                                                    className="input"
-                                                    value={attendanceRecords[student.id]?.status || ''}
-                                                    onChange={(e) =>
-                                                        handleStatusChange(student.id, e.target.value)
-                                                    }
-                                                >
-                                                    <option value=""></option>
-                                                    <option value="PRESENT">Katıldı</option>
-                                                    <option value="ABSENT">Katılmadı</option>
-                                                    <option value="EXCUSED">Mazeretli</option>
-                                                    <option value="LATE">Geç geldi</option>
-                                                </select>
-                                            </td>
-                                            <td className="table-row-element">
-                                                <input
-                                                    type="text"
-                                                    className="input"
-                                                    value={attendanceRecords[student.id]?.comment || ''}
-                                                    onChange={(e) =>
-                                                        handleCommentChange(student.id, e.target.value)
-                                                    }
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {students.map((student, index) => {
+                                        return(
+                                            <tr className="table-row" key={student.id}>
+                                                <td className="table-row-element">{index}</td>
+                                                <td className="table-row-element">{student.name}</td>
+                                                <td className="table-row-element">
+                                                    <select
+                                                        className="input"
+                                                        value={attendanceRecords[student.id]?.status || ''}
+                                                        onChange={(e) =>
+                                                            handleStatusChange(student.id, e.target.value)
+                                                        }
+                                                        disabled={!canEdit}
+                                                    >
+                                                        <option value=""></option>
+                                                        <option value="PRESENT">Katıldı</option>
+                                                        <option value="ABSENT">Katılmadı</option>
+                                                        <option value="EXCUSED">Mazeretli</option>
+                                                        <option value="LATE">Geç geldi</option>
+                                                    </select>
+                                                </td>
+                                                <td className="table-row-element">
+                                                    <input
+                                                        type="text"
+                                                        className="input"
+                                                        value={attendanceRecords[student.id]?.comment || ''}
+                                                        onChange={(e) =>
+                                                            handleCommentChange(student.id, e.target.value)
+                                                        }
+                                                        disabled={!canEdit}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
-                            <button className="save-btn btn" onClick={handleSubmit}>Kaydet</button>
+                            {canEdit && <button className="save-btn btn" onClick={handleSubmit}>Kaydet</button>}
                         </>
                     )}
                     {saveSuccess && <p className='register-response' style={{color : 'green'}}>Yoklama başarıyla kaydedildi.</p>}
                     {saveError && <p className='register-response' style={{color : 'red'}}>Yoklama kaydedilemedi.</p>}
+                    {attendanceError && <p className='register-response' style={{color : 'red'}}>{attendanceError}.</p>}
                 </div>
             )}
         </div>

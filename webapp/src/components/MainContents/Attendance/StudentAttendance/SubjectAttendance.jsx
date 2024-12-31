@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { ArrowDown } from '../../../../../public/icons/Icons';
 import { ArrowUp } from '../../../../../public/icons/Icons';
+import NoResult from '../../../common/IconComponents/NoResult';
 
 const SubjectAttendance = ({ stats, history, forceExpand }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -80,7 +81,7 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
                             </div>
                         </div>
                     ) : (
-                        <i>Bu derse ait yoklama kaydı bulunamadı.</i>
+                        <NoResult/>
                     )
                 )
             }

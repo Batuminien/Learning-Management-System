@@ -46,18 +46,9 @@ const OfficerAttendance = () => {
         try {
             setIsSearched(true);
             setSearching(true);
-            const a = courses.find((course) => course.id === selectedCourse.id);
-            console.log(a);
-            console.log(a.classEntityIds);
-            console.log(a.teacherCourses);
-            // const classIDs = courses
-            //     .find((course) => course.id === selectedCourse.id).teacherCourses
-            //     .find((c) => c.courseId === selectedCourse.id)
-            //     .classIds;
             const classIDs = user.role === 'ROLE_TEACHER'
                 ? courses.find((course) => course.id === selectedCourse.id).teacherCourses.find((c) => c.teacherId === user.id).classIds
                 : courses.find((course) => course.id === selectedCourse.id).classEntityIds;
-                console.log(classIDs);
             const classPromises = classIDs.map((classID) =>
                 getClassByID(classID, user.accessToken)
             );

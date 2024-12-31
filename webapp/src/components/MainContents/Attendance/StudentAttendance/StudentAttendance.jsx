@@ -16,6 +16,7 @@ import { fetchCssVariable } from '../../../../utils/fileUtils';
 import { robotoFont } from '../../../../../public/Roboto-Regular-normal';
 import Loading from '../../../common/Loading/Loading';
 import Warning from '../../../common/IconComponents/Warning';
+import NoResult from '../../../common/IconComponents/NoResult';
 import { gettwoyearsBefore } from '../../../../utils/dateUtils';
 
 const StudentAttendance = () => {
@@ -175,6 +176,7 @@ const StudentAttendance = () => {
 
             {isSearched && (
                 isSearching ? (<Loading/>) : (
+                    Object.keys(historyBySubjects).length === 0 ? (<NoResult/>) :
                     <>
                         {Object.keys(statsBySubject).map(key => (
                             <SubjectAttendance
