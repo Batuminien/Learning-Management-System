@@ -7,7 +7,8 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
-        history.sort((a, b) => new Date(b.date) - new Date(a.date))
+        if(history)
+            history.sort((a, b) => new Date(b.date) - new Date(a.date))
     }, []);
 
     return(
@@ -69,8 +70,8 @@ const SubjectAttendance = ({ stats, history, forceExpand }) => {
                                     <tbody>
                                         <tr className="table-row">
                                             <th className="table-row-element">{stats.presentCount}</th>
-                                            <th className="table-row-element">{stats.lateCount}</th>
                                             <th className="table-row-element">{stats.absentCount}</th>
+                                            <th className="table-row-element">{stats.lateCount}</th>
                                             <th className="table-row-element">{stats.excusedCount}</th>
                                             <th className="table-row-element">{stats.attendancePercentage}%</th>
                                         </tr>
