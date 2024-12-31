@@ -12,6 +12,7 @@ import { PiBookOpenBold } from "react-icons/pi";
 import { PiHouseBold } from "react-icons/pi";
 import { PiUserPlusBold } from "react-icons/pi";
 import { PiClipboardTextBold } from "react-icons/pi";
+import Announcements from "../components/MainContents/Announcements/Announcement";
 
 const userOptionsMap = {
     ROLE_ADMIN: [
@@ -20,7 +21,7 @@ const userOptionsMap = {
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
         { title: 'Sınav Sonuçları', component: null, iconSource : PiExamBold },
-        { title: 'Duyurular', component: null, iconSource : PiMegaphoneBold },
+        { title: 'Duyurular', component: Announcements, iconSource : PiMegaphoneBold },
         { title: 'Yeni Kullanıcı', component: NewUser, iconSource : PiUserPlusBold }
     ],
     ROLE_TEACHER: [
@@ -29,7 +30,7 @@ const userOptionsMap = {
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
         { title: 'Sınav Sonuçları', component: null, iconSource : PiExamBold },
-        { title: 'Duyurular', component: null, iconSource : PiMegaphoneBold }
+        { title: 'Duyurular', component: Announcements, iconSource : PiMegaphoneBold }
     ],
     ROLE_COORDINATOR: [
         { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
@@ -37,14 +38,14 @@ const userOptionsMap = {
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
         { title: 'Sınav Sonuçları', component: null, iconSource : PiExamBold },
-        { title: 'Duyurular', component: null, iconSource : PiMegaphoneBold }
+        { title: 'Duyurular', component: Announcements, iconSource : PiMegaphoneBold }
     ],
     ROLE_STUDENT: [
         { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
         { title: 'Ödevler', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
         { title: 'Geçmiş Sınavlar', component: null, iconSource : PiExamBold },
-        { title: 'Duyurular', component: null, iconSource : PiMegaphoneBold }
+        { title: 'Duyurular', component: Announcements, iconSource : PiMegaphoneBold }
     ]
 }
 
