@@ -7,10 +7,12 @@ data class StudentCourseResponse(
     val code: String,
     val credits: Int,
     val classEntityIds: List<Int>,
-    val teacherCourses: List<TeacherCourse>
+    val teacherCourses: List<TeacherCourseClass>
 )
 
-data class TeacherCourse(
+data class TeacherCourseClass(
+    val teacherId: Int,
+    val teacherName: String,
     val courseId: Int,
     val classIds: List<Int>
 )

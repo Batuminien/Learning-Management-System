@@ -7,6 +7,6 @@ data class TeacherCourseResponse(
     val code: String,
     val credits: Int,
     val classEntityIds: List<Int>,
-    val teacherCourses: List<TeacherCourse>
+    val teacherCourses: List<TeacherCourseClass>
 )
 
