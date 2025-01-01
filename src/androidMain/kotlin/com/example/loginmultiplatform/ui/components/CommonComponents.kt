@@ -24,22 +24,39 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import com.example.loginmultiplatform.R
 import androidx.compose.ui.text.font.FontWeight
+import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import coil3.compose.AsyncImage
+import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 import kotlinx.coroutines.launch
 
-@Composable
-actual fun TopBar(userName: String?, onSettingsClick: () -> Unit, onProfileClick: () -> Unit) {
+val customFontFamily = FontFamily(
+    Font(R.font.montserrat_regular, FontWeight.Normal),
+    Font(R.font.montserrat_bold, FontWeight.Bold),
+    Font(R.font.montserrat_semibold, FontWeight.Bold)
+)
 
-    val customFontFamily = FontFamily(
-        Font(R.font.montserrat_regular, FontWeight.Normal),
-        Font(R.font.montserrat_bold, FontWeight.Bold),
-        Font(R.font.montserrat_semibold, FontWeight.Bold)
-    )
+@Composable
+actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, onProfileClick: () -> Unit, navController: NavController) {
+
+    val viewModel = ProfilePhotoViewModel()
+    val profilePhotoUrl by viewModel.profilePhotoUrl.collectAsState()
+
+    LaunchedEffect(userId) {
+        viewModel.fetchProfilePhoto(userId)
+    }
+
 
     Row(
         modifier = Modifier
@@ -81,15 +98,29 @@ actual fun TopBar(userName: String?, onSettingsClick: () -> Unit, onProfileClick
             )
 
             IconButton(
-                onClick = onProfileClick
+                onClick = { onProfileClick() }
             ) {
-                Image(
-                    painter = painterResource(id = getPlatformResourceContainer().pp),
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape),
-                    contentDescription = "Profile Picture"
-                )
+                if (profilePhotoUrl != null) {
+                    AsyncImage(
+                        model = profilePhotoUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray),
+                        //contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.AccountCircle,
+                        contentDescription = "Default Profile Picture",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF334BBE))
+                    )
+                }
             }
         }
     }
@@ -98,20 +129,16 @@ actual fun TopBar(userName: String?, onSettingsClick: () -> Unit, onProfileClick
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-actual fun BottomNavigationBar(pagerState: PagerState) {
+actual fun BottomNavigationBar(pagerState: PagerState?, navController: NavController) {
     val items = listOf(
-        Triple("Duyurular", Icons.Rounded.Campaign, 3),
-        Triple("Yoklama", Icons.Rounded.EventNote, 0),
-        Triple("Ana Menü", Icons.Rounded.Home, 1),
-        Triple("Ödev", Icons.Rounded.AutoStories, 2)
+        Triple("Duyurular", Icons.Rounded.Campaign, "announcements_screen"),
+        Triple("Yoklama", Icons.Rounded.EventNote, "attendance_screen"),
+        Triple("Ana Menü", Icons.Rounded.Home, "dashboard_page"),
+        Triple("Ödev", Icons.Rounded.AutoStories, "homework_screen")
     )
-    val coroutineScope = rememberCoroutineScope()
-
-    val customFontFamily = FontFamily(
-        Font(R.font.montserrat_regular, FontWeight.Normal),
-        Font(R.font.montserrat_bold, FontWeight.Bold),
-        Font(R.font.montserrat_semibold, FontWeight.Bold)
-    )
+    //val coroutineScope = rememberCoroutineScope()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
 
     Row(
         modifier = Modifier
@@ -123,22 +150,23 @@ actual fun BottomNavigationBar(pagerState: PagerState) {
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        items.forEach { (title, iconRes, index) ->
-            val isSelected = pagerState.currentPage == index
+        items.forEach { item ->
+            val isSelected = currentRoute == item.third
             val alpha = if (isSelected) 1f else 0.5f
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.clickable {
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage(index)
+                    navController.navigate(item.third) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             ) {
 
                 Icon(
-                    imageVector = iconRes,
-                    contentDescription = title,
+                    imageVector = item.second,
+                    contentDescription = item.first,
                     //tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f),
                     modifier = Modifier.size(30.dp),
                     tint = Color.White.copy(alpha = alpha)
@@ -146,7 +174,7 @@ actual fun BottomNavigationBar(pagerState: PagerState) {
 
                 // Metin
                 Text(
-                    text = title,
+                    text = item.first,
                     color = Color.White.copy(alpha = alpha),
                     style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(top = 4.dp),

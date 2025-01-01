@@ -32,14 +32,15 @@ import kotlinx.coroutines.launch
 actual fun CoordinatorDashboard(studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, loginViewModel: LoginViewModel, navController: NavController) {
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 4 })
     val username by loginViewModel.username.collectAsState()
+    val userId by loginViewModel.id.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
     val administratorAnnouncementsViewModel = AdministratorAnnouncementsViewModel()
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
     Scaffold(
-        topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
-        bottomBar = { BottomNavigationBar(pagerState = pagerState) }
+        topBar = { userId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
+        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController) }
     ) { paddingValues ->
         HorizontalPager(
             state = pagerState,

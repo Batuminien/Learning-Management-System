@@ -14,11 +14,16 @@ import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
+import com.example.loginmultiplatform.model.ProfilePhotoResponse
+import com.example.loginmultiplatform.model.StudentInfoResponse
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -113,20 +118,15 @@ interface ApiService {
         @Body announcementBody: StudentAnnouncementResponse
     ): ResponseWrapper<StudentAnnouncementResponse>
 
-
-
     @GET("/api/v1/courses/class/{classId}")
     suspend fun fetchClassCourses (
         @Path("classId") classId: Int,
     ): ResponseWrapper<List<TeacherCourseResponse>>
 
-
-
     @POST("/api/v1/assignments/createAssignment")
     suspend fun newAssignment (
         @Body newAssignment : TeacherAssignmentRequest
     ): ResponseWrapper<Int>
-
 
     @GET("/api/v1/assignments/teacher/{teacherId}")
     suspend fun fetchTeacherAssignments (
@@ -136,6 +136,21 @@ interface ApiService {
         @Query("dueDate") dueDate: String
     ): ResponseWrapper<List<TeacherAssignmentResponse>>
 
+    @GET("/api/v1/profile-photo/{userId}")
+    suspend fun fetchProfilePhoto (
+        @Path("userId") userId: Int
+    ): ResponseWrapper<ProfilePhotoResponse>
+
+    @GET("/api/v1/students/{studentId}")
+    suspend fun fetchStudentsInfo (
+        @Path("studentId") studentId: Int
+    ): ResponseWrapper<StudentInfoResponse>
+
+    @Multipart
+    @POST("/api/v1/profile-photo")
+    suspend fun uploadPp(
+        @Part file: MultipartBody.Part
+    ): ResponseWrapper<ProfilePhotoResponse>
 
 }
 

@@ -15,6 +15,8 @@ class LoginViewModel : ViewModel() {
     private val _studentId = MutableStateFlow<Int?>(null)
     val studentId: StateFlow<Int?> get() = _studentId
 
+    /*---*/
+
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> get() = _username
 
@@ -23,6 +25,12 @@ class LoginViewModel : ViewModel() {
 
     private val _id = MutableStateFlow<Int?>(null)
     val id: StateFlow<Int?> get() = _id
+
+    private val _classId = MutableStateFlow<Int?>(null)
+    val classId: StateFlow<Int?> get() = _classId
+
+    private val _name = MutableStateFlow<String?>(null)
+    val name: StateFlow<String?> get() = _name
 
     fun login(
         username: String,

@@ -41,8 +41,8 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: At
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
     Scaffold(
-        topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
-        bottomBar = { BottomNavigationBar(pagerState = pagerState) }
+        topBar = { teacherId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
+        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController = navController) }
     ) { paddingValues ->
         HorizontalPager(
             state = pagerState,

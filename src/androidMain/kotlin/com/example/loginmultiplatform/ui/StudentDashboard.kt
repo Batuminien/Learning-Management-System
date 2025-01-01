@@ -48,44 +48,47 @@ actual fun StudentDashboard(navController: NavController, loginViewModel: LoginV
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 4 })
     val studentId by loginViewModel.studentId.collectAsState()
     val username by loginViewModel.username.collectAsState()
+    val userId by loginViewModel.id.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
-    Scaffold(
-        topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
-        bottomBar = { BottomNavigationBar(pagerState = pagerState) }
-    ) { paddingValues ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            userScrollEnabled = true
-        ) { page ->
-            when (page) {
-                0 -> AttendanceScreen(attendanceViewModel, navController, studentId = studentId ?: -1, classId = 1)
-                1 -> DashboardPage(username)
-                2 -> HomeworkPage("HOMEWORK PAGE")
-                3 -> StudentAnnouncementPage(loginViewModel, studentAnnouncementViewModel, navController)
-            }
-        }
+    DashboardPage(username)
 
-        LaunchedEffect(pagerState) {
-            snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
-                .collect{ (currentPage, offsetFraction) ->
-                    coroutineScope.launch {
-                        when (currentPage) {
-                            0 -> {
-                                if (offsetFraction > 0.5) {
-                                    pagerState.animateScrollToPage(3)
-                                }
+    /*Scaffold(
+        topBar = { userId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
+        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController = navController) }
+    ) { paddingValues ->
+
+    }*/
+    /*HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxSize(),
+        userScrollEnabled = true
+    ) { page ->
+        when (page) {
+            0 -> AttendanceScreen(attendanceViewModel, navController, studentId = studentId ?: -1, classId = 1)
+            1 -> DashboardPage(username)
+            2 -> HomeworkPage("HOMEWORK PAGE")
+            3 -> StudentAnnouncementPage(loginViewModel, studentAnnouncementViewModel, navController)
+        }
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
+            .collect{ (currentPage, offsetFraction) ->
+                coroutineScope.launch {
+                    when (currentPage) {
+                        0 -> {
+                            if (offsetFraction > 0.5) {
+                                pagerState.animateScrollToPage(3)
                             }
                         }
                     }
                 }
-        }
-    }
+            }
+    }*/
 }
 
 @Composable

@@ -43,12 +43,6 @@ actual fun LoginScreen(viewModel: LoginViewModel, navController: NavController) 
     val context = LocalContext.current
     val sharedPreferencesHelper = remember { SharedPreferencesHelper(context) }
 
-    val customFontFamily = FontFamily(
-        Font(R.font.montserrat_regular, FontWeight.Normal),
-        Font(R.font.montserrat_bold, FontWeight.Bold),
-        Font(R.font.montserrat_semibold, FontWeight.Bold)
-    )
-
     // Animasyonu başlat
     LaunchedEffect(Unit) {
         val savedDetails = sharedPreferencesHelper.getLoginDetails()
@@ -196,12 +190,7 @@ actual fun LoginScreen(viewModel: LoginViewModel, navController: NavController) 
                                     sharedPreferencesHelper.clearLoginDetails()
                                 }
 
-                                when (loginData.role) {
-                                    "ROLE_STUDENT" -> navController.navigate("student_dashboard")
-                                    "ROLE_TEACHER" -> navController.navigate("teacher_dashboard")
-                                    "ROLE_COORDINATOR" -> navController.navigate("coordinator_dashboard")
-                                    "ROLE_ADMIN" -> navController.navigate("admin_dashboard")
-                                }
+                                navController.navigate("dashboard_page")
                             },
                             onError = { error ->
                                 errorMessage = "Error: $error"
