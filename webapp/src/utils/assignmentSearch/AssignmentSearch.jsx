@@ -91,7 +91,7 @@ const AssignmentSearch = ({onSearchResults, onSearch, isFuture}) => {
             assignments = assignments.filter(assignment => assignment.className === searchClass.name);
         }
         if(searchCourse.name) {
-            assignments = assignments.filter(assignment => assignment.courseName === searchSubject.name);
+            assignments = assignments.filter(assignment => assignment.courseName === searchCourse.name);
         }
         if(searchDate) {
             assignments = assignments.filter(assignment => new Date(assignment.dueDate) <= new Date(searchDate));

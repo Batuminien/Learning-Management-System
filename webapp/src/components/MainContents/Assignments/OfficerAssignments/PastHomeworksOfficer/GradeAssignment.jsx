@@ -83,6 +83,7 @@ const GradeAssignment = ({ assignment, onUpdate }) => {
             <div className="unit-header" onClick={() => setIsExpanded((prev) => !prev)}>
                 <div className="unit-header-info">
                     <img src="https://placeholder.pics/svg/32x32" alt="icon" />
+                    <span className="unit-subject">{assignment.className}</span>
                     <span className="unit-subject">{assignment.courseName}</span>
                     <span className="assignment-title">{assignment.title}</span>
                     <span className="assignment-dueDate">
