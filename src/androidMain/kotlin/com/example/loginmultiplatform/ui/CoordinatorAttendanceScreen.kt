@@ -122,7 +122,7 @@ actual fun CoordinatorAttendanceScreen(studentViewModel: AttendanceViewModel, te
     val scrollState = rememberScrollState()
 
     //öğrenci yoklama durumları için map
-    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi")
+    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi", "Mazeretli")
 
     //seçili durumlar
     val attendanceStates = remember {
@@ -248,7 +248,7 @@ actual fun CoordinatorAttendanceScreen(studentViewModel: AttendanceViewModel, te
     // Sınıflar geldikten sonra teacherId kullanarak kursları getir
     LaunchedEffect(classes) {
         if (classes.isNotEmpty()) {
-            val teacherId = classes[0].teacherId // İlk sınıftan teacherId alınır
+            val teacherId = classes[0].teacherCourses[0].teacherId // İlk sınıftan teacherId alınır
             teacherViewModel.fetchTeacherCourses(teacherId)
         }
     }
@@ -395,10 +395,7 @@ fun ExpendableClassCards(
     var editingAttendanceId by remember { mutableStateOf<Int?>(null) }
     var originalStates = remember { mutableStateMapOf<Int, String>() }
     var originalComments = remember { mutableStateMapOf<Int, String>() }
-
-
-
-
+    
     val today = remember {
         val calendar = Calendar.getInstance()
         String.format("%d-%02d-%02d", calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.YEAR))
@@ -707,9 +704,7 @@ fun ExpendableClassCards(
                             ) {
                                 Button(
                                     onClick = {
-                                        Log.e("deneme dışarı", "deneme dışarı: deneme dışarı")
                                         if (isPastDate) {
-                                            Log.e("deneme içeri", "deneme içeri: deneme içeri")
                                             originalStates.clear()
                                             originalStates.putAll(attendanceStates)
                                             originalComments.clear()
@@ -865,31 +860,37 @@ fun StudentAttendanceDetailDialogCoordinator(
 
                     stats.forEach { stat ->
                         Text(
-                            "Toplam Ders: ${stat.totalClasses}",
+                            "Toplam Ders Sayısı: ${stat.totalClasses}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Ortalama Devam: %${stat.attendancePercentage}",
+                            "Ortalama Devam Oranı: %${stat.attendancePercentage}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Katıldığı Dersler: ${stat.presentCount}",
+                            "Katıldığı Ders Sayısı: ${stat.presentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Gelmediği Dersler: ${stat.absentCount}",
+                            "Gelmediği Ders Sayısı: ${stat.absentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Geç Kaldığı Dersler: ${stat.lateCount}",
+                            "Geç Kaldığı Ders Sayısı: ${stat.lateCount}",
+                            fontFamily = customFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
+                        Text(
+                            "Mazeretli Ders Sayısı: ${stat.excusedCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
@@ -931,8 +932,14 @@ fun StudentAttendanceDetailDialogCoordinator(
                                             color = Color.Black
                                         )
 
-                                        "EXCUSED" -> Text(
+                                        "LATE" -> Text(
                                             "Durum: Geç Geldi",
+                                            fontFamily = customFontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Black
+                                        )
+                                        "EXCUSED" -> Text(
+                                            "Durum: Mazeretli",
                                             fontFamily = customFontFamily,
                                             fontWeight = FontWeight.Medium,
                                             color = Color.Black
@@ -1043,7 +1050,7 @@ fun generateReportForStudent(
 
     CreateAttendancePDFforCoordinator(
         context = context,
-        groupedData = mapOf(classInfo.classId.toLong() to filteredAttendanceData),
+        groupedData = mapOf(classInfo.id.toLong() to filteredAttendanceData),
         startDate = startDate,
         endDate = endDate,
         statistics = filteredStats,

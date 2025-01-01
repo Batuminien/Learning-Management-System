@@ -12,6 +12,7 @@ data class CourseStatisticsResponse(
     val presentCount: Int,
     val absentCount: Int,
     val lateCount: Int,
+    val excusedCount: Int,
     val recentAttendance: List<AttendanceRecord>
 )
 

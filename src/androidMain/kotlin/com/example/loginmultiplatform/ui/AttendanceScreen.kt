@@ -67,6 +67,7 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
     val loading by viewModel.isLoading.collectAsState()
     val attendanceStats by viewModel.attendanceStats.collectAsState()
     val groupedData = attendanceList.groupBy { it.courseId } //derslere göre gruplandırma
+    Log.e("groupedData", "gropuedData: ${groupedData}")
     val coursesList by viewModel.studentCourses.collectAsState()
 
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
@@ -100,7 +101,7 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
 
     var startDate by remember { mutableStateOf(defaultStartDate) }
     var endDate by remember { mutableStateOf(defaultEndDate) }
-
+    
     LaunchedEffect(studentId, classId, startDate, endDate) {
         try {
             viewModel.fetchAttendanceStats(studentId, classId)
@@ -200,7 +201,6 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
                     val course = coursesList.find { it.id.toLong() == courseId }
                     if (course != null) {
                         val sortedAttendances = attendances.sortedByDescending { it.date }
-                        //val filteredAttendances = sortedAttendances.filter { it.status != "PRESENT" }
 
                         if (sortedAttendances.isNotEmpty()) {
                             item {
@@ -378,7 +378,7 @@ fun ExpendableTableCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         TableHeaderCell("TARİH", Modifier.weight(2f))
-                        TableHeaderCell("SAAT", Modifier.weight(1f))
+                        //TableHeaderCell("SAAT", Modifier.weight(1f))
                         TableHeaderCell("AÇIKLAMA", Modifier.weight(3f))
                     }
 
@@ -417,6 +417,7 @@ fun AttendanceStatsArea(statistics: AttendanceStats) {
         StatisticsRow(label = "Katıldığı Dersler: ", value = statistics.presentCount.toString())
         StatisticsRow(label = "Gelmediği Dersler: ", value = statistics.absentCount.toString())
         StatisticsRow(label = "Geç Kaldığı Dersler: ", value = statistics.lateCount.toString())
+        StatisticsRow(label = "Mazeretli Olduğu Dersler: ", value = statistics.excusedCount.toString())
     }
 }
 
@@ -449,15 +450,16 @@ fun DataRow(item: AttendanceResponse) {
                 .background(
                     color = when (item.status) {
                         "ABSENT" -> Color.Red
-                        "EXCUSED" -> Color(0xFFFFA500)
+                        "LATE" -> Color(0xFFFFA500)
                         "PRESENT" -> Color(0xFF12BA00)
+                        "EXCUSED" -> Color(0xFF334BBE)
                         else -> Color.Transparent
                     },
                     shape = CircleShape
                 )
         )
         TableCell(formatToReadableDate(item.date), Modifier.weight(2f))
-        TableCell("2", Modifier.weight(1f)) // Saat örnek verisi
+        //TableCell("2", Modifier.weight(1f)) // Saat örnek verisi
         TableCell(item.comment ?: "-", Modifier.weight(3f))
     }
 }
@@ -516,6 +518,7 @@ fun Legend(context: Context,
         LegendItem(color = Color.Red, text = "Katılmadı")
         LegendItem(color = Color(0xFFFFA500), text = "Geç Geldi")
         LegendItem(color = Color(0xFF12BA00), text = "Katıldı")
+        LegendItem(color = Color(0xFF334BBE), text = "Mazeretli")
     }
 
     Row(
@@ -549,7 +552,7 @@ fun Legend(context: Context,
 fun LegendItem(color: Color, text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 8.dp)
+        modifier = Modifier.padding(horizontal = 4.dp)
     ) {
         Box(
             modifier = Modifier

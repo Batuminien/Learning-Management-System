@@ -98,7 +98,8 @@ fun mapAttendanceStatus(status: String): String {
     return when (status) {
         "Katıldı" -> "PRESENT"
         "Katılmadı" -> "ABSENT"
-        "Geç Geldi" -> "EXCUSED"
+        "Geç Geldi" -> "LATE"
+        "Mazeretli" -> "EXCUSED"
         else -> "PRESENT"
     }
 }
@@ -107,7 +108,8 @@ fun mapAttendanceStatusforFrontend(status: String): String {
     return when (status) {
         "PRESENT" -> "Katıldı"
         "ABSENT" -> "Katılmadı"
-        "EXCUSED" -> "Geç Geldi"
+        "LATE" -> "Geç Geldi"
+        "EXCUSED" -> "Mazeretli"
         else -> "Veri Yok"
     }
 }
@@ -160,7 +162,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     val endDate = "2024-12-31"
 
     //öğrenci yoklama durumları için map
-    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi")
+    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi", "Mazeretli")
 
     val attendanceStates = remember { mutableStateMapOf<Int, String>() }
 
@@ -207,7 +209,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     // Sınıflar geldikten sonra teacherId kullanarak kursları getir
     LaunchedEffect(classes) {
         if (classes.isNotEmpty()) {
-            val teacherIdFromClasses = classes[0].teacherId // İlk sınıftan teacherId alınır
+            val teacherIdFromClasses = classes[0].teacherCourses[0].teacherId // İlk sınıftan teacherId alınır
             teacherViewModel.fetchTeacherCourses(teacherIdFromClasses)
         }
     }
@@ -726,31 +728,37 @@ fun StudentAttendanceDetailDialog(
                 stats.forEach { stat ->
                     if(stat.studentId == studentId) {
                         Text(
-                            "Toplam Ders: ${stat.totalClasses}",
+                            "Toplam Ders Sayısı: ${stat.totalClasses}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Ortalama Devam: %${stat.attendancePercentage}",
+                            "Ortalama Devam Oranı: %${stat.attendancePercentage}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Katıldığı Dersler: ${stat.presentCount}",
+                            "Katıldığı Ders Sayısı: ${stat.presentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Gelmediği Dersler: ${stat.absentCount}",
+                            "Gelmediği Ders Sayısı: ${stat.absentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Geç Kaldığı Dersler: ${stat.lateCount}",
+                            "Geç Kaldığı Ders Sayısı: ${stat.lateCount}",
+                            fontFamily = customFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
+                        Text(
+                            "Mazeretli Ders Sayısı: ${stat.excusedCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
@@ -790,8 +798,14 @@ fun StudentAttendanceDetailDialog(
                                             fontWeight = FontWeight.Medium,
                                             color = Color.Black
                                         )
-                                        "EXCUSED" -> Text(
+                                        "LATE" -> Text(
                                             "Durum: Geç Geldi",
+                                            fontFamily = customFontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Black
+                                        )
+                                        "EXCUSED" -> Text(
+                                            "Durum: Mazeretli",
                                             fontFamily = customFontFamily,
                                             fontWeight = FontWeight.Medium,
                                             color = Color.Black

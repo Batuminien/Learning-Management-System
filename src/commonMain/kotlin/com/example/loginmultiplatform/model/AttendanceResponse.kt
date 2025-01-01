@@ -30,5 +30,6 @@ data class AttendanceStats(
     val presentCount: Int,
     val absentCount: Int,
     val lateCount: Int,
+    val excusedCount: Int,
     val recentAttendance: List<AttendanceResponse>?
 )

@@ -90,39 +90,13 @@ actual fun AdminAttendanceScreen(studentViewModel: AttendanceViewModel, teacherV
 
     var selectedDate by remember { mutableStateOf( today ) }
 
-    /*val isPastDate = remember(formatToReadableDateDatabase(selectedDate)) {
-        try {
-            val selected = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(
-                formatToReadableDateDatabase(selectedDate)
-            )
-            val todayWithoutTime = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-
-            val oneWeekAgo = Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_YEAR, -7)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-
-            selected != null && selected.before(todayWithoutTime) && !selected.before(oneWeekAgo)
-        } catch (e: Exception) {
-            false
-        }
-    }*/
-
     val studentComments = remember { mutableStateMapOf<Int, String>() }
 
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     //öğrenci yoklama durumları için map
-    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi")
+    val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi", "Mazeretli")
 
     //seçili durumlar
     val attendanceStates = remember {
@@ -236,7 +210,7 @@ actual fun AdminAttendanceScreen(studentViewModel: AttendanceViewModel, teacherV
                     }
 
                     if (stats != null) {
-                        Log.d("Stats", "Stats for $sid: $stats")
+                        //Log.d("Stats", "Stats for $sid: $stats")
                     }
                 }
             }
@@ -248,7 +222,7 @@ actual fun AdminAttendanceScreen(studentViewModel: AttendanceViewModel, teacherV
     // Sınıflar geldikten sonra teacherId kullanarak kursları getir
     LaunchedEffect(classes) {
         if (classes.isNotEmpty()) {
-            val teacherId = classes[0].teacherId // İlk sınıftan teacherId alınır
+            val teacherId = classes[0].teacherCourses[0].teacherId // İlk sınıftan teacherId alınır
             teacherViewModel.fetchTeacherCourses(teacherId)
         }
     }
@@ -854,31 +828,31 @@ fun StudentAttendanceDetailDialogAdmin(
 
                     stats.forEach { stat ->
                         Text(
-                            "Toplam Ders: ${stat.totalClasses}",
+                            "Toplam Ders Sayısı: ${stat.totalClasses}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Ortalama Devam: %${stat.attendancePercentage}",
+                            "Ortalama Devam Oranı: %${stat.attendancePercentage}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Katıldığı Dersler: ${stat.presentCount}",
+                            "Katıldığı Ders Sayısı: ${stat.presentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Gelmediği Dersler: ${stat.absentCount}",
+                            "Gelmediği Ders Sayısı: ${stat.absentCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
                         )
                         Text(
-                            "Geç Kaldığı Dersler: ${stat.lateCount}",
+                            "Geç Kaldığı Ders Sayısı: ${stat.lateCount}",
                             fontFamily = customFontFamily,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
@@ -920,8 +894,14 @@ fun StudentAttendanceDetailDialogAdmin(
                                             color = Color.Black
                                         )
 
-                                        "EXCUSED" -> Text(
+                                        "LATE" -> Text(
                                             "Durum: Geç Geldi",
+                                            fontFamily = customFontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Black
+                                        )
+                                        "EXCUSED" -> Text(
+                                            "Durum: Mazeretli",
                                             fontFamily = customFontFamily,
                                             fontWeight = FontWeight.Medium,
                                             color = Color.Black

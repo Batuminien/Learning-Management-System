@@ -1,0 +1,11 @@
+package com.example.loginmultiplatform.ui
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+import com.example.loginmultiplatform.viewmodel.AdministratorAnnouncementsViewModel
+import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
+
+@Composable
+expect fun TeacherAnnouncementPage(loginViewModel: LoginViewModel, teacherAnnouncementViewModel: AdministratorAnnouncementsViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, studentAnnouncementViewModel: StudentAnnouncementViewModel, navController: NavController)

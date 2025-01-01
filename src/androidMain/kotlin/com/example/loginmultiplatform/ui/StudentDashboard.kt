@@ -37,7 +37,7 @@ import com.example.loginmultiplatform.ui.components.TopBar
 import androidx.navigation.NavController
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
-import kotlinx.coroutines.coroutineScope
+import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
 import kotlinx.coroutines.launch
 
 
@@ -50,6 +50,7 @@ actual fun StudentDashboard(navController: NavController, loginViewModel: LoginV
     val username by loginViewModel.username.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
+    val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
     Scaffold(
         topBar = { TopBar(userName = username, onSettingsClick = { }, onProfileClick = {}) },
@@ -66,7 +67,7 @@ actual fun StudentDashboard(navController: NavController, loginViewModel: LoginV
                 0 -> AttendanceScreen(attendanceViewModel, navController, studentId = studentId ?: -1, classId = 1)
                 1 -> DashboardPage(username)
                 2 -> HomeworkPage("HOMEWORK PAGE")
-                3 -> StudentAnnouncementPage(loginViewModel, navController)
+                3 -> StudentAnnouncementPage(loginViewModel, studentAnnouncementViewModel, navController)
             }
         }
 

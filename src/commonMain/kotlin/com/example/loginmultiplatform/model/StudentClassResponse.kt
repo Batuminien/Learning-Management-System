@@ -1,16 +1,10 @@
-package com.example.loginmultiplatform.model
+import com.example.loginmultiplatform.model.TeacherCourses
 
-data class TeacherClassResponse(
+data class StudentClassResponse(
     val id: Int,
     val name: String,
     val description: String,
     val teacherCourses: List<TeacherCourses>,
     val studentIdAndNames: Map<String, String>,
     val assignmentIds: List<Int>
-)
-
-data class TeacherCourses(
-    val teacherId: Int,
-    val courseId: Int,
-    val classIds: List<Int>
 )

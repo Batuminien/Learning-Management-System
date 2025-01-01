@@ -101,7 +101,7 @@ fun CreateAttendancePDFforCoordinator(
     canvas.drawText(dataRange, 20f, yOffset, paint)
     yOffset += 20f
 
-    val className = allClasses.find { it.classId == classId }
+    val className = allClasses.find { it.id == classId }
     if (className != null) {
         canvas.drawText("Sınıfı: ${className.name}", 20f, yOffset, paint)
     }
@@ -225,6 +225,7 @@ fun CreateAttendancePDFforCoordinator(
             canvas.drawText("Katıldığı Ders Sayısı: ${stats.presentCount}", 40f, yOffset + 30f, paint)
             canvas.drawText("Gelmediği Ders Sayısı: ${stats.absentCount}", 40f, yOffset + 45f, paint)
             canvas.drawText("Geç Kaldığı Ders Sayısı: ${stats.lateCount}", 40f, yOffset + 60f, paint)
+            canvas.drawText("Mazeretli Olduğu Ders Sayısı: ${stats.excusedCount}", 40f, yOffset + 75f, paint)
             yOffset += 100f
         } else {
             // Eğer istatistik bulunamazsa
