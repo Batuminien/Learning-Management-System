@@ -4,18 +4,23 @@ import com.lsm.mapper.UserMapper;
 import com.lsm.model.DTOs.StudentResponseDTO;
 import com.lsm.model.DTOs.StudentUpdateRequestDTO;
 import com.lsm.model.entity.base.AppUser;
+import com.lsm.model.entity.enums.Role;
 import com.lsm.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +28,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
 @Validated
+@Slf4j
 @Tag(name = "Student Management", description = "APIs for managing students")
 public class StudentController {
     private final UserService userService;
@@ -39,6 +45,26 @@ public class StudentController {
                 .map(userMapper::toStudentResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(new ApiResponse_<>(true, "Students retrieved successfully", response));
+    }
+
+    @Operation(summary = "Get the student's info")
+    @GetMapping("/{studentId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR', 'ROLE_TEACHER', 'ROLE_STUDENT')")
+    public ResponseEntity<ApiResponse_<StudentResponseDTO>> getStudentInfo(
+            Authentication authentication,
+            @PathVariable Long studentId) {
+        try {
+            AppUser student = (AppUser) authentication.getPrincipal();
+            if ((student.getRole().equals(Role.ROLE_STUDENT) || student.getRole().equals(Role.ROLE_TEACHER))
+                    && !student.getId().equals(studentId))
+                throw new AccessDeniedException("Logged in user and student id doesn't match.");
+
+            StudentResponseDTO response = userMapper.toStudentResponse(student);
+            return ResponseEntity.ok(new ApiResponse_<>(true, "Students retrieved successfully", response));
+        } catch (AccessDeniedException e) {
+            log.error("Access denied: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        }
     }
 
     @Operation(summary = "Update student details")

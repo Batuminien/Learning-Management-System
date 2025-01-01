@@ -189,7 +189,7 @@ public class SecurityConfig {
 
                     // Student management endpoints
                     registry.requestMatchers(HttpMethod.GET, "/api/v1/students/**")
-                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_COORDINATOR");
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_COORDINATOR", "ROLE_STUDENT");
                     registry.requestMatchers(HttpMethod.PUT, "/api/v1/students/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/students/**")
@@ -197,7 +197,7 @@ public class SecurityConfig {
 
                     // Teacher management endpoints
                     registry.requestMatchers(HttpMethod.GET, "/api/v1/teachers/**")
-                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR", "ROLE_TEACHER", "ROLE_STUDENT");
                     registry.requestMatchers(HttpMethod.PUT, "/api/v1/teachers/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**")

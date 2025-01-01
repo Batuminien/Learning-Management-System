@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import com.lsm.model.entity.base.AppUser;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
@@ -20,9 +21,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     @Query("""
-    SELECT DISTINCT dt.deviceToken 
-    FROM DeviceToken dt 
-    JOIN dt.user u 
+    SELECT DISTINCT dt.deviceToken
+    FROM DeviceToken dt
+    JOIN dt.user u
     WHERE u.id = :userId
     """)
     Optional<String> findDeviceTokenByUserId(@Param("userId") Long userId);
@@ -54,4 +55,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean findByStudentDetails_Tc(String studentDetailsTc);
 
     boolean findByTeacherDetails_Tc(String teacherDetailsTc);
+
+    @Query("SELECT u FROM AppUser  u WHERE CONCAT(u.name, ' ', u.surname) LIKE %:fullName%")
+    Optional<AppUser> findByNamePlusSurname(@Param("fullName") String fullName);
 }

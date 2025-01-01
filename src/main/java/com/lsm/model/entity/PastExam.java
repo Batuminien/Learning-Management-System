@@ -35,6 +35,6 @@ public class PastExam {
     private Set<StudentExamResult> results = new HashSet<>();
 
     public enum ExamType {
-        TYT, AYT, YDT
+        TYT, AYT, YDT, LGS
     }
 }
