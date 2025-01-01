@@ -78,6 +78,10 @@ kotlin {
                 implementation("com.mohamedrejeb.calf:calf-file-picker-coil:0.5.1")
                 implementation("io.coil-kt.coil3:coil-compose:3.0.0-alpha08")
 
+                // File picker (Melikşah)
+                implementation("com.darkrockstudios:mpfilepicker:3.1.0")
+                implementation("com.google.accompanist:accompanist-permissions:0.33.1-alpha")
+
             }
         }
         val commonTest by getting {
@@ -137,6 +141,10 @@ kotlin {
                 implementation("com.mohamedrejeb.calf:calf-file-picker-coil:0.5.1")
                 implementation("io.coil-kt.coil3:coil-compose:3.0.0-alpha08")
 
+
+                // File Picker (Melikşah)
+                implementation("com.darkrockstudios:mpfilepicker:3.1.0")
+                implementation("com.google.accompanist:accompanist-permissions:0.33.1-alpha")
 
             }
         }

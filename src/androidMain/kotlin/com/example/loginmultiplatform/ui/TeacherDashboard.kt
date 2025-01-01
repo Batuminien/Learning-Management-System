@@ -24,12 +24,13 @@ import com.example.loginmultiplatform.viewmodel.AdministratorAnnouncementsViewMo
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, navController: NavController) {
+actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: AttendanceViewModel, teacherAttendanceViewModel: TeacherAttendanceViewModel, teacherHomeworkViewModel : TeacherAssignmentViewModel, navController: NavController) {
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 4 })
     val username by loginViewModel.username.collectAsState()
     val teacherId by loginViewModel.id.collectAsState()
@@ -52,7 +53,7 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: At
             when (page) {
                 0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController, teacherId)
                 1 -> TeacherDashboardPage(username ?: "-")
-                2 -> TeacherHomeworkPage("odev")
+                2 -> TeacherHomeworkPage("odev", teacherHomeworkViewModel , teacherId, username ?: "-")
                 3 -> TeacherAnnouncementPage(loginViewModel, teacherAnnouncementViewModel, teacherAttendanceViewModel, studentAnnouncementViewModel, navController)
             }
         }

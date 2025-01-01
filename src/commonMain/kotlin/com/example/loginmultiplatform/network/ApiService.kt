@@ -10,8 +10,10 @@ import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.StudentAnnouncementResponse
 import com.example.loginmultiplatform.model.StudentCourseResponse
+import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
+import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -110,5 +112,30 @@ interface ApiService {
         @Path("id") id: Int,
         @Body announcementBody: StudentAnnouncementResponse
     ): ResponseWrapper<StudentAnnouncementResponse>
+
+
+
+    @GET("/api/v1/courses/class/{classId}")
+    suspend fun fetchClassCourses (
+        @Path("classId") classId: Int,
+    ): ResponseWrapper<List<TeacherCourseResponse>>
+
+
+
+    @POST("/api/v1/assignments/createAssignment")
+    suspend fun newAssignment (
+        @Body newAssignment : TeacherAssignmentRequest
+    ): ResponseWrapper<Int>
+
+
+    @GET("/api/v1/assignments/teacher/{teacherId}")
+    suspend fun fetchTeacherAssignments (
+        @Path("teacherId") teacherId: Int,
+        @Query("classId") classId: Int,
+        @Query("courseId") courseId: Int,
+        @Query("dueDate") dueDate: String
+    ): ResponseWrapper<List<TeacherAssignmentResponse>>
+
+
 }
 
