@@ -60,7 +60,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.LocalPlatformContext
-import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import com.example.loginmultiplatform.getPlatformResourceContainer
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.AssignmentDocument

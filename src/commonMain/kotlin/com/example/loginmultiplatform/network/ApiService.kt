@@ -1,6 +1,5 @@
 package com.example.loginmultiplatform.network
 
-import StudentClassResponse
 import androidx.annotation.Nullable
 import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.model.AttendanceResponse
@@ -9,6 +8,7 @@ import com.example.loginmultiplatform.model.CourseStatisticsResponse
 import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.StudentAnnouncementResponse
+import com.example.loginmultiplatform.model.StudentClassResponse
 import com.example.loginmultiplatform.model.StudentCourseResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.model.TeacherAttendanceRequest
