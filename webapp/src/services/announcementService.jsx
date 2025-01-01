@@ -15,3 +15,28 @@ export const createAnnouncement = async (announcementData, accessToken) => {
     );
     return response;
 }
+
+export const getAnnouncementsOf = async (classID, accessToken) => {
+    const response = await axios.get(
+        `${announcementURL}/class/${classID}`,
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`,
+            },
+        }
+    );
+    return response;
+}
+
+export const markAsRead = async (announcementID, accessToken) => {
+    const response = await axios.post(
+        `${announcementURL}/${announcementID}/read`,
+        {},
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`,
+            },
+        }
+    );
+    return response;
+}

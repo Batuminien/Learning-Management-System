@@ -110,7 +110,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                                 <textarea
                                     className='input'
                                     type='textarea'
-                                    style={{resize : 'none', width : '50%', aspectRatio : 5}}
+                                        
                                     value={submissionComment}
                                     onChange={(event) => setSubmissionComment(event.target.value)}
                                     lang='tr'

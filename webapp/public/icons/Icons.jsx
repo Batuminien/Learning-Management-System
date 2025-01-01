@@ -1,4 +1,3 @@
-
 import { PiCaretDownBold } from "react-icons/pi";
 export const ArrowDown = () => {return(<PiCaretDownBold className='icon-faded' size={22}/>);}
 
@@ -13,3 +12,9 @@ export const NoResultIcon = () => {return(<PiMagnifyingGlassMinusBold className=
 
 import { PiWarningBold } from "react-icons/pi";
 export const WarningIcon = () => {return(<PiWarningBold className='icon-faded' size={64}/>);}
+
+import { PiEnvelopeBold } from "react-icons/pi";
+export const ClosedEnvelopeIcon = () => {return(<PiEnvelopeBold className='icon-faded' size={32}/>)}
+
+import { PiEnvelopeOpenBold } from "react-icons/pi";
+export const OpenEnvelopeIcon = () => {return(<PiEnvelopeOpenBold className='icon-faded' size={32}/>)}

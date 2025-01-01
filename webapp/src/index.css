@@ -12,7 +12,10 @@
     --input-background : #F2F2F2;
     --placeholder-text-highlighted : rgb(115, 119, 145);
     --placeholder-text : #9297b8;
-    --icon-color : #4d4d4d;
+    --icon-color : #5f5f5f;
+    --icon-color-hovered : #3d3d3d;
+    /* --read-announcement-background : #cccccc; */
+    --read-announcement-background : #c0c1f3;
     --background : #FAFAFA;
     --border-color : #E9EDF7;
     --success-message-color : #28A745;
@@ -192,6 +195,10 @@ ul li {
 .icon-faded {
     fill: var(--icon-color);
     cursor: pointer;
+}
+
+.icon-faded:hover {
+    fill: var(--icon-color-hovered);
 }
 
 .main-content {
