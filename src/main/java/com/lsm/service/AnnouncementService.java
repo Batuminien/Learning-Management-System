@@ -243,8 +243,9 @@ public class AnnouncementService {
     }
 
     @Transactional
-    public List<AnnouncementDTO> getAnnouncementsByUser(AppUser user) throws AccessDeniedException {
+    public List<AnnouncementDTO> getAnnouncementsByUser(AppUser loggedInUser) throws AccessDeniedException {
         List<Announcement> announcements;
+        AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
         if (user.getRole().equals(Role.ROLE_STUDENT)) {
             // For students, get announcements from their class
@@ -268,8 +269,9 @@ public class AnnouncementService {
     }
 
     @Transactional
-    public List<AnnouncementDTO> getAnnouncementsByTheUser(AppUser user, Long userId) throws AccessDeniedException {
+    public List<AnnouncementDTO> getAnnouncementsByTheUser(AppUser loggedInUser, Long userId) throws AccessDeniedException {
         List<Announcement> announcements;
+        AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
 
         if (user.getRole().equals(Role.ROLE_STUDENT)) {
             // For students, get announcements from their class

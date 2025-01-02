@@ -253,8 +253,8 @@ public class CourseService {
         AppUser teacher = appUserRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
 
-        if (teacher.getRole() != Role.ROLE_TEACHER) {
-            throw new IllegalArgumentException("User is not a teacher");
+        if (teacher.getRole() == Role.ROLE_STUDENT) {
+            throw new IllegalArgumentException("User is a student");
         }
 
         Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
@@ -291,8 +291,8 @@ public class CourseService {
         AppUser newTeacher = appUserRepository.findById(newTeacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + newTeacherId));
 
-        if (newTeacher.getRole() != Role.ROLE_TEACHER) {
-            throw new IllegalArgumentException("User is not a teacher");
+        if (newTeacher.getRole() == Role.ROLE_STUDENT) {
+            throw new IllegalArgumentException("User is a student");
         }
 
         Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
