@@ -17,7 +17,8 @@ TRUNCATE TABLE
     app_users,
     subject_results,
     student_exam_results,
-    past_exams
+    past_exams,
+    course_schedules
 CASCADE;
 
 -- Reset sequences
@@ -33,6 +34,7 @@ ALTER SEQUENCE attendance_id_seq RESTART WITH 1;
 ALTER SEQUENCE past_exams_seq RESTART WITH 1;
 ALTER SEQUENCE student_exam_results_seq RESTART WITH 1;
 ALTER SEQUENCE subject_results_seq RESTART WITH 1;
+ALTER SEQUENCE course_schedules_seq RESTART WITH 1;
 
 -- Insert System Users (Admin & Coordinator)
 INSERT INTO app_users (id, username, name, surname, email, password, role, profile_photo_url, profile_photo_filename) VALUES
@@ -277,6 +279,77 @@ INSERT INTO subject_results (id, exam_result_id, subject_name, correct_answers, 
                                                                                                                                                                          AND exam_id = (SELECT id FROM past_exams WHERE name = '2024 Ocak AYT Deneme')),
                                                                                                                                   'Biyoloji', 9, 2, 2, 8.5);
 
+-- Insert Course Schedules
+INSERT INTO course_schedules (id, teacher_course_id, class_id, day_of_week, start_time, end_time, location) VALUES
+                                                                                                                -- Mathematics schedules for 11-A-MF (Teacher1)
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher1' AND c.code = 'MAT-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                                                                                 'MONDAY',
+                                                                                                                 '09:00:00',
+                                                                                                                 '10:40:00',
+                                                                                                                 'Room 201'),
+
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher1' AND c.code = 'MAT-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                                                                                 'WEDNESDAY',
+                                                                                                                 '13:00:00',
+                                                                                                                 '14:40:00',
+                                                                                                                 'Room 201'),
+
+                                                                                                                -- Physics schedules for 11-A-MF (Teacher2)
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher2' AND c.code = 'FIZ-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                                                                                 'TUESDAY',
+                                                                                                                 '10:00:00',
+                                                                                                                 '11:40:00',
+                                                                                                                 'Physics Lab'),
+
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher2' AND c.code = 'FIZ-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-A-MF'),
+                                                                                                                 'FRIDAY',
+                                                                                                                 '14:00:00',
+                                                                                                                 '15:40:00',
+                                                                                                                 'Room 301'),
+
+                                                                                                                -- Literacy schedules for 11-B-TM (Teacher3)
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher3' AND c.code = 'EDB-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-B-TM'),
+                                                                                                                 'MONDAY',
+                                                                                                                 '11:00:00',
+                                                                                                                 '12:40:00',
+                                                                                                                 'Room 102'),
+
+                                                                                                                (nextval('course_schedules_seq'),
+                                                                                                                 (SELECT tc.id FROM teacher_courses tc
+                                                                                                                                        JOIN app_users au ON tc.teacher_id = au.id
+                                                                                                                                        JOIN courses c ON tc.course_id = c.id
+                                                                                                                  WHERE au.username = 'teacher3' AND c.code = 'EDB-1'),
+                                                                                                                 (SELECT id FROM classes WHERE name = '11-B-TM'),
+                                                                                                                 'THURSDAY',
+                                                                                                                 '09:00:00',
+                                                                                                                 '10:40:00',
+                                                                                                                 'Room 102');
+
 -- Update sequences to current max values
 SELECT setval('app_users_seq', (SELECT MAX(id) FROM app_users));
 SELECT setval('classes_id_seq', (SELECT MAX(id) FROM classes));
@@ -290,3 +363,4 @@ SELECT setval('attendance_id_seq', (SELECT MAX(id) FROM attendance));
 SELECT setval('past_exams_seq', (SELECT MAX(id) FROM past_exams));
 SELECT setval('student_exam_results_seq', (SELECT MAX(id) FROM student_exam_results));
 SELECT setval('subject_results_seq', (SELECT MAX(id) FROM subject_results));
+SELECT setval('course_schedules_seq', (SELECT MAX(id) FROM course_schedules));

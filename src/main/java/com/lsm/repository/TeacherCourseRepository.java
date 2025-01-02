@@ -16,4 +16,6 @@ public interface TeacherCourseRepository extends JpaRepository<TeacherCourse, Lo
             "JOIN tc.classes c " +
             "WHERE c.id = :classId AND tc.course.id = :courseId")
     boolean existsByClassAndCourse(@Param("classId") Long classId, @Param("courseId") Long courseId);
+    boolean existsByTeacherId(Long teacherId);
+    boolean existsByIdAndTeacherId(Long id, Long teacherId);
 }
