@@ -54,7 +54,9 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
     val profilePhotoUrl by viewModel.profilePhotoUrl.collectAsState()
 
     LaunchedEffect(userId) {
-        viewModel.fetchProfilePhoto(userId)
+        if(userId != -1) {
+            viewModel.fetchProfilePhoto(userId)
+        }
     }
 
 

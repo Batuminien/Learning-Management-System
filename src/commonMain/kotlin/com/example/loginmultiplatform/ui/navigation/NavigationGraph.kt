@@ -5,8 +5,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,6 +22,7 @@ import com.example.loginmultiplatform.ui.components.TopBar
 import com.example.loginmultiplatform.viewmodel.AdministratorAnnouncementsViewModel
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
@@ -34,20 +37,27 @@ fun NavigationGraph(
 ) {
     val navController = rememberNavController()
 
-    val userId by loginViewModel.id.collectAsState()
-    val username by loginViewModel.username.collectAsState()
-    val role by loginViewModel.role.collectAsState()
-    val classId by loginViewModel.classId.collectAsState()
-
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
     val teacherAnnouncementViewModel = AdministratorAnnouncementsViewModel()
     val teacherAssignmentViewModel = TeacherAssignmentViewModel()
+    val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
+
+    val userId by loginViewModel.id.collectAsState()
+    val username by loginViewModel.username.collectAsState()
+    val role by loginViewModel.role.collectAsState()
+    val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
     val noBarRoutes = listOf("splash_screen", "login_screen")
     val showBars = currentRoute !in noBarRoutes
+
+    LaunchedEffect(userId) {
+        userId?.let { profilePhotoViewModel.fetchStudentInfo(it) }
+    }
+
+    val classId = studentInfo?.classId
 
     Scaffold(
         topBar = {
@@ -116,26 +126,6 @@ fun NavigationGraph(
                 )
             }
 
-            composable("attendance_screen/{studentId}/{classId}",
-                arguments = listOf(
-                    navArgument("studentId") { type = NavType.IntType },
-                    navArgument("classId") { type = NavType.IntType }
-                )
-            ) { backStackEntry ->
-                val studentId = backStackEntry.arguments?.getInt("studentId")
-                val classId = backStackEntry.arguments?.getInt("classId")
-                if (studentId != null && classId != null) {
-                    AttendanceScreen(
-                        viewModel = attendanceViewModel,
-                        studentId = studentId,
-                        classId = 1,
-                        navController = navController
-                    )
-                } else {
-                    navController.popBackStack()
-                }
-            }
-
             composable("announcements_screen") {
                 if (role == "ROLE_STUDENT") {
                     StudentAnnouncementPage(loginViewModel, studentAnnouncementViewModel, navController)
@@ -145,14 +135,8 @@ fun NavigationGraph(
             }
 
             composable("attendance_screen") {
-                if (role == "ROLE_STUDENT") {
-                    userId?.let { it1 ->
-                        classId?.let { it2 ->
-                            AttendanceScreen(attendanceViewModel, navController,
-                                it1, it2
-                            )
-                        }
-                    }
+                if (role == "ROLE_STUDENT" && userId != null && classId != null) {
+                    AttendanceScreen(attendanceViewModel, navController, userId!!, classId!!)
                 } else if (role == "ROLE_TEACHER") {
                     TeacherAttendanceScreen(attendanceViewModel, teacherAttendanceViewModel, navController, userId)
                 } else if (role == "ROLE_COORDINATOR") {
