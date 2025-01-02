@@ -71,6 +71,21 @@ public class FileStorageService {
     public ProfilePhotoResponseDTO handleProfilePhotoUpload(MultipartFile file, AppUser user) throws IOException {
         validateProfilePhoto(file);
 
+        // Delete existing photo if it exists
+        ProfilePhoto existingPhoto = profilePhotoRepository.findByUser(user)
+                .orElse(null);
+
+        if (existingPhoto != null) {
+            // Delete physical file
+            if (existingPhoto.getPhotoUrl() != null) {
+                Path photoPath = Paths.get(baseStoragePath, existingPhoto.getPhotoUrl());
+                Files.deleteIfExists(photoPath);
+            }
+            // Delete database entry
+            profilePhotoRepository.delete(existingPhoto);
+            profilePhotoRepository.flush();
+        }
+
         String uniqueFileName = generateUniqueFileName(file.getOriginalFilename());
         String relativePath = String.format("profile-photos/%d/%s", user.getId(), uniqueFileName);
         Path fullPath = Paths.get(baseStoragePath, relativePath);
@@ -80,14 +95,6 @@ public class FileStorageService {
             Files.copy(inputStream, fullPath, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // Delete old profile photo if exists
-        ProfilePhoto existingPhoto = profilePhotoRepository.findByUser(user).orElse(null);
-        if (existingPhoto != null) {
-            deleteProfilePhoto(user);
-            profilePhotoRepository.delete(existingPhoto);
-        }
-
-        // Create new profile photo entity
         ProfilePhoto newPhoto = ProfilePhoto.builder()
                 .user(user)
                 .photoUrl(relativePath)
@@ -97,7 +104,9 @@ public class FileStorageService {
                 .uploadTime(LocalDateTime.now())
                 .build();
 
-        profilePhotoRepository.save(newPhoto);
+        // Save new photo and update user relationship
+        newPhoto = profilePhotoRepository.save(newPhoto);
+        user.setProfilePhoto(newPhoto);
 
         return ProfilePhotoResponseDTO.builder()
                 .photoUrl(newPhoto.getPhotoUrl())
@@ -115,7 +124,7 @@ public class FileStorageService {
 
         Path photoPath = Paths.get(baseStoragePath, photo.getPhotoUrl());
         Files.deleteIfExists(photoPath);
-        profilePhotoRepository.delete(photo);
+        profilePhotoRepository.deleteProfilePhotoByUser(user);
     }
 
     private void validateProfilePhoto(MultipartFile file) {

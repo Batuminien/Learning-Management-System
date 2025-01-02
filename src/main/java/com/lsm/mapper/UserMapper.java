@@ -95,9 +95,11 @@ public class UserMapper {
                 .map(tc -> TeacherCourseResponseDTO.builder()
                         .teacherId(tc.getId())
                         .courseId(tc.getCourse().getId())
-                        .classIds(tc.getClasses().stream()
-                                .map(ClassEntity::getId)
-                                .collect(Collectors.toList()))
+                        .courseName(tc.getCourse().getName())
+                        .classIdsAndNames(tc.getClasses().stream()
+                                .collect(Collectors.toMap(
+                                        ClassEntity::getId,
+                                        ClassEntity::getName)))
                         .build())
                 .collect(Collectors.toList());
 

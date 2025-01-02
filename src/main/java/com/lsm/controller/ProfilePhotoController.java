@@ -42,14 +42,8 @@ public class ProfilePhotoController {
             @RequestParam("file") MultipartFile file
     ) {
         try {
+            // Let FileStorageService handle everything
             ProfilePhotoResponseDTO photoDTO = fileStorageService.handleProfilePhotoUpload(file, currentUser);
-
-            // Update user profile photo info
-            userService.updateUserProfilePhoto(currentUser.getId(),
-                    ProfilePhotoUpdateRequestDTO.builder()
-                            .photoUrl(photoDTO.getPhotoUrl())
-                            .filename(photoDTO.getFilename())
-                            .build());
 
             return ResponseEntity.ok(new ApiResponse_<>(
                     true,

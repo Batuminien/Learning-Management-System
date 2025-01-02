@@ -20,7 +20,8 @@ import java.time.LocalDateTime;
 @Builder
 public class ProfilePhoto {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "profile_photos_seq")
+    @SequenceGenerator(name = "profile_photos_seq", sequenceName = "profile_photos_seq", allocationSize = 1)
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
