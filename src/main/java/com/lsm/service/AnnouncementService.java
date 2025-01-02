@@ -113,6 +113,15 @@ public class AnnouncementService {
             }
         }
 
+        if (user.getRole().equals(Role.ROLE_TEACHER) &&
+                (announcement.getCreatedBy().getRole().equals(Role.ROLE_ADMIN)
+                || announcement.getCreatedBy().getRole().equals(Role.ROLE_COORDINATOR))) {
+            throw new AccessDeniedException("Teachers can't delete announcements which is created by admin or coordinator.");
+        }
+
+        if (user.getRole().equals(Role.ROLE_COORDINATOR) && announcement.getCreatedBy().getRole().equals(Role.ROLE_ADMIN))
+            throw new AccessDeniedException("Coordinator can't delete announcements which is created by admin.");
+
         // First delete all read status records for this announcement
         readStatusRepository.deleteByAnnouncementId(id);
 
