@@ -164,21 +164,32 @@ public class AnnouncementService {
             }
         }
 
-        // If the classes are being changed, we should delete the read statuses
-        // as the announcement might be visible to a different set of users
+        boolean shouldDeleteReadStatus = false;
+
+        // Check if content has changed
+        if (!existingAnnouncement.getContent().equals(announcementDTO.getContent()) ||
+                !existingAnnouncement.getTitle().equals(announcementDTO.getTitle())) {
+            shouldDeleteReadStatus = true;
+        }
+
+        // Check if classes have changed
         if (announcementDTO.getClassIds() != null && !announcementDTO.getClassIds().isEmpty() &&
                 !existingAnnouncement.getClasses().stream()
                         .map(ClassEntity::getId)
                         .collect(Collectors.toSet())
                         .equals(new HashSet<>(announcementDTO.getClassIds()))) {
 
-            readStatusRepository.deleteByAnnouncementId(id);
-
+            shouldDeleteReadStatus = true;
             Set<ClassEntity> newClasses = announcementDTO.getClassIds().stream()
                     .map(classId -> classEntityRepository.findById(classId)
                             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId)))
                     .collect(Collectors.toSet());
             existingAnnouncement.setClasses(newClasses);
+        }
+
+        // Delete read status if content or classes changed
+        if (shouldDeleteReadStatus) {
+            readStatusRepository.deleteByAnnouncementId(id);
         }
 
         existingAnnouncement.setTitle(announcementDTO.getTitle());
@@ -239,7 +250,7 @@ public class AnnouncementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
 
         // Delete the read status if it exists
-        readStatusRepository.deleteByAnnouncementIdAndUserId(announcementId, user.getId());
+        readStatusRepository.deleteByAnnouncementIdAndUserId(announcement.getId(), user.getId());
     }
 
     @Transactional
