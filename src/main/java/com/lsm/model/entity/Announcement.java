@@ -1,5 +1,6 @@
 package com.lsm.model.entity;
 
+import com.lsm.model.entity.base.AppUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -32,6 +33,10 @@ public class Announcement {
             inverseJoinColumns = @JoinColumn(name = "class_id")
     )
     private Set<ClassEntity> classes = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_id", nullable = false)
+    private AppUser createdBy;
 
     private LocalDateTime createdAt;
 

@@ -16,4 +16,6 @@ public class AnnouncementDTO {
     private LocalDateTime createdAt;
     private boolean isRead;
     private LocalDateTime readAt;
+    private Long createdById;
+    private String createdByName;
 }

@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 
 @Service
@@ -37,6 +38,10 @@ public class TrialExamService {
     private String uploadDir;
     private String examResultUploadDir;
 
+    private static final Pattern ANSWER_PATTERN = Pattern.compile("[ABCDE]+");
+    private static final Pattern NAME_PATTERN = Pattern.compile("[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s+(?:[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s*)+");
+    private static final Pattern TC_PATTERN = Pattern.compile("\\d{11}");
+
     @PostConstruct
     private void init() {
         this.examResultUploadDir = createExamResultDir();
@@ -48,6 +53,7 @@ public class TrialExamService {
         private int id;
         private String studentName;
         private String studentTC;
+        private String studentPhoneNumber;
         private String examType;  // A, B, C, D
         private String classEntity;
     }
@@ -216,6 +222,7 @@ public class TrialExamService {
 
     private String convertResultsToCsvTYT(String textContent) {
         List<Integer> startColumnNameL   = new ArrayList<>(), endColumnNameL   = new ArrayList<>(),
+                      startColumnTCL = new ArrayList<>(), endColumnTCL = new ArrayList<>(),
                       startColumnTurkceL = new ArrayList<>(), endColumnTurkceL = new ArrayList<>(),
                       startColumnSosyalL = new ArrayList<>(), endColumnSosyalL = new ArrayList<>(),
                       startColumnMathL   = new ArrayList<>(), endColumnMathL   = new ArrayList<>(),
@@ -227,6 +234,7 @@ public class TrialExamService {
         try {
             while ((line = reader.readLine()) != null) {
                 int startColumnName = 0, endColumnName = 0,
+                        startColumnTC = 0, endColumnTC = 0,
                         startColumnTurkce = 0, endColumnTurkce = 0,
                         startColumnSosyal = 0, endColumnSosyal = 0,
                         startColumnMath   = 0, endColumnMath   = 0,
@@ -279,6 +287,7 @@ public class TrialExamService {
                         break;
                     }
                 }
+                // TODO: increment endColumnName until two consecutive space or any digit
             }
         } catch (IOException e) {
             log.error("Exception occurred while processing text files: {}", e.getMessage(), e);

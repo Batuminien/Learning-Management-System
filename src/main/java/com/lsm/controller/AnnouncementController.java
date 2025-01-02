@@ -93,6 +93,87 @@ public class AnnouncementController {
         }
     }
 
+    @Operation(summary = "Get announcements for current user",
+            description = "Retrieve all announcements accessible to the current user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcements retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")
+    })
+    @GetMapping("/my-announcements")
+    public ResponseEntity<ApiResponse_<List<AnnouncementDTO>>> getAnnouncementsByUser(
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            List<AnnouncementDTO> announcements = announcementService.getAnnouncementsByUser(loggedInUser);
+            ApiResponse_<List<AnnouncementDTO>> response = new ApiResponse_<>(
+                    true,
+                    "Announcements retrieved successfully",
+                    announcements
+            );
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in getAnnouncementsByUser: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error retrieving announcements for the user: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving announcements: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get announcements for the user",
+            description = "Retrieve all announcements accessible to the user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcements retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")
+    })
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse_<List<AnnouncementDTO>>> getAnnouncementsByTheUser(
+            Authentication authentication, @PathVariable Long userId) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            List<AnnouncementDTO> announcements = announcementService.getAnnouncementsByTheUser(loggedInUser, userId);
+            ApiResponse_<List<AnnouncementDTO>> response = new ApiResponse_<>(
+                    true,
+                    "Announcements retrieved successfully",
+                    announcements
+            );
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in getAnnouncementsByTheUser: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error retrieving announcements for the requested user: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving announcements: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get announcements for the user",
+            description = "Retrieve all announcements accessible to the user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcements retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")
+    })
+    @GetMapping("/{announcementId}")
+    public ResponseEntity<ApiResponse_<AnnouncementDTO>> getAnnouncementById(
+            Authentication authentication, @PathVariable Long announcementId) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            AnnouncementDTO announcements = announcementService.getAnnouncementById(loggedInUser, announcementId);
+            ApiResponse_<AnnouncementDTO> response = new ApiResponse_<>(
+                    true,
+                    "Announcements retrieved successfully",
+                    announcements
+            );
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            log.error("Access denied in getAnnouncementById: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.FORBIDDEN, "Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error retrieving the announcement for the requested id': {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving announcements: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "Update an announcement", description = "Only teachers, admins, and coordinators can update announcements")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Announcement updated successfully"),
@@ -285,6 +366,32 @@ public class AnnouncementController {
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error marking announcement as read: " + e.getMessage());
         }
     }
+
+    @Operation(summary = "Mark announcement as unread")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Announcement marked as unread successfully"),
+            @ApiResponse(responseCode = "404", description = "Announcement not found")
+    })
+    @PostMapping("/{announcementId}/unread")
+    public ResponseEntity<ApiResponse_<Void>> markAsUnread(
+            @PathVariable Long announcementId,
+            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            announcementService.markAsUnread(loggedInUser, announcementId);
+
+            ApiResponse_<Void> response = new ApiResponse_<>(
+                    true,
+                    "Announcement marked as unread successfully",
+                    null
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error marking announcement as unread: {}", e.getMessage());
+            return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error marking announcement as unread: " + e.getMessage());
+        }
+    }
+
 
     @Operation(summary = "Send push notification for an announcement",
             description = "Sends push notification to all students in all classes associated with the announcement")

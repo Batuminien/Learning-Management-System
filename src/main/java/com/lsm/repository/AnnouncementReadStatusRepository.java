@@ -12,4 +12,6 @@ public interface AnnouncementReadStatusRepository extends JpaRepository<Announce
     @Modifying
     @Query("DELETE FROM AnnouncementReadStatus ars WHERE ars.announcement.id = :announcementId")
     void deleteByAnnouncementId(Long announcementId);
+    @Modifying
+    void deleteByAnnouncementIdAndUserId(Long announcementId, Long userId);
 }

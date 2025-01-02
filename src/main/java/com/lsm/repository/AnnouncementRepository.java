@@ -18,4 +18,5 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
     // You might also want to add these useful methods
     List<Announcement> findByClassesIn(Collection<Set<ClassEntity>> classes);
     List<Announcement> findByClassesIdIn(Collection<Long> classIds);
+    List<Announcement> findByCreatedById(Long userId);
 }

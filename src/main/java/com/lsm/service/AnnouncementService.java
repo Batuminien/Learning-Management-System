@@ -61,6 +61,7 @@ public class AnnouncementService {
         announcement.setTitle(dto.getTitle());
         announcement.setContent(dto.getContent());
         announcement.setClasses(classes);
+        announcement.setCreatedBy(user);
 
         announcement = announcementRepository.save(announcement);
         return convertToDTO(announcement, user);
@@ -223,6 +224,58 @@ public class AnnouncementService {
         readStatusRepository.save(readStatus);
     }
 
+    @Transactional
+    public void markAsUnread(AppUser user, Long announcementId) {
+        Announcement announcement = announcementRepository.findById(announcementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Announcement not found"));
+
+        // Delete the read status if it exists
+        readStatusRepository.deleteByAnnouncementIdAndUserId(announcementId, user.getId());
+    }
+
+    @Transactional
+    public List<AnnouncementDTO> getAnnouncementsByUser(AppUser user) throws AccessDeniedException {
+        List<Announcement> announcements;
+
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
+            // For students, get announcements from their class
+            Long classId = user.getStudentDetails().getClassEntity().getId();
+            announcements = announcementRepository.findByClassesId(classId);
+        } else if (user.getRole().equals(Role.ROLE_TEACHER)) {
+            // For teachers, get announcements from their classes
+            Set<Long> classIds = user.getTeacherDetails().getTeacherCourses().stream()
+                    .flatMap(tc -> tc.getClasses().stream())
+                    .map(ClassEntity::getId)
+                    .collect(Collectors.toSet());
+            announcements = announcementRepository.findByClassesIdIn(classIds);
+        } else {
+            // For admin and coordinator, get all announcements
+            announcements = announcementRepository.findAll();
+        }
+
+        return announcements.stream()
+                .map(announcement -> convertToDTO(announcement, user))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<AnnouncementDTO> getAnnouncementsByTheUser(AppUser user, Long userId) throws AccessDeniedException {
+        List<Announcement> announcements;
+
+        if (user.getRole().equals(Role.ROLE_STUDENT)) {
+            // For students, get announcements from their class
+            Long classId = user.getStudentDetails().getClassEntity().getId();
+            announcements = announcementRepository.findByClassesId(classId);
+        } else {
+            // For teachers, admins, and coordinators get announcements they created
+            announcements = announcementRepository.findByCreatedById(userId);
+        }
+
+        return announcements.stream()
+                .map(announcement -> convertToDTO(announcement, user))
+                .collect(Collectors.toList());
+    }
+
     private AnnouncementDTO convertToDTO(Announcement announcement, AppUser currentUser) {
         Optional<AnnouncementReadStatus> readStatus = readStatusRepository
                 .findByAnnouncementIdAndUserId(announcement.getId(), currentUser.getId());
@@ -237,6 +290,8 @@ public class AnnouncementService {
                 .createdAt(announcement.getCreatedAt())
                 .isRead(readStatus.isPresent())
                 .readAt(readStatus.map(AnnouncementReadStatus::getReadAt).orElse(null))
+                .createdById(announcement.getCreatedBy().getId())
+                .createdByName(announcement.getCreatedBy().getName() + " " + announcement.getCreatedBy().getSurname())
                 .build();
     }
 }
