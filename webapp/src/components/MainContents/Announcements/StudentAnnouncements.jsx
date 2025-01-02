@@ -7,7 +7,7 @@ import Warning from "../../common/IconComponents/Warning";
 import NoResult from '../../common/IconComponents/NoResult';
 
 import { getAnnouncementsOf, markAsRead } from "../../../services/announcementService";
-import { ClosedEnvelopeIcon, OpenEnvelopeIcon } from "../../../../public/icons/Icons";
+import SingleAnnouncement from "./SingleAnnouncement";
 
 
 
@@ -27,7 +27,6 @@ const StudentAnnouncements = () => {
                 const classResponse = await getStudentClass(user.id, user.accessToken);
                 setStudentClass(classResponse.data);
                 const announcementResponse = await getAnnouncementsOf(classResponse.data.id, user.accessToken);
-                console.log(announcementResponse.data.data);
                 setAnnouncements(announcementResponse.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             }catch(error){
                 console.log(error);
@@ -68,18 +67,7 @@ const StudentAnnouncements = () => {
                     <NoResult/>
                 ) : (
                     announcements.map(announcement => (
-                        <div className="unit-container" key={announcement.id} style={{backgroundColor : announcement.read ? 'var(--read-announcement-background)' : ''}}>
-                            <div className="unit-header" style={{cursor : 'text'}}>
-                                <div className="">
-                                    <p className='unit-section-title' style={{marginBottom : '8px'}}>{announcement.title}</p>
-                                    <p>{announcement.content}</p>
-                                </div>
-                                <div onClick={() => {if(!announcement.read){handleAnnouncementRead(announcement.id)}}}>
-                                    {announcement.read ? <OpenEnvelopeIcon/> : <ClosedEnvelopeIcon />}
-                                </div>
-                            </div>
-                        </div>
-
+                        <SingleAnnouncement key={announcement.id} announcement={announcement} onRead={handleAnnouncementRead}/>
                     ))
                 )
             )}

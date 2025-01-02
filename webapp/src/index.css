@@ -277,3 +277,13 @@ ul li {
     word-wrap: break-word; /* Break long words if necessary */
     overflow-wrap: break-word; /* Ensures breaking long words for modern browsers */
 }
+
+.dashboard-template {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    width: 100%;
+    height: 100%;
+    gap: 32px;
+    margin-bottom: 32px;
+}

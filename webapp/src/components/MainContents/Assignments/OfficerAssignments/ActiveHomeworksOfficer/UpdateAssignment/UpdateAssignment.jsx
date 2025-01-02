@@ -127,8 +127,6 @@ const UpdateAssignment = ({ assignment, onUpdate }) => {
     }
 
     const handleDeletion = () => {
-        console.log('Assignment id : ',assignment.id);
-        console.log('access token : ', user.accessToken);
         deleteAssignment(assignment.id, user.accessToken)
             .then(response => {
                 console.log(response)

@@ -52,12 +52,12 @@ const NewStudentForm = ({onCreationSuccess, onSubmit, onCreationError}) => {
         if(!isValidName(surname)) {setSurnameError('Geçersiz soyad'), hasError=true}
         if(!isValidTC(TC)) {setTcError('Geçersiz TC kimlik numarası'), hasError=true}
         if(!isValidEmail(mailAddress)) {setMailError('Geçersiz e-posta adresi'), hasError=true}
-        if(!isValidPhoneNumber(phoneNumber)) {setPhoneNumberError('Numara 0 ile başlamalı ve 11 haneli olmalıdır'), hasError=true}
+        if(!isValidPhoneNumber(phoneNumber)) {setPhoneNumberError('Numara 0 ile başlamalı ve 11 hane olmalıdır'), hasError=true}
         if(selectedClass.name === '') {setClassError('Sınıf seçilmedi'), hasError=true}
         if(birthDate === '') {setBirthDateError('Doğum tarihi seçiniz'), hasError=true}
         if(!isValidName(parentName)) {setParentNameError('Geçersiz ad'), hasError=true}
         if(!isValidName(parentSurname)) {setParentSurnameError('Geçersiz soyad'), hasError=true}
-        if(!isValidPhoneNumber(parentPhone)) {setParentPhoneNumberError('Numara 0 ile başlamalı ve 11 haneli olmalıdır'), hasError=true}
+        if(!isValidPhoneNumber(parentPhone)) {setParentPhoneNumberError('Numara 0 ile başlamalı ve 11 hane olmalıdır'), hasError=true}
         if(hasError) return;
 
         const registerPayload = {

@@ -36,13 +36,18 @@ const NewUser = () => {
             </div>
                 {userType === 'ROLE_STUDENT'
                     ? (<NewStudentForm 
-                            onSubmit={() => {setCreationSuccess(''), setCreationError('')}}
-                            onCreationSuccess={(generatedPassword) => {setCreationSuccess(generatedPassword)}}
-                            onCreationError={(errorMessage) => {setCreationError(errorMessage)}}
-                        />
-                    ) : (
-                    <NewTeacherForm/>
-                )}
+                                onSubmit={() => {setCreationSuccess(''), setCreationError('')}}
+                                onCreationSuccess={(generatedPassword) => {setCreationSuccess(generatedPassword)}}
+                                onCreationError={(errorMessage) => {setCreationError(errorMessage)}}
+                            />
+                        ) : (
+                            <NewTeacherForm
+                                onSubmit={() => {setCreationSuccess(''), setCreationError('')}}
+                                onCreationSuccess={(generatedPassword) => {setCreationSuccess(generatedPassword)}}    
+                                onCreationError={(errorMessage) => {setCreationError(errorMessage)}}
+                            />
+                        )
+                }
             {creationSuccess && (
                     <div>
                         <p className='register-response' style={{color : 'green'}}>Kayıt Başarılı</p>

@@ -64,3 +64,10 @@ export const isToday = (dateString) => {
   
     return givenDate.getTime() === currentDate.getTime();
 }
+
+export const getTimeFromDate = (dateString) => {
+    const date = new Date(dateString); // Parse the date string
+    const hours = date.getHours().toString().padStart(2, "0"); // Get hours with leading zero
+    const minutes = date.getMinutes().toString().padStart(2, "0"); // Get minutes with leading zero
+    return `${hours}:${minutes}`; // Return formatted time
+}

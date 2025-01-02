@@ -9,13 +9,10 @@ import { getSidebarOptions } from "../../utils/userOptions";
 
 const Dashboard = () => {
 
-    const [selectedOption, setSelectedOption] = useState({
-        title : 'Ana Menü',
-        component : null
-    });
     
     const { user } = useContext(AuthContext);
     const sidebarOptions = getSidebarOptions(user.role);
+    const [selectedOption, setSelectedOption] = useState(sidebarOptions[0]);
         
     return(
         <div className="dashboard">

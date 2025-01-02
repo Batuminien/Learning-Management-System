@@ -13,6 +13,7 @@ import { PiHouseBold } from "react-icons/pi";
 import { PiUserPlusBold } from "react-icons/pi";
 import { PiClipboardTextBold } from "react-icons/pi";
 import Announcements from "../components/MainContents/Announcements/Announcement";
+import StudentDashBoard from "../components/MainContents/Dashboard/StudentDashboard";
 
 const userOptionsMap = {
     ROLE_ADMIN: [
@@ -41,7 +42,7 @@ const userOptionsMap = {
         { title: 'Duyurular', component: Announcements, iconSource : PiMegaphoneBold }
     ],
     ROLE_STUDENT: [
-        { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
+        { title: 'Ana Menü', component: StudentDashBoard, iconSource : PiHouseBold },
         { title: 'Ödevler', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
         { title: 'Geçmiş Sınavlar', component: null, iconSource : PiExamBold },

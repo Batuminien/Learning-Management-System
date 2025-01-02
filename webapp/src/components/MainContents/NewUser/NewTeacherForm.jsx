@@ -3,11 +3,12 @@ import InputField from "../../common/InputField";
 import DateInput from "../../common/DateInput";
 import { AuthContext } from "../../../contexts/AuthContext";
 import CourseClassMatching from "./CourseClassMatching";
+import { isValidEmail, isValidName, isValidPhoneNumber, isValidTC } from "./NewUserUtils";
 
 
 
 
-const NewTeacherForm = () => {
+const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
     const { user } = useContext(AuthContext);
 
     const [firstName, setFirstName] = useState('');
@@ -27,6 +28,30 @@ const NewTeacherForm = () => {
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [phoneNumberError, setPhoneNumberError] = useState('');
+
+    const [teacherCourse, setTeacherCourse] = useState({});
+    const [courseError, setCourseError] = useState('');
+    const [teacherClasses, setTeacherClasses] = useState([]);
+
+    const handleClassSelection = (course, selections) => {
+        console.log('the course is : ', course);
+        console.log('selected classes : ', selections);
+        setTeacherCourse(course);
+        setTeacherClasses(selections);
+    }
+
+    const createTeacher = async () => {
+        onSubmit();
+        let hasError = false;
+        if(!isValidName(firstName)) {setFirstNameError('Geçersiz ad'), hasError=true}
+        if(!isValidName(lastName)) {setLastNameError('Geçersiz soyad'), hasError=true}
+        if(!isValidTC(TC)) {setTcError('Geçersiz TC kimlik numarası'), hasError=true}
+        if(!isValidEmail(mail)) {setMailError('Geçersiz e-posta adresi'), hasError=true}
+        if(!isValidPhoneNumber(phoneNumber)) {setPhoneNumberError('Numara 0 ile başlamalı ve 11 hane olmalıdır')}
+        if(birthDate === '') {setBirthDateError('Doğum tarihi seçiniz'), hasError=true}
+        if(teacherCourse.name === '') {setCourseError('Lütfen ders ve sınıf seçimi yapınız.'), hasError=true}
+        if(hasError) return;
+    }
 
     return(
         <div className="form">
@@ -70,9 +95,11 @@ const NewTeacherForm = () => {
                 />
             </div>
             <div className="form-title">Dersler</div>
-            {/* <ClassCourseMatching/> */}
             <CourseClassMatching
+                onSelection={(course ,selections) => handleClassSelection(course, selections)}
+                courseError={courseError}
             />
+            <button type='submit' className='save-btn btn' onClick={createTeacher}>Kaydet</button>
         </div>
     );
 }

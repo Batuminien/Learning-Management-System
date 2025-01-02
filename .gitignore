@@ -47,3 +47,4 @@ webapp/.env*
 webapp/frontend_script.sh
 
 webapp/node_modules
+dist/
