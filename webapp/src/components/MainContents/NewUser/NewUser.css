@@ -32,11 +32,3 @@
     margin-left: auto;
 }
 
-.register-response {
-    text-align: center;
-    font-family: var(--subtitle-font);
-    font-size: var(--subtitle-size);
-    font-weight: var(--subtitle-weight);
-    color: var(--placeholder-text-highlighted);
-    padding: 8px;
-}

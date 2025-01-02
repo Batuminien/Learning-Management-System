@@ -287,3 +287,38 @@ ul li {
     gap: 32px;
     margin-bottom: 32px;
 }
+
+.announcement-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.announcement-options {
+    display: flex;
+    column-gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.text-area {
+    resize: none;
+    width: 100%;
+    aspect-ratio: 8;
+}
+
+.register-response {
+    text-align: center;
+    font-family: var(--subtitle-font);
+    font-size: var(--subtitle-size);
+    font-weight: var(--subtitle-weight);
+    padding: 8px;
+}
+
+.failure {
+    color: red;
+}
+
+.success {
+    color: green;
+}

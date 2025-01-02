@@ -40,3 +40,53 @@ export const markAsRead = async (announcementID, accessToken) => {
     );
     return response;
 }
+
+export const markAsUnread = async (announcementID, accessToken) => {
+    const response = await axios.post(
+        `${announcementURL}/${announcementID}/unread`,
+        {},
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`
+            }
+        }
+    );
+    return response;
+}
+
+export const getAnnouncementsByUser = async (accessToken) => {
+    const response = await axios.get(
+        `${announcementURL}/my-announcements`,
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`
+            }
+        }
+    );
+    return response;
+}
+
+export const deleteAnnouncement = async (announcementID, accessToken) => {
+    const response = await axios.delete(
+        `${announcementURL}/${announcementID}`,
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`
+            }
+        }
+    );
+    return response;
+}
+
+export const updateAnnouncement = async (announcementID, announcementData, accessToken) => {
+    const response = await axios.put(
+        `${announcementURL}/${announcementID}`,
+        announcementData,
+        {
+            headers : {
+                Authorization : `Bearer ${accessToken}`
+            }
+        }
+    );
+    return response;
+}

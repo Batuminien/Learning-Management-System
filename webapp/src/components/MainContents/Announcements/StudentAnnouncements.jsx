@@ -6,7 +6,7 @@ import Loading from "../../common/Loading/Loading";
 import Warning from "../../common/IconComponents/Warning";
 import NoResult from '../../common/IconComponents/NoResult';
 
-import { getAnnouncementsOf, markAsRead } from "../../../services/announcementService";
+import { getAnnouncementsOf, markAsRead, markAsUnread } from "../../../services/announcementService";
 import SingleAnnouncement from "./SingleAnnouncement";
 
 
@@ -55,6 +55,24 @@ const StudentAnnouncements = () => {
             setLoading(false);
         }
     }
+    
+    const handleAnnouncementUnRead = async (id) => {
+        console.log(`mark announcement ${id} as read`);
+        try{
+            setLoading(true);
+            const response = await markAsUnread(id, user.accessToken);
+            console.log(response);
+            setAnnouncements((prevAnnouncements) => (
+                prevAnnouncements.map((announcement) =>(
+                    announcement.id === id ? {...announcement, read : false} : announcement
+                ))
+            ));
+        }catch(error){
+            console.log(error);
+        }finally{
+            setLoading(false);
+        }
+    }
 
     if(fetchError) return <Warning/>
 
@@ -67,7 +85,12 @@ const StudentAnnouncements = () => {
                     <NoResult/>
                 ) : (
                     announcements.map(announcement => (
-                        <SingleAnnouncement key={announcement.id} announcement={announcement} onRead={handleAnnouncementRead}/>
+                        <SingleAnnouncement
+                            key={announcement.id}
+                            announcement={announcement}
+                            onRead={handleAnnouncementRead}
+                            onUnread={handleAnnouncementUnRead}    
+                        />
                     ))
                 )
             )}

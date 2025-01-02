@@ -18,3 +18,6 @@ export const ClosedEnvelopeIcon = () => {return(<PiEnvelopeBold className='icon-
 
 import { PiEnvelopeOpenBold } from "react-icons/pi";
 export const OpenEnvelopeIcon = () => {return(<PiEnvelopeOpenBold className='icon-faded' size={32}/>)}
+
+import { PiPencilSimpleLineBold } from "react-icons/pi";
+export const EditIcon = () => {return(<PiPencilSimpleLineBold className='icon-faded' size={32}/>)}

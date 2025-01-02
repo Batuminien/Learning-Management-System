@@ -108,7 +108,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                                 <div className='input-container'>
                                     
                                 <textarea
-                                    className='input'
+                                    className='input text-area'
                                     type='textarea'
                                         
                                     value={submissionComment}
