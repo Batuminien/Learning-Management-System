@@ -1,6 +1,7 @@
 package com.lsm.model.entity.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.lsm.model.entity.ProfilePhoto;
 import com.lsm.model.entity.StudentDetails;
 import com.lsm.model.entity.TeacherDetails;
 import com.lsm.model.entity.enums.Role;
@@ -95,11 +96,8 @@ public class AppUser implements UserDetails {
     })
     private TeacherDetails teacherDetails;
 
-    @Column(name = "profile_photo_url")
-    private String profilePhotoUrl;
-
-    @Column(name = "profile_photo_filename")
-    private String profilePhotoFilename;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProfilePhoto profilePhoto;
 
 
     public AppUser(String username, String email, String rawPassword, Role role) {

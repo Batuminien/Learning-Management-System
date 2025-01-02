@@ -10,6 +10,7 @@ import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.AppUserRepository;
 import com.lsm.repository.ClassEntityRepository;
 import com.lsm.repository.CourseRepository;
+import com.lsm.repository.ProfilePhotoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +32,7 @@ public class UserService {
     private final ClassEntityRepository classRepository;
     private final CourseRepository courseRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProfilePhotoRepository profilePhotoRepository;
 
     // Generic user operations
     public Page<AppUser> getAllUsers(Pageable pageable) {
@@ -210,17 +213,41 @@ public class UserService {
     @Transactional
     public AppUser updateUserProfilePhoto(Long userId, ProfilePhotoUpdateRequestDTO photoUpdate) {
         AppUser user = getUserById(userId);
-        user.setProfilePhotoUrl(photoUpdate.getPhotoUrl());
-        user.setProfilePhotoFilename(photoUpdate.getFilename());
+
+        // Delete existing photo if it exists
+        profilePhotoRepository.findByUser(user).ifPresent(profilePhotoRepository::delete);
+
+        // Create new photo entity
+        ProfilePhoto newPhoto = ProfilePhoto.builder()
+                .user(user)
+                .photoUrl(photoUpdate.getPhotoUrl())
+                .filename(photoUpdate.getFilename())
+                .fileType(photoUpdate.getFileType())
+                .fileSize(photoUpdate.getFileSize())
+                .uploadTime(LocalDateTime.now())
+                .build();
+
+        // Save new photo and update user
+        profilePhotoRepository.save(newPhoto);
+        user.setProfilePhoto(newPhoto);
         return userRepository.save(user);
     }
 
     @Transactional
     public AppUser removeUserProfilePhoto(Long userId) {
         AppUser user = getUserById(userId);
-        user.setProfilePhotoUrl(null);
-        user.setProfilePhotoFilename(null);
-        return userRepository.save(user);
+
+        // Find and delete the profile photo
+        ProfilePhoto photo = profilePhotoRepository.findByUser(user)
+                .orElse(null);
+
+        if (photo != null) {
+            profilePhotoRepository.delete(photo);
+            user.setProfilePhoto(null);
+            return userRepository.save(user);
+        }
+
+        return user; // Return unchanged user if no photo exists
     }
 
     // Helper methods

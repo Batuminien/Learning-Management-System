@@ -1,8 +1,11 @@
 package com.lsm.controller;
 
+import com.lsm.exception.ResourceNotFoundException;
 import com.lsm.model.DTOs.ProfilePhotoDTO;
 import com.lsm.model.DTOs.ProfilePhotoResponseDTO;
 import com.lsm.model.DTOs.ProfilePhotoUpdateRequestDTO;
+import com.lsm.model.entity.ProfilePhoto;
+import com.lsm.repository.ProfilePhotoRepository;
 import com.lsm.service.FileStorageService;
 import com.lsm.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +33,7 @@ public class ProfilePhotoController {
 
     private final FileStorageService fileStorageService;
     private final UserService userService;
+    private final ProfilePhotoRepository profilePhotoRepository;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload profile photo", description = "Upload or update user's profile photo")
@@ -80,13 +84,19 @@ public class ProfilePhotoController {
     @GetMapping
     @Operation(summary = "Get profile photo", description = "Get current user's profile photo information")
     public ResponseEntity<ApiResponse_<ProfilePhotoDTO>> getProfilePhoto(@AuthenticationPrincipal AppUser currentUser) {
-        if (currentUser.getProfilePhotoUrl() == null) {
+        ProfilePhoto photo = profilePhotoRepository.findByUser(currentUser)
+                .orElse(null);
+
+        if (photo == null) {
             return ApiResponse_.httpError(HttpStatus.NOT_FOUND, "No profile photo found");
         }
 
         ProfilePhotoDTO photoDTO = ProfilePhotoDTO.builder()
-                .photoUrl(currentUser.getProfilePhotoUrl())
-                .filename(currentUser.getProfilePhotoFilename())
+                .photoUrl(photo.getPhotoUrl())
+                .filename(photo.getFilename())
+                .fileType(photo.getFileType())
+                .fileSize(photo.getFileSize())
+                .uploadTime(photo.getUploadTime())
                 .build();
 
         return ResponseEntity.ok(new ApiResponse_<>(
@@ -101,14 +111,19 @@ public class ProfilePhotoController {
     public ResponseEntity<ApiResponse_<ProfilePhotoDTO>> getUserProfilePhoto(@PathVariable Long userId) {
         try {
             AppUser user = userService.getUserById(userId);
+            ProfilePhoto photo = profilePhotoRepository.findByUser(user)
+                    .orElse(null);
 
-            if (user.getProfilePhotoUrl() == null) {
+            if (photo == null) {
                 return ApiResponse_.httpError(HttpStatus.NOT_FOUND, "No profile photo found for user");
             }
 
             ProfilePhotoDTO photoDTO = ProfilePhotoDTO.builder()
-                    .photoUrl(user.getProfilePhotoUrl())
-                    .filename(user.getProfilePhotoFilename())
+                    .photoUrl(photo.getPhotoUrl())
+                    .filename(photo.getFilename())
+                    .fileType(photo.getFileType())
+                    .fileSize(photo.getFileSize())
+                    .uploadTime(photo.getUploadTime())
                     .build();
 
             return ResponseEntity.ok(new ApiResponse_<>(
@@ -116,6 +131,8 @@ public class ProfilePhotoController {
                     "Profile photo retrieved successfully",
                     photoDTO
             ));
+        } catch (ResourceNotFoundException e) {
+            return ApiResponse_.httpError(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
             log.error("Error retrieving profile photo for user {}: {}", userId, e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving profile photo");

@@ -1,9 +1,13 @@
 package com.lsm.service;
 
+import com.lsm.exception.ResourceNotFoundException;
 import com.lsm.model.DTOs.ProfilePhotoResponseDTO;
 import com.lsm.model.entity.Assignment;
 import com.lsm.model.entity.AssignmentDocument;
+import com.lsm.model.entity.ProfilePhoto;
 import com.lsm.model.entity.base.AppUser;
+import com.lsm.repository.ProfilePhotoRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,10 +28,13 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class FileStorageService {
 
     @Value("${app.file-storage.base-path}")
     private String baseStoragePath;
+
+    private final ProfilePhotoRepository profilePhotoRepository;
 
     private static final long MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_PHOTO_TYPES = Arrays.asList(
@@ -74,25 +81,41 @@ public class FileStorageService {
         }
 
         // Delete old profile photo if exists
-        if (user.getProfilePhotoUrl() != null) {
+        ProfilePhoto existingPhoto = profilePhotoRepository.findByUser(user).orElse(null);
+        if (existingPhoto != null) {
             deleteProfilePhoto(user);
+            profilePhotoRepository.delete(existingPhoto);
         }
 
-        return ProfilePhotoResponseDTO.builder()
+        // Create new profile photo entity
+        ProfilePhoto newPhoto = ProfilePhoto.builder()
+                .user(user)
                 .photoUrl(relativePath)
                 .filename(uniqueFileName)
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
                 .uploadTime(LocalDateTime.now())
                 .build();
+
+        profilePhotoRepository.save(newPhoto);
+
+        return ProfilePhotoResponseDTO.builder()
+                .photoUrl(newPhoto.getPhotoUrl())
+                .filename(newPhoto.getFilename())
+                .fileType(newPhoto.getFileType())
+                .fileSize(newPhoto.getFileSize())
+                .uploadTime(newPhoto.getUploadTime())
+                .build();
     }
 
     @Transactional
     public void deleteProfilePhoto(AppUser user) throws IOException {
-        if (user.getProfilePhotoUrl() != null) {
-            Path photoPath = Paths.get(baseStoragePath, user.getProfilePhotoUrl());
-            Files.deleteIfExists(photoPath);
-        }
+        ProfilePhoto photo = profilePhotoRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile photo not found"));
+
+        Path photoPath = Paths.get(baseStoragePath, photo.getPhotoUrl());
+        Files.deleteIfExists(photoPath);
+        profilePhotoRepository.delete(photo);
     }
 
     private void validateProfilePhoto(MultipartFile file) {
@@ -104,17 +127,6 @@ public class FileStorageService {
         }
         if (!ALLOWED_PHOTO_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("Invalid file type. Only JPEG and PNG are allowed");
-        }
-    }
-
-    private void deleteOldProfilePhoto(AppUser user) {
-        if (user.getProfilePhotoFilename() != null) {
-            try {
-                Path oldPhotoPath = Paths.get(baseStoragePath, user.getProfilePhotoUrl());
-                Files.deleteIfExists(oldPhotoPath);
-            } catch (IOException e) {
-                log.error("Failed to delete old profile photo for user {}: {}", user.getId(), e.getMessage());
-            }
         }
     }
 

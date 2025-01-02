@@ -12,4 +12,6 @@ import lombok.AllArgsConstructor;
 public class ProfilePhotoUpdateRequestDTO {
     private String photoUrl;
     private String filename;
+    private String fileType;
+    private long fileSize;
 }

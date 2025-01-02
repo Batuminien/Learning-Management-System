@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,5 +16,5 @@ public class ProfilePhotoDTO {
     private String filename;
     private String fileType;
     private long fileSize;
-    private String uploadTime;
+    private LocalDateTime uploadTime;
 }
