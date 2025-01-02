@@ -136,32 +136,33 @@ public class AnnouncementService {
         Announcement existingAnnouncement = announcementRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Announcement not found with id: " + id));
 
-        if (user.getRole().equals(Role.ROLE_STUDENT)) {
-            throw new AccessDeniedException("Students can't update announcements");
-        }
+        // Check access based on role
+        switch (user.getRole()) {
+            case ROLE_STUDENT:
+                throw new AccessDeniedException("Students cannot modify announcements");
 
-        if (user.getRole().equals(Role.ROLE_TEACHER)) {
-            // Check access to current classes
-            boolean hasAccessToCurrentClasses = existingAnnouncement.getClasses().stream()
-                    .allMatch(announcementClass -> user.getTeacherDetails().getTeacherCourses().stream()
-                            .anyMatch(tc -> tc.getClasses().stream()
-                                    .anyMatch(c -> c.getId().equals(announcementClass.getId()))));
-
-            if (!hasAccessToCurrentClasses) {
-                throw new AccessDeniedException("Teachers can't update announcements of classes they don't teach");
-            }
-
-            // Check access to new classes
-            if (announcementDTO.getClassIds() != null) {
-                boolean hasAccessToNewClasses = announcementDTO.getClassIds().stream()
-                        .allMatch(classId -> user.getTeacherDetails().getTeacherCourses().stream()
-                                .anyMatch(tc -> tc.getClasses().stream()
-                                        .anyMatch(c -> c.getId().equals(classId))));
-
-                if (!hasAccessToNewClasses) {
-                    throw new AccessDeniedException("Teachers can't update announcements to include classes they don't teach");
+            case ROLE_TEACHER:
+                // Teachers can only modify their own announcements
+                if (!existingAnnouncement.getCreatedBy().getId().equals(user.getId())) {
+                    throw new AccessDeniedException("Teachers can only modify their own announcements");
                 }
-            }
+                validateTeacherClassAccess(user, existingAnnouncement, announcementDTO);
+                break;
+
+            case ROLE_COORDINATOR:
+                // Coordinators can modify their own announcements and those created by teachers
+                if (!existingAnnouncement.getCreatedBy().getId().equals(user.getId()) &&
+                        !existingAnnouncement.getCreatedBy().getRole().equals(Role.ROLE_TEACHER)) {
+                    throw new AccessDeniedException("Coordinators can only modify their own announcements or those created by teachers");
+                }
+                break;
+
+            case ROLE_ADMIN:
+                // Admins can modify all announcements
+                break;
+
+            default:
+                throw new AccessDeniedException("Unknown role");
         }
 
         boolean shouldDeleteReadStatus = false;
@@ -298,6 +299,31 @@ public class AnnouncementService {
                 .collect(Collectors.toList());
     }
 
+    private void validateTeacherClassAccess(AppUser teacher, Announcement announcement, AnnouncementDTO announcementDTO)
+            throws AccessDeniedException {
+        // Check access to current classes
+        boolean hasAccessToCurrentClasses = announcement.getClasses().stream()
+                .allMatch(announcementClass -> teacher.getTeacherDetails().getTeacherCourses().stream()
+                        .anyMatch(tc -> tc.getClasses().stream()
+                                .anyMatch(c -> c.getId().equals(announcementClass.getId()))));
+
+        if (!hasAccessToCurrentClasses) {
+            throw new AccessDeniedException("Teachers can't update announcements of classes they don't teach");
+        }
+
+        // Check access to new classes
+        if (announcementDTO.getClassIds() != null) {
+            boolean hasAccessToNewClasses = announcementDTO.getClassIds().stream()
+                    .allMatch(classId -> teacher.getTeacherDetails().getTeacherCourses().stream()
+                            .anyMatch(tc -> tc.getClasses().stream()
+                                    .anyMatch(c -> c.getId().equals(classId))));
+
+            if (!hasAccessToNewClasses) {
+                throw new AccessDeniedException("Teachers can't update announcements to include classes they don't teach");
+            }
+        }
+    }
+
     private AnnouncementDTO convertToDTO(Announcement announcement, AppUser currentUser) {
         Optional<AnnouncementReadStatus> readStatus = readStatusRepository
                 .findByAnnouncementIdAndUserId(announcement.getId(), currentUser.getId());
@@ -314,6 +340,7 @@ public class AnnouncementService {
                 .readAt(readStatus.map(AnnouncementReadStatus::getReadAt).orElse(null))
                 .createdById(announcement.getCreatedBy().getId())
                 .createdByName(announcement.getCreatedBy().getName() + " " + announcement.getCreatedBy().getSurname())
+                .creatorRole(announcement.getCreatedBy().getRole())
                 .build();
     }
 }

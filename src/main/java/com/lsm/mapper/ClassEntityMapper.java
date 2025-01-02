@@ -30,11 +30,16 @@ public class ClassEntityMapper {
                 .map(tc -> TeacherCourseResponseDTO.builder()
                         .teacherId(tc.getTeacher().getId())
                         .courseId(tc.getCourse().getId())
-                        .classIds(tc.getClasses() != null ?
+                        .courseName(tc.getCourse().getName())
+                        .classIdsAndNames(tc.getClasses() != null ?
                                 tc.getClasses().stream()
-                                        .map(ClassEntity::getId)
-                                        .collect(Collectors.toList()) :
-                                new ArrayList<>())
+                                        .collect(Collectors.toMap(
+                                                ClassEntity::getId,
+                                                ClassEntity::getName,
+                                                (existing, replacement) -> existing,
+                                                HashMap::new
+                                        )) :
+                                new HashMap<>())
                         .build())
                 .collect(Collectors.toList());
 

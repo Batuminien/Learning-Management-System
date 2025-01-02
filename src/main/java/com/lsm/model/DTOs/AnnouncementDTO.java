@@ -1,5 +1,8 @@
 package com.lsm.model.DTOs;
 
+import com.lsm.model.entity.enums.Role;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
@@ -18,4 +21,5 @@ public class AnnouncementDTO {
     private LocalDateTime readAt;
     private Long createdById;
     private String createdByName;
+    @Enumerated(EnumType.STRING) private Role creatorRole;
 }
