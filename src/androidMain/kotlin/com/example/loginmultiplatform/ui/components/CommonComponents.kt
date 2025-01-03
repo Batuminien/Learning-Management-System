@@ -1,9 +1,12 @@
 package com.example.loginmultiplatform.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.*
@@ -26,20 +29,32 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import com.example.loginmultiplatform.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.util.DebugLogger
 import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import java.net.HttpURLConnection
+import java.net.URL
 
 val customFontFamily = FontFamily(
     Font(R.font.montserrat_regular, FontWeight.Normal),
@@ -50,8 +65,9 @@ val customFontFamily = FontFamily(
 @Composable
 actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, onProfileClick: () -> Unit, navController: NavController) {
 
-    val viewModel = ProfilePhotoViewModel()
-    val profilePhotoUrl by viewModel.profilePhotoUrl.collectAsState()
+    val viewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
+    var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(userId) {
         if(userId != -1) {
@@ -59,6 +75,7 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
         }
     }
 
+    val profilePhotoUrl by viewModel.profilePhotoUrl.collectAsState()
 
     Row(
         modifier = Modifier
@@ -68,16 +85,66 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(
-            modifier = Modifier.padding(start = 8.dp),
-            onClick = onSettingsClick
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Settings,
-                contentDescription = "Settings",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
+        Box {
+            IconButton(
+                modifier = Modifier.padding(start = 8.dp),
+                onClick = { expanded = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Settings,
+                    contentDescription = "Settings",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        onSettingsClick()
+                    }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Setings",
+                            tint = Color(0xFF334BBE),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ayarlar", fontFamily = customFontFamily, fontWeight = FontWeight.Normal)
+                    }
+                }
+
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        navController.navigate("login_screen") {
+                            popUpTo("login_screen") { inclusive = true }
+                        }
+                    }
+                ) {
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Çıkış Yap", fontFamily = customFontFamily, fontWeight = FontWeight.Normal, color = Color.Red)
+                    }
+                }
+            }
         }
 
         Image(
@@ -102,15 +169,28 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
             IconButton(
                 onClick = { onProfileClick() }
             ) {
-                if (profilePhotoUrl != null) {
+                if (profilePhotoUrl != "default_url" && profilePhotoUrl != null) {
+                    val fullUrl = "https://learnovify.com/$profilePhotoUrl"
                     AsyncImage(
-                        model = profilePhotoUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(fullUrl)
+                            .crossfade(true)
+                            .listener(
+                                onSuccess = { _, _ ->
+                                    Log.d("ProfilePhoto", "Image loaded successfully: $profilePhotoUrl")
+                                },
+                                onError = { _, throwable ->
+                                    Log.e("ProfilePhoto", "Error loading image: ${throwable}")
+                                }
+                            )
+                            .build(),
+                        placeholder = painterResource(R.drawable.pp), // Placeholder resmi
+                        error = painterResource(R.drawable.logo), // Hata durumu resmi
                         contentDescription = "Profile Picture",
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.Gray),
-                        //contentScale = ContentScale.Crop
                     )
                 } else {
                     Icon(
