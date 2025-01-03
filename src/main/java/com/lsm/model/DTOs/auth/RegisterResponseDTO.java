@@ -2,6 +2,7 @@ package com.lsm.model.DTOs.auth;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lsm.model.entity.enums.Role;
+import com.lsm.model.entity.enums.SchoolLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -37,6 +38,9 @@ public class RegisterResponseDTO implements Serializable {
 
     @Schema(description = "Role assigned to the user")
     private Role role;
+
+    @Schema(description = "School level of the user")
+    private SchoolLevel schoolLevel;
 
     @Schema(description = "Registration success message")
     private String message;

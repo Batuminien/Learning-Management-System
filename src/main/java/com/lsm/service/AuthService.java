@@ -244,6 +244,7 @@ public class AuthService {
                 .email(registerRequest.getEmail())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(registerRequest.getRole())
+                .schoolLevel(registerRequest.getSchoolLevel())
                 .studentDetails(null)
                 .teacherDetails(null);
 

@@ -30,6 +30,7 @@ public class UserMapper {
                 .surname(user.getSurname())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .schoolLevel(user.getSchoolLevel())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(expiresIn)
@@ -45,6 +46,7 @@ public class UserMapper {
                 .surname(user.getSurname())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .schoolLevel(user.getSchoolLevel())
                 .message("Registration successful")
                 .registeredAt(Instant.now())
                 .nextSteps(getNextSteps(user))
@@ -59,6 +61,7 @@ public class UserMapper {
                 .firstName(user.getName())
                 .lastName(user.getSurname())
                 .role(user.getRole())
+                .schoolLevel(user.getSchoolLevel())
                 .build();
     }
 
@@ -88,7 +91,14 @@ public class UserMapper {
     public TeacherResponseDTO toTeacherResponse(AppUser user) {
         TeacherDetails details = user.getTeacherDetails();
         if (details == null) {
-            throw new IllegalStateException("Teacher details not found");
+            return TeacherResponseDTO.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .firstName(user.getName())
+                    .lastName(user.getSurname())
+                    .role(user.getRole())
+                    .build();
         }
 
         List<TeacherCourseResponseDTO> teacherCourses = details.getTeacherCourses().stream()

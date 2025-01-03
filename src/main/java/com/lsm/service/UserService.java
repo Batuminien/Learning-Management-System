@@ -47,6 +47,10 @@ public class UserService {
         return userRepository.findAllByRole(Role.ROLE_TEACHER, pageable);
     }
 
+    public Page<AppUser> getAllCoordinators(Pageable pageable) {
+        return userRepository.findAllByRole(Role.ROLE_COORDINATOR, pageable);
+    }
+
     public AppUser getUserById(Long id) {
         return userRepository.findUserWithAllDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -176,6 +180,21 @@ public class UserService {
         }
 
         return userRepository.save(teacher);
+    }
+
+    @Transactional
+    public void deleteCoordinator(Long id) {
+        AppUser coordinator = getUserById(id);
+        if (coordinator.getRole() != Role.ROLE_COORDINATOR) {
+            throw new IllegalOperationException("User with id: " + id + " is not a coordinator");
+        }
+
+        TeacherDetails details = coordinator.getTeacherDetails();
+        if (details != null && details.getTeacherCourses() != null) {
+            details.getTeacherCourses().clear();
+        }
+
+        userRepository.delete(coordinator);
     }
 
     @Transactional

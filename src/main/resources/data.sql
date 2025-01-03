@@ -37,23 +37,23 @@ ALTER SEQUENCE subject_results_seq RESTART WITH 1;
 ALTER SEQUENCE course_schedules_seq RESTART WITH 1;
 
 -- Insert System Users (Admin & Coordinator)
-INSERT INTO app_users (id, username, name, surname, email, password, role) VALUES
+INSERT INTO app_users (id, username, name, surname, email, password, role, school_level) VALUES
                                                                                (nextval('app_users_seq'), 'admin', 'Admin', 'User', 'admin@lms.com',
-                                                                                '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_ADMIN'),
+                                                                                '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_ADMIN', null),
                                                                                (nextval('app_users_seq'), 'coordinator', 'Jane', 'Coordinator', 'coordinator@lms.com',
-                                                                                '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_COORDINATOR');
+                                                                                '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_COORDINATOR', 'HIGH_SCHOOL');
 
 -- Insert Teachers with TeacherDetails
-INSERT INTO app_users (id, username, name, surname, email, password, role,
+INSERT INTO app_users (id, username, name, surname, email, password, role, school_level,
                        teacher_phone, teacher_tc, teacher_birth_date) VALUES
                                                                           (nextval('app_users_seq'), 'teacher1', 'John', 'Smith', 'john.smith@lms.com',
-                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
+                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER', 'HIGH_SCHOOL',
                                                                            '5551112233', '12345678907', '1980-05-15'),
                                                                           (nextval('app_users_seq'), 'teacher2', 'Mary', 'Johnson', 'mary.johnson@lms.com',
-                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
+                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER', 'HIGH_SCHOOL',
                                                                            '5551112234', '12345678908', '1982-08-20'),
                                                                           (nextval('app_users_seq'), 'teacher3', 'Elsa', 'Frozen', 'elsa.frozen@lms.com',
-                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER',
+                                                                           '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_TEACHER', 'HIGH_SCHOOL',
                                                                            '5551112235', '12345678909', '1981-07-07');
 
 -- Insert Classes
@@ -62,15 +62,15 @@ INSERT INTO classes (id, name, description) VALUES
                                                 (nextval('classes_id_seq'), '11-B-TM', '11-B TM');
 
 -- Insert Students with their class assignments
-INSERT INTO app_users (id, username, name, surname, email, password, role,
+INSERT INTO app_users (id, username, name, surname, email, password, role, school_level,
                        student_phone, student_tc, student_birth_date, student_registration_date,
                        student_parent_name, student_parent_phone, class_id_student) VALUES
                                                                                         (nextval('app_users_seq'), 'student1', 'Alice', 'Brown', 'alice.brown@lms.com',
-                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
+                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT', 'HIGH_SCHOOL',
                                                                                          '5551234567', '12345678901', '2008-01-15', '2023-09-01', 'Robert Brown', '5551234568',
                                                                                          (SELECT id FROM classes WHERE name = '11-A-MF')),
                                                                                         (nextval('app_users_seq'), 'student2', 'Bob', 'Wilson', 'bob.wilson@lms.com',
-                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT',
+                                                                                         '$2a$12$KI8ugVXiXKu6Q7VthcY2u.JGVmh0OQ6wtx6NnK31G1TnGbEbSTgzG', 'ROLE_STUDENT', 'HIGH_SCHOOL',
                                                                                          '5552345678', '12345678902', '2007-03-20', '2023-09-01', 'Sarah Wilson', '5552345679',
                                                                                          (SELECT id FROM classes WHERE name = '11-B-TM'));
 

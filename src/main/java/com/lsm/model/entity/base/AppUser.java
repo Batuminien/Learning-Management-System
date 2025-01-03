@@ -5,6 +5,7 @@ import com.lsm.model.entity.ProfilePhoto;
 import com.lsm.model.entity.StudentDetails;
 import com.lsm.model.entity.TeacherDetails;
 import com.lsm.model.entity.enums.Role;
+import com.lsm.model.entity.enums.SchoolLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -75,6 +76,10 @@ public class AppUser implements UserDetails {
     @NotNull
     @Column(name = "role")
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "school_level")
+    private SchoolLevel schoolLevel;
 
     @Embedded
     @AttributeOverrides({

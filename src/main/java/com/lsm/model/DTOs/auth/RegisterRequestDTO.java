@@ -3,6 +3,7 @@ package com.lsm.model.DTOs.auth;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lsm.model.entity.enums.Role;
 
+import com.lsm.model.entity.enums.SchoolLevel;
 import com.lsm.model.validation.constraint.PasswordConstraint;
 import com.lsm.model.validation.groups.ValidationGroups;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -49,6 +50,12 @@ public class RegisterRequestDTO implements Serializable {
             example = "ROLE_STUDENT",
             allowableValues = {"ROLE_STUDENT", "ROLE_TEACHER"})
     private Role role;
+
+    // @NotNull(message = "School level is required")
+    @Schema(description = "School level",
+            example = "HIGH_SCHOOL",
+            allowableValues = {"MID_SCHOOL", "HIGH_SCHOOL"})
+    private SchoolLevel schoolLevel;
 
     @Schema(description = "First name", example = "John")
     @Pattern(regexp = "^[a-zA-Z\\s-]{2,50}$",

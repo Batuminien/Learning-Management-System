@@ -26,46 +26,46 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/teachers")
+@RequestMapping("/api/v1/coordinators")
 @RequiredArgsConstructor
 @Validated
 @Slf4j
-@Tag(name = "Teacher Management", description = "APIs for managing teachers")
-public class TeacherController {
+@Tag(name = "Coordinator Management", description = "APIs for managing coordinators")
+public class CoordinatorController {
     private final UserService userService;
     private final UserMapper userMapper;
     private final AppUserService appUserService;
 
-    @Operation(summary = "Get all teachers")
+    @Operation(summary = "Get all coordinators")
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse_<List<TeacherResponseDTO>>> getAllTeachers(
+    public ResponseEntity<ApiResponse_<List<TeacherResponseDTO>>> getAllCoordinators(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<AppUser> teachers = userService.getAllTeachers(PageRequest.of(page, size));
+            Page<AppUser> teachers = userService.getAllCoordinators(PageRequest.of(page, size));
             List<TeacherResponseDTO> response = teachers.getContent().stream()
                     .map(userMapper::toTeacherResponse)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(new ApiResponse_<>(true, "Teachers retrieved successfully", response));
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            return ResponseEntity.ok(new ApiResponse_<>(true, "Coordinators retrieved successfully", response));
+        } catch (IllegalArgumentException e) {
+            log.error(e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
-    @Operation(summary = "Get the teacher's info")
-    @GetMapping("/{teacherId}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR', 'ROLE_TEACHER', 'ROLE_STUDENT')")
-    public ResponseEntity<ApiResponse_<TeacherResponseDTO>> getTeacherInfo(
+    @Operation(summary = "Get the coordinator's info")
+    @GetMapping("/{coordinatorId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR')")
+    public ResponseEntity<ApiResponse_<TeacherResponseDTO>> getCoordinatorInfo(
             Authentication authentication,
-            @PathVariable Long teacherId) {
+            @PathVariable Long coordinatorId) {
         try {
             AppUser teacher = (AppUser) authentication.getPrincipal();
             if ((teacher.getRole().equals(Role.ROLE_STUDENT) || teacher.getRole().equals(Role.ROLE_TEACHER))
-                    && !teacher.getId().equals(teacherId))
+                    && !teacher.getId().equals(coordinatorId))
                 throw new AccessDeniedException("Logged in user and student id doesn't match.");
-            teacher = appUserService.getCurrentUserWithDetails(teacherId);
+            teacher = appUserService.getCurrentUserWithDetails(coordinatorId);
 
             TeacherResponseDTO response = userMapper.toTeacherResponse(teacher);
             return ResponseEntity.ok(new ApiResponse_<>(true, "Students retrieved successfully", response));
@@ -75,22 +75,23 @@ public class TeacherController {
         }
     }
 
-    @Operation(summary = "Update teacher details")
+    @Operation(summary = "Update teacher details (for coordinator)")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN') or @userSecurity.isCurrentUser(#id)")
-    public ResponseEntity<ApiResponse_<TeacherResponseDTO>> updateTeacher(
+    public ResponseEntity<ApiResponse_<TeacherResponseDTO>> updateTeacherDetailsOfCoordinator(
             @PathVariable Long id,
             @Valid @RequestBody TeacherUpdateRequestDTO updateRequest) {
         AppUser updatedTeacher = userService.updateTeacher(id, updateRequest);
-        return ResponseEntity.ok(new ApiResponse_<>(true, "Teacher updated successfully",
+        return ResponseEntity.ok(new ApiResponse_<>(true, "Coordinator updated successfully",
                 userMapper.toTeacherResponse(updatedTeacher)));
     }
 
-    @Operation(summary = "Delete teacher")
+    @Operation(summary = "Delete coordinator")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse_<Void>> deleteTeacher(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse_<Void>> deleteCoordinator(@PathVariable Long id) {
         userService.deleteTeacher(id);
-        return ResponseEntity.ok(new ApiResponse_<>(true, "Teacher deleted successfully", null));
+        return ResponseEntity.ok(new ApiResponse_<>(true, "Coordinator deleted successfully", null));
     }
 }
+

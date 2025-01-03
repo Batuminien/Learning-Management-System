@@ -1,6 +1,7 @@
 package com.lsm.model.DTOs;
 
 import com.lsm.model.entity.enums.Role;
+import com.lsm.model.entity.enums.SchoolLevel;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
@@ -20,4 +21,6 @@ public class UserResponseDTO {
     private String lastName;
     @Enumerated(EnumType.STRING)
     private Role role;
+    @Enumerated(EnumType.STRING)
+    private SchoolLevel schoolLevel;
 }
