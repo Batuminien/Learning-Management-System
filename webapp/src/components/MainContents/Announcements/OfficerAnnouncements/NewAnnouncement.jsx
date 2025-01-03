@@ -38,7 +38,6 @@ const NewAnnouncement = () => {
                 const allClasses = response.data.map(singleClass => ({label : singleClass.name, value : Number(singleClass.id)}));
                 setClasses(allClasses);
             }catch(error){
-                console.log(error);
                 setLoadingError(true);
             }finally{
                 setLoading(false);
@@ -57,16 +56,13 @@ const NewAnnouncement = () => {
         if(announcementNote.length === 0) {setAnnouncementNoteError('Lütfen duyuru notu giriniz.'), hasError=true}
 
         if(hasError) return;
-        console.log('there is no error contiuning');
         const announcementData = {
             title : announcementTitle,
             content : announcementNote,
             classIds : selectedClasses.map(cls => cls.value),
         }
-        console.log(announcementData);
         try{
             const response = await createAnnouncement(announcementData, user.accessToken);
-            console.log(response);
             setCreationSucces(true);
         }catch(error){
             console.log(error);

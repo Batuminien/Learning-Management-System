@@ -5,8 +5,6 @@ import { ClosedEnvelopeIcon, OpenEnvelopeIcon } from "../../../../public/icons/I
 import { AuthContext } from "../../../contexts/AuthContext";
 import { deleteAnnouncement, updateAnnouncement } from "../../../services/announcementService";
 
-
-
 const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
     const { user } = useContext(AuthContext);
     const [isOwnAnnouncement, setIsOwnAnnouncement] = useState(false);
@@ -20,10 +18,10 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
     const [updateSuccess, setUpdateSuccess] = useState(false);
 
     useEffect(() => {
-        console.log(announcement);
         const ownAnnouncement = announcement.createdById == user.id;
         if(ownAnnouncement) setIsOwnAnnouncement(true);
-        if(user.role === 'ROLE_ADMIN' || user.role === 'ROLE_COORDINATOR') setCanModify(true);
+        if(user.role === 'ROLE_ADMIN') setCanModify(true);
+        if(user.role === 'ROLE_COORDINATOR' && announcement.creatorRole !== 'ROLE_ADMIN') setCanModify(true);
         else if(user.role === 'ROLE_TEACHER' && ownAnnouncement) setCanModify(true);    
     }, []);
 
@@ -48,7 +46,6 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
             const response = await deleteAnnouncement(announcement.id, user.accessToken);
             setDeletionSuccess(true);
         }catch(error){
-            console.log(error);
             setAnnouncementError('Duyuru kaldırılırken hata!');
         }
     }
@@ -68,12 +65,10 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
                     <div style={{display : 'grid', placeItems : 'center'}}
                         onClick={(event) => {
                             event.stopPropagation();
-                            if (!announcement.read) {
+                            if (!announcement.read)
                                 onRead(announcement.id);
-                            }
-                            else{
+                            else
                                 onUnread(announcement.id);
-                            }
                         }}
                     >
                         {!isOwnAnnouncement && (announcement.read ? <OpenEnvelopeIcon/> : <ClosedEnvelopeIcon />)}
@@ -87,7 +82,6 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
                 <>
                 <div className="unit-body">
                     <div style={{border : '1px solid grey',}}></div>
-                    
                     <div className="unit-body-section">
                         <span className="unit-section-title">Açıklama : </span>
                         {editing
@@ -98,11 +92,8 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
                                     spellCheck={false}
                                     defaultValue={announcement.content}
                                     onChange={(event) => setNewContent(event.target.value)}
-                                >
-
-                                </textarea>
-                            )
-                            : <span className="unit-section-text">{announcement.content}</span>
+                                />
+                            ) : <span className="unit-section-text">{announcement.content}</span>
                         }
                     </div>
                     {canModify && (
@@ -115,9 +106,7 @@ const SingleAnnouncement = ({announcement, onRead = null, onUnread}) => {
                                     </>
                                 ) : (
                                     <>
-                                        <div onClick={() => setEditing(true)}>
-                                            <EditIcon />
-                                        </div>
+                                        <div onClick={() => setEditing(true)}><EditIcon /></div>
                                         <button className="delete-btn btn" onClick={handleAnnouncementDeletion}>Sil</button>
                                     </>
                                 )

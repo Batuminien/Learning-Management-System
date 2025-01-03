@@ -23,8 +23,6 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
     const [attendanceError, setAttendanceError] = useState('');
 
     useEffect(() => {
-        // if(user.role === 'ROLE_TEACHER' && !isToday(attendanceDate)) {setCanEdit(false);}
-        // else if(user.role === 'ROLE_COORDINATOR' && new Date(attendanceDate) < new Date(get7DaysBefore())) {setCanEdit(false);}
         const studentsInfo = Object.entries(currentClass.studentIdAndNames).map(([id, name]) => ({
             id: Number(id),
             name: name,
@@ -158,17 +156,15 @@ const ClassAttendance = ({ course, currentClass, attendanceDate }) => {
                             <table className="attendance-table">
                                 <thead className="table-header">
                                     <tr>
-                                        <th className="table-header"></th>
                                         <th className="table-header">Öğrenci Adı</th>
                                         <th className="table-header">Yoklama Durumu</th>
                                         <th className="table-header">Açıklama</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {students.map((student, index) => {
+                                    {students.map((student) => {
                                         return(
                                             <tr className="table-row" key={student.id}>
-                                                <td className="table-row-element">{index}</td>
                                                 <td className="table-row-element">{student.name}</td>
                                                 <td className="table-row-element">
                                                     <select

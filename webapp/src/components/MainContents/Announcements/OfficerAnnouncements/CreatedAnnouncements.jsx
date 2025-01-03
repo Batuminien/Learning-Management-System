@@ -20,12 +20,9 @@ const CreatedAnnouncements = () => {
                 setLoading(true);
                 const response = await getAnnouncementsByUser(user.accessToken);
                 const allAnnouncements = response.data.data;
-                console.log(allAnnouncements);
                 const ownAnnouncements = allAnnouncements.filter(announcement => announcement.createdById === user.id);
-                console.log('assignments created by the user : ', ownAnnouncements);
                 setAnnouncements(ownAnnouncements);
             }catch(error){
-                console.log(error);
                 setLoadError(true);
             }finally{
                 setLoading(false);
@@ -43,7 +40,6 @@ const CreatedAnnouncements = () => {
             {announcements.map((announcement) => (
                 <SingleAnnouncement
                     announcement={announcement}
-                    
                 />
             ))}
         </>

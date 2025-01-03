@@ -6,10 +6,8 @@ import Warning from "../../../common/IconComponents/Warning";
 import NoResult from "../../../common/IconComponents/NoResult";
 import SingleAnnouncement from "../SingleAnnouncement";
 
-
-const PastAnnouncements = () => {
+const OtherAnnouncements = () => {
     const { user } = useContext(AuthContext);
-
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState(false);
     const [announcements, setAnnouncements] = useState([]);
@@ -23,7 +21,6 @@ const PastAnnouncements = () => {
                 const otherAnnouncements = allAnnouncements.filter(announcement => announcement.createdById !== user.id);
                 setAnnouncements(otherAnnouncements);
             }catch(error){
-                console.log(error);
                 setLoadError(true);
             }finally{
                 setLoading(false);
@@ -33,11 +30,9 @@ const PastAnnouncements = () => {
     }, []);
 
     const handleAnnouncementRead = async (id) => {
-        console.log(`mark announcement ${id} as read`);
         try{
             setLoading(true);
             const response = await markAsRead(id, user.accessToken);
-            console.log(response);
             setAnnouncements((prevAnnouncements) => (
                 prevAnnouncements.map((announcement) =>(
                     announcement.id === id ? {...announcement, read : true} : announcement
@@ -51,21 +46,21 @@ const PastAnnouncements = () => {
     }
 
     const handleAnnouncementUnRead = async (id) => {
-            try{
-                setLoading(true);
-                const response = await markAsUnread(id, user.accessToken);
-                console.log(response);
-                setAnnouncements((prevAnnouncements) => (
-                    prevAnnouncements.map((announcement) =>(
-                        announcement.id === id ? {...announcement, read : false} : announcement
-                    ))
-                ));
-            }catch(error){
-                console.log(error);
-            }finally{
-                setLoading(false);
-            }
+        try{
+            setLoading(true);
+            const response = await markAsUnread(id, user.accessToken);
+            console.log(response);
+            setAnnouncements((prevAnnouncements) => (
+                prevAnnouncements.map((announcement) =>(
+                    announcement.id === id ? {...announcement, read : false} : announcement
+                ))
+            ));
+        }catch(error){
+            console.log(error);
+        }finally{
+            setLoading(false);
         }
+    }
 
     if(loading) return <Loading/>;
     if(loadError) return <Warning/>
@@ -83,4 +78,4 @@ const PastAnnouncements = () => {
         </>
     );
 }
-export default PastAnnouncements
+export default OtherAnnouncements
