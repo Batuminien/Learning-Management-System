@@ -67,7 +67,6 @@ actual fun AttendanceScreen(viewModel: AttendanceViewModel, navController: NavCo
     val loading by viewModel.isLoading.collectAsState()
     val attendanceStats by viewModel.attendanceStats.collectAsState()
     val groupedData = attendanceList.groupBy { it.courseId } //derslere göre gruplandırma
-    Log.e("groupedData", "gropuedData: ${groupedData}")
     val coursesList by viewModel.studentCourses.collectAsState()
 
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {

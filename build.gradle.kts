@@ -140,6 +140,10 @@ kotlin {
                 implementation("com.mohamedrejeb.calf:calf-file-picker:0.5.3")
                 implementation("com.mohamedrejeb.calf:calf-file-picker-coil:0.5.1")
                 implementation("io.coil-kt.coil3:coil-compose:3.0.0-alpha08")
+                implementation("io.coil-kt.coil3:coil:3.0.0-alpha08")
+                implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.0-alpha08") // Sürüm uyumu
+
+
 
 
                 // File Picker (Melikşah)

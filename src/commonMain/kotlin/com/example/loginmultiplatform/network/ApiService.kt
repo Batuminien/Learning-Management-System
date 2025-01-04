@@ -16,6 +16,7 @@ import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.ProfilePhotoResponse
 import com.example.loginmultiplatform.model.StudentInfoResponse
+import com.example.loginmultiplatform.model.TeacherInfoResponse
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -145,6 +146,11 @@ interface ApiService {
     suspend fun fetchStudentsInfo (
         @Path("studentId") studentId: Int
     ): ResponseWrapper<StudentInfoResponse>
+
+    @GET("/api/v1/teachers/{teacherId}")
+    suspend fun fetchTeacherInfo (
+        @Path("teacherId") teacherId: Int
+    ): ResponseWrapper<TeacherInfoResponse>
 
     @Multipart
     @POST("/api/v1/profile-photo")

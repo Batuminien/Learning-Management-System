@@ -1,6 +1,8 @@
 package com.example.loginmultiplatform.ui.navigation
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Scaffold
@@ -8,8 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,6 +50,7 @@ fun NavigationGraph(
     val username by loginViewModel.username.collectAsState()
     val role by loginViewModel.role.collectAsState()
     val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
+    val profilePhotoUrl by profilePhotoViewModel.profilePhotoUrl.collectAsState()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -54,21 +59,26 @@ fun NavigationGraph(
     val showBars = currentRoute !in noBarRoutes
 
     LaunchedEffect(userId) {
-        userId?.let { profilePhotoViewModel.fetchStudentInfo(it) }
+        userId?.let {
+            profilePhotoViewModel.fetchStudentInfo(it)
+            profilePhotoViewModel.fetchProfilePhoto(it)
+        }
+
     }
 
     val classId = studentInfo?.classId
+    Log.e("Navigation", "Navigating to profile/${userId ?: 0}/${profilePhotoUrl}")
 
     Scaffold(
         topBar = {
             if (showBars) {
+                val encodeUrl = Uri.encode(profilePhotoUrl)
                 TopBar(
                     userName = username,
                     userId = userId ?: -1,
                     onSettingsClick = { },
                     onProfileClick = {
-                        val photoUrl = "default_url"
-                        navController.navigate("profile/${userId ?: 0}/$photoUrl")
+                        navController.navigate("profile/${userId ?: 0}/${encodeUrl ?: "default_url"}")
                     },
                     navController = navController
                 )
@@ -113,10 +123,10 @@ fun NavigationGraph(
                     navArgument("userId") { type = NavType.IntType },
                     navArgument("profilePhotoUrl") { type = NavType.StringType; defaultValue = "default_url" }
                 )
-            ) {
-                    backStackEntry ->
+            ) { backStackEntry ->
                 val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                val profilePhotoUrl = backStackEntry.arguments?.getString("profilePhotoUrl") ?: "default_url"
+                val rawPhotoUrl = backStackEntry.arguments?.getString("profilePhotoUrl") ?: "default_url"
+                val profilePhotoUrl = Uri.decode(rawPhotoUrl)
 
                 ProfilePage(
                     loginViewModel,

@@ -38,39 +38,7 @@ actual fun AdminDashboard(studentViewModel: AttendanceViewModel, teacherAttendan
     val administratorAnnouncementsViewModel = AdministratorAnnouncementsViewModel()
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
-    Scaffold(
-        topBar = { userId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
-        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController = navController) }
-    ) { paddingValues ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) { page ->
-            when (page) {
-                0 -> AdminAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController)
-                1 -> AdminDashboardPage(username ?: "-")
-                2 -> AdminHomeworkPage("ADMİN ÖDEV EKRANI")
-                3 -> TeacherAnnouncementPage(loginViewModel, administratorAnnouncementsViewModel, teacherAttendanceViewModel, studentAnnouncementViewModel, navController)
-            }
-        }
-
-        LaunchedEffect(pagerState) {
-            snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
-                .collect{ (currentPage, offsetFraction) ->
-                    coroutineScope.launch {
-                        when (currentPage) {
-                            0 -> {
-                                if (offsetFraction > 0.5) {
-                                    pagerState.animateScrollToPage(3)
-                                }
-                            }
-                        }
-                    }
-                }
-        }
-    }
+    username?.let { AdminDashboardPage(it) }
 }
 
 @Composable
