@@ -4,10 +4,10 @@ package com.example.loginmultiplatform.model
 data class TeacherAssignmentResponse (
     val id: Long,
     val title : String,
-    val description : String,
+    val description : String?,
     val dueDate : String,  // Date format
     val message: String,
-    val teacherDocuments : AssignmentDocument,
+    val teacherDocuments : AssignmentDocument?,
     val studentSubmissions : List<StudentSubmission>,
     val createdDate : String, // date format,
     val assignedByTeacherName : String,

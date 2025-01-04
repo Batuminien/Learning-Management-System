@@ -4,6 +4,7 @@ package com.example.loginmultiplatform.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.loginmultiplatform.model.AssignmentDocument
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
@@ -19,6 +20,12 @@ import retrofit2.HttpException
 class TeacherAssignmentViewModel : ViewModel(){
 
     private val repository = TeacherHomeworkRepository()
+
+    private val _returnedDoc = MutableStateFlow<AssignmentDocument?>(null)
+    val returnedDoc : StateFlow<AssignmentDocument?> = _returnedDoc
+
+    private val _sendedAssisgnment = MutableStateFlow<TeacherAssignmentResponse?>(null)
+    val sendedAssignment : StateFlow<TeacherAssignmentResponse?> = _sendedAssisgnment
 
     private val _teacherAssignments = MutableStateFlow<List<TeacherAssignmentResponse>>(emptyList())
     val teacherAssignments : StateFlow<List<TeacherAssignmentResponse>> = _teacherAssignments
@@ -76,11 +83,12 @@ class TeacherAssignmentViewModel : ViewModel(){
 
     fun addAssignment (newAssignment : TeacherAssignmentRequest) {
         viewModelScope.launch {
-            _isSaving.value = true
+            _isLoading.value = true
 
             try {
                 val response = repository.TeacherNewAssignment(newAssignment)
-                _saveResult.value = response
+                _sendedAssisgnment.value = response.data
+                println("response: " + response.data)
                 _bulkOperationStatus.value = "İşlem başarılı bir şekilde tamamlandı"
             } catch (e : HttpException){
                 _saveError.value = "Bir hata oluştu ${e.message()}"
@@ -96,6 +104,53 @@ class TeacherAssignmentViewModel : ViewModel(){
 
     }
 
+    fun deleteAssignment (assignmentId: Long){
+        viewModelScope.launch {
+            repository.deleteAssignment(assignmentId)
+        }
+    }
+
+    fun deleteDocument (documentId : Long){
+        viewModelScope.launch {
+            repository.deleteAssignment(documentId)
+        }
+    }
+
+    fun addDocument (assignmentId : Long, docContent : String){
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val response = repository.uploadDocument(assignmentId, docContent)
+                _returnedDoc.value = response.data
+                _bulkOperationStatus.value = "İşlem başarılı bir şekilde tamamlandı"
+            } catch (e : HttpException){
+                _saveError.value = "Bir hata oluştu ${e.message()}"
+                _bulkOperationStatus.value = "İşlem sırasında hata oluştu!"
+            } catch (e: Exception) {
+                _saveError.value = "Bir hata oluştu: ${e.localizedMessage}"
+                _bulkOperationStatus.value = "İşlem sırasında hata oluştu!"
+            } finally {
+                _isLoading.value = false
+            }
+
+        }
+    }
+
+    fun updateHomework (assignmentId: Long, teacherAssignmentResponse: TeacherAssignmentRequest){
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                repository.updateHomework(assignmentId, teacherAssignmentResponse)
+            } catch (e : Exception){
+                _saveError.value = "Bir hata oluştu: ${e.localizedMessage}"
+                _bulkOperationStatus.value = "İşlem sırasında hata oluştu!"
+            }finally {
+                _isLoading.value = false
+            }
+        }
+    }
 
 
     fun fetchTeacherClasses() {

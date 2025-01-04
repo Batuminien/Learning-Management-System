@@ -42,7 +42,9 @@ actual class SharedDocument(private val contentResolver: ContentResolver, privat
     }
 
     actual fun toText(): String? {
-        return contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+        return toByteArray()?.joinToString (separator = "") {
+            it.toUByte().toString(2).padStart(8, '0')
+        }
     }
 
     actual fun fileName(): String? {
@@ -57,6 +59,24 @@ actual class SharedDocument(private val contentResolver: ContentResolver, privat
             }
         }
         return fileName
+    }
+
+    actual fun filePath(): String? {
+        return uri.path
+    }
+
+    actual fun fileSize() : Long? {
+        var size: Long? = null
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex != -1) {
+                    size = it.getLong(sizeIndex)
+                }
+            }
+        }
+        return size
     }
 }
 

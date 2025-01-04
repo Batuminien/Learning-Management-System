@@ -79,14 +79,31 @@ import java.util.Locale
 import android.content.Context
 import android.provider.OpenableColumns
 import android.net.Uri
+import android.os.Build
 import androidx.core.net.toUri
 import android.provider.DocumentsContract
+import androidx.annotation.Nullable
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.platform.LocalContext
 import com.example.loginmultiplatform.ui.components.SharedDocument
 import com.example.loginmultiplatform.ui.components.rememberDocumentManager
+import kotlinx.coroutines.selects.select
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 
-
+@RequiresApi(Build.VERSION_CODES.O)
+fun getCurrentDateTime(): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        .withZone(ZoneOffset.UTC)
+    return formatter.format(Instant.now())
+}
 
 @Composable
 fun get_buttons(content_of_assignment: MutableState<Int>, content_value: Int , buttonText : String, classexpanded : MutableState<Boolean>, courseExpanded: MutableState<Boolean>){
@@ -142,9 +159,10 @@ fun saveFileFromUri(context: Context, uri: Uri, outputFileName: String): File? {
     return outputFile
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
+fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, teacherViewModel: TeacherAssignmentViewModel){
 
     var displayExpand by remember { mutableStateOf(false) }
     var dateDisplayExpanded by remember { mutableStateOf(false) }
@@ -154,60 +172,129 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
 
     var selectedDateLastDisplay by remember { mutableStateOf("gg.aa.yyyy") }
 
+    var titleDisplay by remember { mutableStateOf(assignment.title) }
+
+    val focusRequesterTitleDisplay = remember { FocusRequester() }
+
+    var isFocusedTitleDisplay by remember { mutableStateOf(false) }
+
+    var descriptionDisplay by remember { mutableStateOf(assignment.description) }
+
+    val focusRequesterDescDisplay = remember { FocusRequester() }
+
+    var isFocusedDescDisplay by remember { mutableStateOf(false) }
+
+    var selectedFile by remember { mutableStateOf<AssignmentDocument?>(assignment.teacherDocuments) }
+
+
+
+    // Callback to handle the selected document
+    val onDocumentSelectedUpdate: (SharedDocument?) -> Unit = { document ->
+        if (document != null) {
+            println("HMMMMM")
+            try {
+                if (document.fileName() != null && document.filePath() != null && document.fileSize() != null){
+                    selectedFile = AssignmentDocument(assignment.id,
+                        if (assignment.teacherDocuments != null) assignment.teacherDocuments.documentId else 0,
+                        document.fileName()!!,
+                        "PDF",
+                        document.filePath()!!,
+                        document.fileSize()!!,
+                        getCurrentDateTime(),
+                        userName
+                    )
+
+                }
+            }catch (e: Exception){
+                println(e.toString())
+            }
+
+
+            Toast.makeText(context, "Selected file: ${document.fileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
+
+        }
+    }
+
+    val documentManagerUpdate = rememberDocumentManager(onResult = onDocumentSelectedUpdate)
+
 
     Card(
-        modifier = Modifier.fillMaxWidth().height( if (displayExpand)  450.dp else 80.dp).padding(10.dp),
+        modifier = Modifier.fillMaxWidth().height( if (displayExpand)  800.dp else 100.dp).padding(10.dp),
         elevation = 8.dp,
         shape = RoundedCornerShape(12.dp)
     ) {
         Column (
             modifier = Modifier.fillMaxSize()
         ) {
-            if (!displayExpand){
-                Row(
-                    modifier = Modifier.fillMaxWidth().height( 80.dp).
-                    clickable{
-                        displayExpand = !displayExpand
-                    },
-                    verticalAlignment = Alignment.CenterVertically
+
+            Row(
+                modifier = Modifier.fillMaxWidth().height( 80.dp).
+                clickable{
+                    displayExpand = !displayExpand
+                },
+                verticalAlignment = Alignment.CenterVertically
+            ){
+
+                Icon(
+                    imageVector = Icons.Default.Assignment,
+                    contentDescription = "Assignment",
+                    modifier = Modifier.fillMaxWidth(0.2f).size(50.dp).padding(10.dp)
+                )
+
+                Column (
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.55f)
                 ){
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Text(
-                        text = "Ödev Ara",
-                        modifier = Modifier.fillMaxWidth(0.85f),
-                        textAlign = TextAlign.Center
+                        text = assignment.title,
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
+                        fontSize = 13.sp
                     )
 
-                    Icon(
-                        imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(10.dp)
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height( 60.dp).
-                    clickable{
-                        displayExpand = !displayExpand
-                    },
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    Text(
-                        text = "",
-                        modifier = Modifier.fillMaxWidth(0.85f),
-                        textAlign = TextAlign.Center
-                    )
 
-                    Icon(
-                        imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(10.dp)
+
+                    Text(
+                        text = assignment.courseName,
+                        modifier = Modifier.fillMaxSize(),
+                        fontSize = 13.sp
                     )
                 }
 
+                Column (
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.6f)
+                ){
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = assignment.createdDate,
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
+                        fontSize = 13.sp
+                    )
+
+                    Text(
+                        text = assignment.dueDate,
+                        modifier = Modifier.fillMaxSize(),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Icon(
+                    imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(10.dp)
+                )
+            }
+            if (displayExpand) {
 
                 Divider(modifier = Modifier.fillMaxWidth())
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text (
+                    text = "   Sınıf Adı",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
 
                 Box(
                     modifier = Modifier
@@ -219,17 +306,16 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
                     Text(text = assignment.className, color = Color.Black)
                 }
 
-                Text (
-                    text = "Bankaiiiii",
-                    modifier = Modifier
-                )
+
+
+
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text (
-                    text = "   Sınıf Adı",
+                    text = "   Ders Adı",
                     modifier = Modifier.fillMaxWidth().height(20.dp)
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
 
                 Box(
                     modifier = Modifier
@@ -242,19 +328,68 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
                     Text(text = assignment.courseName, color = Color.Black)
                 }
 
-                Text (
-                    text = "Bankaiiiii",
-                    modifier = Modifier
-                )
+
+
+
+
+                Spacer(modifier =Modifier.height(20.dp))
 
 
                 Text (
-                    text = "   Ders Adı",
+                    text = "   Başlık",
                     modifier = Modifier.fillMaxWidth().height(20.dp)
                 )
 
-                Spacer(modifier =Modifier.height(10.dp))
+                Box (
+                    modifier = Modifier.fillMaxWidth().height(50.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                ){
+                    BasicTextField(
+                        value = titleDisplay,
+                        onValueChange = { titleDisplay = it },
+                        modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                            .focusRequester(focusRequesterTitleDisplay).onFocusChanged { focusState: FocusState ->
+                                isFocusedTitleDisplay = focusState.isFocused
+                                if (isFocusedTitleDisplay && titleDisplay == assignment.title) {
+                                    titleDisplay = "" // Clear placeholder text when focused
+                                }
+                            }
+                    )
+                }
 
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text (
+                    text = "   Açıklama",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
+
+                Box (
+                    modifier = Modifier.fillMaxWidth().height(100.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                ){
+                    descriptionDisplay?.let {
+                        BasicTextField(
+                            value = it,
+                            onValueChange = { descriptionDisplay = it },
+                            modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                .focusRequester(focusRequesterDescDisplay).onFocusChanged { focusState: FocusState ->
+                                    isFocusedDescDisplay = focusState.isFocused
+                                    if (isFocusedDescDisplay && descriptionDisplay == assignment.description) {
+                                        descriptionDisplay = "" // Clear placeholder text when focused
+                                    }
+                                }
+                        )
+                    }
+                }
+
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+
+                Text (
+                    text = "   Bitiş Tarihi",
+                    modifier = Modifier.fillMaxWidth().height(20.dp)
+                )
 
 
                 Box(
@@ -265,13 +400,10 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
                         .padding(12.dp)
 
                 ) {
-                    Text(text = if (checkedDisplayDate) selectedDateLastDisplay else "Bitiş tarihini seçiniz", color = Color.Black)
+                    Text(text = if (checkedDisplayDate) selectedDateLastDisplay else assignment.dueDate, color = Color.Black)
                 }
 
-                Text (
-                    text = "Bankaiiiii",
-                    modifier = Modifier
-                )
+
 
                 if (dateDisplayExpanded){
                     val datePickerState = rememberDatePickerState()
@@ -317,20 +449,88 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
 
                 }
 
+
+
+                Spacer(modifier = Modifier.height(20.dp))
+
                 Text (
-                    text = "   Bitiş Tarihi",
+                    text = "Doküman",
                     modifier = Modifier.fillMaxWidth().height(20.dp)
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(80.dp),
-
+                Box (
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ){
+                    Row (
+                        modifier = Modifier.fillMaxSize()
                     ){
+                        Button(
+                            modifier = Modifier.fillMaxHeight().fillMaxWidth(if (selectedFile == null)0.5f else 0.8f),
+
+                            onClick = {
+                                if (selectedFile == null){
+
+                                    documentManagerUpdate.launch()
+
+                                }
+
+
+
+                            },
+
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color.White
+                            )
+
+
+
+                        ){
+                            Text(
+                                text = selectedFile?.fileName ?: "Dosya Seç",
+                                modifier = Modifier.fillMaxSize(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        if (selectedFile == null){
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text (
+                                text = "Dosya Seçilmedi",
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                        }else {
+                            IconButton(
+                                onClick = {
+                                    selectedFile = null
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            ){
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete file"
+                                )
+                            }
+                        }
+
+
+
+
+                    }
+                }
+
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(80.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ){
+                    Spacer(modifier = Modifier.width(15.dp))
+
                     Button(
-                        modifier = Modifier.align(Alignment.Center),
+                        modifier = Modifier.align(Alignment.CenterVertically),
                         onClick = {
                             displayExpand = !displayExpand
 
@@ -341,20 +541,34 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
 
                     ){
                         Text(
-                            text = "Ara",
+                            text = "Güncelle",
                             color = Color.White
                         )
                     }
+
+                    Button(
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                        onClick = {
+                            displayExpand = !displayExpand
+                            if (assignment.teacherDocuments != null){
+                                teacherViewModel.deleteDocument(assignment.teacherDocuments.documentId)
+                            }
+
+                            teacherViewModel.deleteAssignment(assignment.id)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color.Red
+                        )
+
+                    ){
+                        Text(
+                            text = "Sil",
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(15.dp))
                 }
-
-
-
-
-
-
-
-
-
 
             }
         }
@@ -370,6 +584,7 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse){
 
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentViewModel, teacherId :Int?, username: String) {
@@ -387,6 +602,10 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     val bulkOperationStatus by teacherViewModel.bulkOperationStatus.collectAsState()
 
     val teacherAssignments by teacherViewModel.teacherAssignments.collectAsState()
+
+    val addedDoc by teacherViewModel.returnedDoc.collectAsState()
+
+    val sendedAssignment by teacherViewModel.sendedAssignment.collectAsState()
 
     val isLoad by teacherViewModel.isLoading.collectAsState()
 
@@ -476,12 +695,22 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     val scope = rememberCoroutineScope()
 
 
+    var selectedFileContent by remember { mutableStateOf<String>("") }
+    var fileName by remember { mutableStateOf<String>("") }
+    var filePath by remember { mutableStateOf<String>("") }
+    var fileSize by remember { mutableStateOf<Long>(0) }
+    val uploadTime by remember { mutableStateOf(getCurrentDateTime()) }
+
+
+
     // Callback to handle the selected document
     val onDocumentSelected: (SharedDocument?) -> Unit = { document ->
         if (document != null) {
-            val fileName = document.fileName()
-            val fileContent = document.toText() ?: "Empty content"
-            Toast.makeText(context, "Selected file: $fileName", Toast.LENGTH_SHORT).show()
+            println("HMMMMM")
+            selectedFileContent = document.toText() ?: "Empty file"
+            fileName = document.fileName().toString()
+
+            Toast.makeText(context, "Selected file: ${document.fileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
 
         }
     }
@@ -571,7 +800,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                         "Ödevler Yüklendi. Ödev miktarı: ${teacherAssignments.size}",
                         Toast.LENGTH_SHORT
                     ).show()
-                    description = teacherAssignments.toString()
+
                 }
             }
         }
@@ -583,11 +812,17 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     Box(
         modifier = Modifier
-            .fillMaxSize().clickable{ classexpanded.value = false
-                                      courseexpanded.value = false
-                                      focusManagerTitle.clearFocus()
-                                      focusManagerDesc.clearFocus()
-                                    }
+            .fillMaxSize().
+            clickable(
+                onClick = {
+                    classexpanded.value = false
+                    courseexpanded.value = false
+                    focusManagerTitle.clearFocus()
+                    focusManagerDesc.clearFocus()
+                },
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            )
 
     ) {
         Card (
@@ -633,53 +868,182 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                             modifier = Modifier.fillMaxWidth().height(800.dp)
                         ) {
 
-                            Button (
-                                modifier = Modifier.offset(y = 700.dp).fillMaxWidth().height(50.dp),
-                                onClick = {
-                                    if (teacherId != null ) {
-                                        var descriptionSent: String?
-                                        if (description == "Açıklama giriniz" )
-                                            descriptionSent = null
-                                        else
-                                            descriptionSent = description
-                                        /*teacherViewModel.addAssignment(
-                                            TeacherAssignmentRequest(
-                                                teacherId = teacherId,
-                                                title = title,
-                                                description = descriptionSent,
-                                                dueDate = selectedDateLast,
-                                                classId = selectedClassId,
-                                                courseId = selectedCourseId,
-                                                document = assignmentDocument
-
-                                                )
-                                        )*/
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = Color.Transparent
-                                )
+                            Row(
+                                modifier = Modifier.offset(y = 700.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
                             ){
-                                Text("Yükle")
+                                Button(
+
+                                    onClick = {
+                                        //TODO
+                                        if (title != "Başlık Giriniz"  && selectedClass != "Sınıf Seçiniz" && selectedCourse != "Ders Seçiniz" && selectedDateLast != "gg.aa.yyyy"){
+                                            var newAssignment = teacherId?.let {
+                                                TeacherAssignmentRequest(
+                                                    teacherId =  it,
+                                                    title =  title,
+                                                    description = description,
+                                                    dueDate =  selectedDateLast,
+                                                    classId =  selectedClassId,
+                                                    courseId =  selectedCourseId,
+                                                    document = null)
+                                            }
+
+                                            if (newAssignment != null) {
+                                                teacherViewModel.addAssignment(newAssignment)
+
+                                                if (sendedAssignment == null){
+                                                    println("Allah Allahhh")
+                                                }else{
+                                                    println("Güzel")
+                                                }
+                                            }
+
+                                            if (selectedFileContent != "" && !isLoad ){
+
+                                                if (sendedAssignment == null){
+                                                    println("Sended ass neden nulll")
+                                                }else {
+                                                    println("tamamdır bir sorun yok")
+                                                }
+
+                                                sendedAssignment?.let { teacherViewModel.addDocument(it.id, selectedFileContent) }
+
+                                                println("HMMMMMMMMM")
+
+                                                if (!isLoad ){
+                                                    teacherViewModel.updateHomework(assignmentId = sendedAssignment!!.id,
+                                                        sendedAssignment!!.let {
+                                                            TeacherAssignmentRequest(
+                                                                teacherId!!,
+                                                                it.title,
+                                                                sendedAssignment!!.description,
+                                                                sendedAssignment!!.dueDate,
+                                                                sendedAssignment!!.classId,
+                                                                sendedAssignment!!.courseId,
+                                                                addedDoc?.let { it1 ->
+                                                                    AssignmentDocument(
+                                                                        sendedAssignment!!.id,
+                                                                        it1.documentId,
+                                                                        fileName,
+                                                                        "PDF",
+                                                                        filePath,
+                                                                        fileSize,
+                                                                        uploadTime,
+                                                                        username
+                                                                    )
+                                                                }
+                                                            )
+                                                        }
+                                                    )
+                                                }else{
+                                                    sendedAssignment?.let {
+                                                        teacherViewModel.deleteAssignment(
+                                                            it.id)
+                                                    }
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Dosyayı yüklerken bir sorun oluştu",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Ödev atarken bir sorun oluştu",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                            }
+                                        }else {
+                                            Toast.makeText(
+                                                context,
+                                                "Eksik bilgi girdiniz",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+
+
+
+
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = Color(0xFF334BBE )
+                                    )
+
+                                ){
+                                    Text(
+                                        text = "Oluştur",
+                                        color = Color.White
+                                    )
+                                }
                             }
 
-                            Text(
-                                modifier = Modifier.fillMaxWidth().offset(y = 650.dp),
-                                text = assignmentDocument?.fileName ?: "There is no file",
-                                textAlign = TextAlign.Center
-                            )
 
-                            Button (
-                                modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(50.dp),
-                                onClick = {
 
-                                    documentManager.launch()
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = Color.Transparent
-                                )
+
+
+                            Box (
+                                modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(60.dp)
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
                             ){
-                                Text("press")
+                                Row (
+                                    modifier = Modifier.fillMaxSize()
+                                ){
+                                    Button(
+                                        modifier = Modifier.fillMaxHeight().fillMaxWidth(if (selectedFileContent == "")0.5f else 0.8f),
+
+                                        onClick = {
+                                            if (selectedFileContent == ""){
+
+                                                documentManager.launch()
+
+                                            }
+
+
+
+                                        },
+
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = Color.White
+                                        )
+
+
+
+                                    ){
+
+                                        Text(
+                                            text = if (fileName == "") "Dosya Seç" else fileName,
+                                            modifier = Modifier.fillMaxSize(),
+                                            textAlign = TextAlign.Center
+                                        )
+
+                                    }
+
+                                    if (selectedFileContent == ""){
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text (
+                                            text = "Dosya Seçilmedi",
+                                            modifier = Modifier.align(Alignment.CenterVertically)
+                                        )
+                                    }else {
+                                        IconButton(
+                                            onClick = {
+                                                selectedFileContent = ""
+                                                fileName = ""
+                                            },
+                                            modifier = Modifier.fillMaxSize()
+                                        ){
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete file"
+                                            )
+                                        }
+                                    }
+
+
+
+
+                                }
                             }
 
                             Box (
@@ -744,10 +1108,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                 Text(text = if (checkedDate) selectedDateLast else "Bitiş tarihini seçiniz", color = Color.Black)
                             }
 
-                            Text (
-                                text = "Bankaiiiii",
-                                modifier = Modifier.offset(y = 295.dp)
-                            )
+
 
                             if (dateExpanded){
                                 val datePickerState = rememberDatePickerState()
@@ -813,10 +1174,6 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                 selectedCourse?.let { Text(text = it, color = Color.Black) }
                             }
 
-                            Text (
-                                text = "Bankaiiiii",
-                                modifier = Modifier.offset(y = 195.dp)
-                            )
 
                             if (courseexpanded.value){
                                 LazyColumn (
@@ -876,10 +1233,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                 Text(text = selectedClass, color = Color.Black)
                             }
 
-                            Text (
-                                text = "Bankaiiiii",
-                                modifier = Modifier.offset(y = 95.dp)
-                            )
+
 
                             if (classexpanded.value){
                                 LazyColumn (
@@ -942,7 +1296,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                         item {
 
-                            DisplayHomeworks(assignment)
+                            DisplayHomeworks(assignment, username, teacherViewModel)
                         }
 
 
@@ -1031,11 +1385,6 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         Text(text = if (checkedDate) selectedDateLastSearch else "Bitiş tarihini seçiniz", color = Color.Black)
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 265.dp)
-                                    )
-
                                     if (dateExpanded){
                                         val datePickerState = rememberDatePickerState()
                                         DatePickerDialog(
@@ -1100,10 +1449,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         selectedCourseSearch?.let { Text(text = it, color = Color.Black) }
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 165.dp)
-                                    )
+
 
                                     if (courseexpanded.value){
                                         LazyColumn (
@@ -1159,10 +1505,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         Text(text = selectedClassSearch, color = Color.Black)
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 65.dp)
-                                    )
+
 
                                     if (classexpanded.value){
                                         LazyColumn (
@@ -1291,10 +1634,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         Text(text = if (checkedDate) selectedDateLastPast else "Bitiş tarihini seçiniz", color = Color.Black)
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 265.dp)
-                                    )
+
 
                                     if (dateExpanded){
                                         val datePickerState = rememberDatePickerState()
@@ -1360,10 +1700,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         selectedCoursePast?.let { Text(text = it, color = Color.Black) }
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 165.dp)
-                                    )
+
 
                                     if (courseexpanded.value){
                                         LazyColumn (
@@ -1415,10 +1752,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                         Text(text = selectedClassPast, color = Color.Black)
                                     }
 
-                                    Text (
-                                        text = "Bankaiiiii",
-                                        modifier = Modifier.offset(y = 65.dp)
-                                    )
+
 
                                     if (classexpanded.value){
                                         LazyColumn (

@@ -1,6 +1,7 @@
 package com.example.loginmultiplatform.network
 
 import androidx.annotation.Nullable
+import com.example.loginmultiplatform.model.AssignmentDocument
 import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
@@ -127,7 +128,29 @@ interface ApiService {
     @POST("/api/v1/assignments/createAssignment")
     suspend fun newAssignment (
         @Body newAssignment : TeacherAssignmentRequest
-    ): ResponseWrapper<Int>
+    ): ResponseWrapper<TeacherAssignmentResponse>
+
+    @PUT("/api/v1/assignments/{assignmentId}")
+    suspend fun updateHomework(
+        @Path("assignmentId") assignmentId: Long,
+        @Body newAssignment: TeacherAssignmentRequest
+    ) : ResponseWrapper<TeacherAssignmentResponse>
+
+    @POST("/api/v1/assignments/{assignmentId}/documents")
+    suspend fun newDocument (
+        @Path("assignmentId") assignmentId: Long,
+        @Body newDocument : String
+    ) : ResponseWrapper<AssignmentDocument>
+
+    @DELETE("/api/v1/assignments/{assignmentId}")
+    suspend fun deleteAssignment(
+        @Path("assignmentId") assignmentId: Long
+    )
+
+    @DELETE("/api/v1/assignments/documents/{documentId}")
+    suspend fun deleteDocument (
+        @Path("documentId") documentId : Long
+    )
 
     @GET("/api/v1/assignments/teacher/{teacherId}")
     suspend fun fetchTeacherAssignments (
