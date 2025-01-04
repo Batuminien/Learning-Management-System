@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.loginmultiplatform.model.LoginData
 import com.example.loginmultiplatform.model.StudentInfoResponse
-import com.example.loginmultiplatform.model.TeacherInfoResponse
 import com.example.loginmultiplatform.network.TokenManager
 import com.example.loginmultiplatform.repository.ProfilePhotoRepository
 import com.example.loginmultiplatform.repository.UserRepository
@@ -22,9 +21,6 @@ class ProfilePhotoViewModel : ViewModel() {
 
     private val _studentInfo = MutableStateFlow<StudentInfoResponse?>(null)
     val studentInfo: StateFlow<StudentInfoResponse?> = _studentInfo
-
-    private val _teacherInfo = MutableStateFlow<TeacherInfoResponse?>(null)
-    val teacherInfo: StateFlow<TeacherInfoResponse?> = _teacherInfo
 
     fun fetchProfilePhoto(userId: Int) {
         viewModelScope.launch {
@@ -46,18 +42,6 @@ class ProfilePhotoViewModel : ViewModel() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 _studentInfo.value = null
-            }
-        }
-    }
-
-    fun fetchTeacherInfo(teacherId: Int) {
-        viewModelScope.launch {
-            try {
-                val teacherInfos = repository.fetchTeacherInfo(teacherId)
-                _teacherInfo.value = teacherInfos
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _teacherInfo.value = null
             }
         }
     }

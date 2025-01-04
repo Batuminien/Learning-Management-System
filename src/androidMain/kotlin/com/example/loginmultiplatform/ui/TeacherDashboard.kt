@@ -40,7 +40,39 @@ actual fun TeacherDashboard(loginViewModel: LoginViewModel, studentViewModel: At
     val teacherAnnouncementViewModel = AdministratorAnnouncementsViewModel()
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
-    username?.let { TeacherDashboardPage(it) }
+    Scaffold(
+        topBar = { teacherId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
+        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController = navController) }
+    ) { paddingValues ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) { page ->
+            when (page) {
+                0 -> TeacherAttendanceScreen(studentViewModel, teacherAttendanceViewModel, navController, teacherId)
+                1 -> TeacherDashboardPage(username ?: "-")
+                2 -> TeacherHomeworkPage("odev", teacherHomeworkViewModel , teacherId, username ?: "-")
+                3 -> TeacherAnnouncementPage(loginViewModel, teacherAnnouncementViewModel, teacherAttendanceViewModel, studentAnnouncementViewModel, navController)
+            }
+        }
+
+        LaunchedEffect(pagerState) {
+            snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
+                .collect{ (currentPage, offsetFraction) ->
+                    coroutineScope.launch {
+                        when (currentPage) {
+                            0 -> {
+                                if (offsetFraction > 0.5) {
+                                    pagerState.animateScrollToPage(3)
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+    }
 }
 
 @Composable

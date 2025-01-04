@@ -1,16 +1,11 @@
 package com.example.loginmultiplatform.ui
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
-import android.widget.Toast
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -58,7 +53,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -89,21 +83,14 @@ fun formatToReadableDatePp(dateString: String): String {
 @Composable
 actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?, userId: Int, navController: NavController) {
 
-    Log.e("ppurl", "ppurl: ${profilePhotoUrl}")
     val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
     val teacherAttendanceViewModel = TeacherAttendanceViewModel()
     val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
-    val teacherInfo by profilePhotoViewModel.teacherInfo.collectAsState()
     val id by loginViewModel.id.collectAsState()
-    val role by loginViewModel.role.collectAsState()
     val classes by teacherAttendanceViewModel.allClass.collectAsState()
 
     LaunchedEffect(id) {
-        if (role == "ROLE_STUDENT") {
-            id?.let { profilePhotoViewModel.fetchStudentInfo(it) }
-        } else if (role == "ROLE_TEACHER") {
-            id?.let { profilePhotoViewModel.fetchTeacherInfo(it) }
-        }
+        id?.let { profilePhotoViewModel.fetchStudentInfo(it) }
     }
 
     Column(
@@ -125,100 +112,38 @@ actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?,
         SectionTitle(title = "Kullanıcı Bilgileri")
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (role == "ROLE_STUDENT") {
-            UserInfoRow(label = "Kullanıcı Adı:", value = studentInfo?.username ?: "")
-            UserInfoRow(label = "Email:", value = studentInfo?.email ?: "")
+        UserInfoRow(label = "Kullanıcı Adı:", value = studentInfo?.username ?: "")
+        UserInfoRow(label = "Email:", value = studentInfo?.email ?: "")
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(thickness = 1.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle(title = "Özlük Bilgileri")
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider(thickness = 1.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionTitle(title = "Özlük Bilgileri")
+        Spacer(modifier = Modifier.height(8.dp))
 
-            UserInfoRow(
-                label = "Ad Soyad:",
-                value = (studentInfo?.firstName ?: "") + " " + (studentInfo?.lastName ?: "")
-            )
-            studentInfo?.birthDate?.let { UserInfoRow(label = "Doğum Tarihi:", value = formatToReadableDatePp(it)) }
-            studentInfo?.registrationDate?.let { UserInfoRow(label = "Kayıt Tarihi:", value = formatToReadableDatePp(it)) }
-            studentInfo?.phone?.let { UserInfoRow(label = "Telefon No:", value = it) }
-            studentInfo?.tc?.let { UserInfoRow(label = "T.C.:", value = it) }
+        UserInfoRow(
+            label = "Ad Soyad:",
+            value = (studentInfo?.firstName ?: "") + " " + (studentInfo?.lastName ?: "")
+        )
+        studentInfo?.birthDate?.let { UserInfoRow(label = "Doğum Tarihi:", value = formatToReadableDatePp(it)) }
+        studentInfo?.registrationDate?.let { UserInfoRow(label = "Kayıt Tarihi:", value = formatToReadableDatePp(it)) }
+        studentInfo?.phone?.let { UserInfoRow(label = "Telefon No:", value = it) }
+        studentInfo?.tc?.let { UserInfoRow(label = "T.C. No:", value = it) }
 
-            // Sınıf eşleşmesi
-            val matchedClass = classes.firstOrNull { it.id == studentInfo?.classId }
-            matchedClass?.let {
-                UserInfoRow(label = "Sınıfı:", value = it.name)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(thickness = 1.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle(title = "Veli Bilgileri")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            studentInfo?.parentName?.let { UserInfoRow(label = "Veli Adı:", value = it) }
-            studentInfo?.parentPhone?.let { UserInfoRow(label = "Veli Telefon No:", value = it) }
-        } else if (role == "ROLE_TEACHER") {
-            // Teacher Info
-            UserInfoRow(label = "Kullanıcı Adı:", value = teacherInfo?.username ?: "")
-            UserInfoRow(label = "Email:", value = teacherInfo?.email ?: "")
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(thickness = 1.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle(title = "Özlük Bilgileri")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            UserInfoRow(
-                label = "Ad Soyad:",
-                value = (teacherInfo?.firstName ?: "") + " " + (teacherInfo?.lastName ?: "")
-            )
-            teacherInfo?.phone?.let { UserInfoRow(label = "Telefon No:", value = it) }
-            teacherInfo?.tc?.let { UserInfoRow(label = "T.C.:", value = it) }
-            teacherInfo?.birthDate?.let { UserInfoRow(label = "Doğum Tarihi:", value = it) }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(thickness = 1.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle(title = "Öğretmen Bilgileri")
-            Spacer(modifier = Modifier.height(8.dp))
-
-
-            teacherInfo?.teacherCourses?.let { teacherCourses ->
-                if (teacherCourses.isNotEmpty()) {
-                    UserInfoRow(label = "Verdiği Dersler: ", value = teacherCourses.joinToString(", ") {
-                        it.courseName
-                    })
-
-                    teacherCourses.forEach { course ->
-                        if (course.classIdsAndNames.isNotEmpty()) {
-                            course.classIdsAndNames.forEach { (_, className) ->
-                                UserInfoRow(
-                                    label = "Sınıf:",
-                                    value = className
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "Ders verdiği sınıf bulunamadı.",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                fontFamily = customFontFamily,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "Verdiği ders bulunamadı.",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        fontFamily = customFontFamily,
-                        color = Color.Gray
-                    )
-                }
-            }
+        // Sınıf eşleşmesi
+        val matchedClass = classes.firstOrNull { it.id == studentInfo?.classId }
+        matchedClass?.let {
+            UserInfoRow(label = "Sınıfı:", value = it.name)
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider(thickness = 1.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionTitle(title = "Veli Bilgileri")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        studentInfo?.parentName?.let { UserInfoRow(label = "Veli Adı:", value = it) }
+        studentInfo?.parentPhone?.let { UserInfoRow(label = "Veli Telefon No:", value = it) }
 
         Spacer(modifier = Modifier.height(16.dp))
         Divider(thickness = 1.dp)
@@ -307,55 +232,57 @@ fun UploadProfilePhoto(
     profilePhotoViewModel: ProfilePhotoViewModel
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data = result.data
-            when {
-                data?.data != null -> {
-                    val uri = data.data
-                    uri?.let { uploadPhoto(context, it, profilePhotoViewModel) }
-                }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                uploadPhoto(context, uri, profilePhotoViewModel)
+            }
+        }
+    )
 
-                data?.extras?.get("data") is Bitmap -> {
-                    val bitmap = data.extras?.get("data") as Bitmap
-                    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpeg")
-                    val outputStream = FileOutputStream(file)
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                    outputStream.flush()
-                    outputStream.close()
-                    uploadPhoto(context, Uri.fromFile(file), profilePhotoViewModel)
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview(),
+        onResult = { bitmap ->
+            bitmap?.let {
+                val uri = saveBitmapToUri(context, it)
+                uri?.let {
+                    uploadPhoto(context, it, profilePhotoViewModel)
                 }
             }
         }
-    }
+    )
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            launcher.launch(createChooserIntent())
-        } else {
-            Toast.makeText(context, "Kamera izni gerekli!", Toast.LENGTH_SHORT).show()
-        }
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Profil Fotoğrafı Yükle") },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        showDialog = false
+                        galleryLauncher.launch("image/*")
+                    }) {
+                        Text("Galeriden Seç")
+                    }
+                    TextButton(onClick = {
+                        showDialog = false
+                        cameraLauncher.launch(null)
+                    }) {
+                        Text("Kameradan Çek")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
     }
 
     IconButton(
-        onClick = {
-            val hasCameraPermission = ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasCameraPermission) {
-                launcher.launch(createChooserIntent())
-            } else {
-                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-            }
-        },
+        onClick = { showDialog = true },
         modifier = Modifier
             .size(24.dp)
             .offset(x = (-8).dp, y = (-8).dp)
@@ -371,41 +298,49 @@ fun UploadProfilePhoto(
     }
 }
 
-private fun createChooserIntent(): Intent {
-    val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
-        type = "image/*"
-    }
-    val takePhotoIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+fun uploadPhoto(context: Context, uri: Uri, profilePhotoViewModel: ProfilePhotoViewModel) {
+    val pngUri = convertUriToPngUri(context, uri)
+    pngUri?.let {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(it)
+        val requestBody = inputStream?.readBytes()?.let { bytes ->
+            RequestBody.create("image/*".toMediaTypeOrNull(), bytes)
+        }
+        val filePart =
+            requestBody?.let { MultipartBody.Part.createFormData("file", "profile_photo.jpeg", it) }
 
-    return Intent.createChooser(pickIntent, "Fotoğraf Seç").apply {
-        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(takePhotoIntent))
+        if (filePart != null) {
+            profilePhotoViewModel.uploadPp(filePart)
+        }
     }
 }
 
-fun uploadPhoto(context: Context, uri: Uri, profilePhotoViewModel: ProfilePhotoViewModel) {
+fun saveBitmapToUri(context: Context, bitmap: Bitmap): Uri? {
+    return try {
+        val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.png")
+        val outputStream = FileOutputStream(file)
 
-    val contentResolver = context.contentResolver
-    val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        outputStream.flush()
+        outputStream.close()
 
-    val (mimeType, fileExtension) = when (bitmap.hasAlpha()) {
-        true -> "image/png" to "png"
-        false -> "image/jpeg" to "jpeg"
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            file
+        )
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
     }
+}
 
-    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.$fileExtension")
-    val outputStream = FileOutputStream(file)
-
-    val compressFormat = if (mimeType == "image/png") Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
-    bitmap.compress(compressFormat, 100, outputStream)
-
-    outputStream.flush()
-    outputStream.close()
-
-    val requestBody = file.readBytes().let { bytes ->
-        RequestBody.create(mimeType.toMediaTypeOrNull(), bytes)
+fun convertUriToPngUri(context: Context, uri: Uri): Uri? {
+    return try {
+        val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+        saveBitmapToUri(context, bitmap)
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
     }
-
-    val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
-
-    profilePhotoViewModel.uploadPp(filePart)
 }

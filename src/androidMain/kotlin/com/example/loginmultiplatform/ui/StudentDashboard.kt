@@ -1,5 +1,8 @@
 package com.example.loginmultiplatform.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import android.annotation.SuppressLint
@@ -29,16 +32,63 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.*
 import kotlin.math.pow
 import kotlin.math.round
+import com.example.loginmultiplatform.ui.components.BottomNavigationBar
+import com.example.loginmultiplatform.ui.components.TopBar
 import androidx.navigation.NavController
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import kotlinx.coroutines.launch
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 actual fun StudentDashboard(navController: NavController, loginViewModel: LoginViewModel, attendanceViewModel: AttendanceViewModel) {
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 4 })
+    val studentId by loginViewModel.studentId.collectAsState()
     val username by loginViewModel.username.collectAsState()
+    val userId by loginViewModel.id.collectAsState()
+
+    val coroutineScope = rememberCoroutineScope()
+    val studentAnnouncementViewModel = StudentAnnouncementViewModel()
 
     DashboardPage(username)
+
+    /*Scaffold(
+        topBar = { userId?.let { TopBar(userName = username, userId = it, onSettingsClick = { }, onProfileClick = {}, navController = navController) } },
+        bottomBar = { BottomNavigationBar(pagerState = pagerState, navController = navController) }
+    ) { paddingValues ->
+
+    }*/
+    /*HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxSize(),
+        userScrollEnabled = true
+    ) { page ->
+        when (page) {
+            0 -> AttendanceScreen(attendanceViewModel, navController, studentId = studentId ?: -1, classId = 1)
+            1 -> DashboardPage(username)
+            2 -> HomeworkPage("HOMEWORK PAGE")
+            3 -> StudentAnnouncementPage(loginViewModel, studentAnnouncementViewModel, navController)
+        }
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage to pagerState.currentPageOffsetFraction }
+            .collect{ (currentPage, offsetFraction) ->
+                coroutineScope.launch {
+                    when (currentPage) {
+                        0 -> {
+                            if (offsetFraction > 0.5) {
+                                pagerState.animateScrollToPage(3)
+                            }
+                        }
+                    }
+                }
+            }
+    }*/
 }
 
 @Composable
