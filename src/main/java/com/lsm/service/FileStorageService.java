@@ -97,7 +97,7 @@ public class FileStorageService {
 
         ProfilePhoto newPhoto = ProfilePhoto.builder()
                 .user(user)
-                .photoUrl(relativePath)
+                .photoUrl(fullPath.toString())
                 .filename(uniqueFileName)
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())

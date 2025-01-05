@@ -31,6 +31,8 @@ public class StudentExamResult {
     @JoinColumn(name = "student_id", nullable = false)
     private AppUser student;
 
+    // TODO: ranking
+
     @OneToMany(mappedBy = "examResult", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<SubjectResult> subjectResults = new HashSet<>();
 }

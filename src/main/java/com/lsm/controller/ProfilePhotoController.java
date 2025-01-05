@@ -5,6 +5,7 @@ import com.lsm.model.DTOs.ProfilePhotoDTO;
 import com.lsm.model.DTOs.ProfilePhotoResponseDTO;
 import com.lsm.model.DTOs.ProfilePhotoUpdateRequestDTO;
 import com.lsm.model.entity.ProfilePhoto;
+import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.ProfilePhotoRepository;
 import com.lsm.service.FileStorageService;
 import com.lsm.service.UserService;
@@ -16,12 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.lsm.model.entity.base.AppUser;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 
 @RestController
 @RequestMapping("/api/v1/profile-photo")
@@ -102,9 +105,17 @@ public class ProfilePhotoController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get user's profile photo", description = "Get profile photo information for any user")
-    public ResponseEntity<ApiResponse_<ProfilePhotoDTO>> getUserProfilePhoto(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse_<ProfilePhotoDTO>> getUserProfilePhoto(@PathVariable Long userId,
+                                                                             Authentication authentication) {
         try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
             AppUser user = userService.getUserById(userId);
+
+            if ((loggedInUser.getRole().equals(Role.ROLE_STUDENT) || loggedInUser.getRole().equals(Role.ROLE_TEACHER))
+                    && !loggedInUser.getId().equals(user.getId())) {
+                throw new AccessDeniedException("Student's can't access others profile photo");
+            }
+
             ProfilePhoto photo = profilePhotoRepository.findByUser(user)
                     .orElse(null);
 

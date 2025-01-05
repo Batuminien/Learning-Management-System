@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 
@@ -38,9 +39,10 @@ public class TrialExamService {
     private String uploadDir;
     private String examResultUploadDir;
 
-    private static final Pattern ANSWER_PATTERN = Pattern.compile("[ABCDE]+");
+    private static final Pattern ANSWER_PATTERN = Pattern.compile("[ABCDE ]+");
     private static final Pattern NAME_PATTERN = Pattern.compile("[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s+(?:[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s*)+");
-    private static final Pattern TC_PATTERN = Pattern.compile("\\d{11}");
+    private static final Pattern TC_PATTERN = Pattern.compile("^(?!0)\\d{10}[02468]$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^05\\d{9}$");
 
     @PostConstruct
     private void init() {
@@ -169,32 +171,6 @@ public class TrialExamService {
         return null; // Replace with actual PDF generation
     }
 
-    public String convertTxtToCsvRaw(String textContent) {
-        if (textContent == null || textContent.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder csvContent = new StringBuilder();
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            if (line.isEmpty()) {
-                csvContent.append("\n");
-                continue;
-            }
-
-            for (int i = 0; i < line.length(); i++) {
-                csvContent.append(line.charAt(i));
-                if (i < line.length() - 1) {
-                    csvContent.append(",");
-                }
-            }
-            csvContent.append("\n");
-        }
-
-        return csvContent.toString();
-    }
-
     private String convertAnswerKeyToCsvTYT(String textContent) {
         StringBuilder csvContent = new StringBuilder();
 
@@ -223,6 +199,7 @@ public class TrialExamService {
     private String convertResultsToCsvTYT(String textContent) {
         List<Integer> startColumnNameL   = new ArrayList<>(), endColumnNameL   = new ArrayList<>(),
                       startColumnTCL = new ArrayList<>(), endColumnTCL = new ArrayList<>(),
+                      startColumnPhoneL    = new ArrayList<>(), endColumnPhoneL    = new ArrayList<>(),
                       startColumnTurkceL = new ArrayList<>(), endColumnTurkceL = new ArrayList<>(),
                       startColumnSosyalL = new ArrayList<>(), endColumnSosyalL = new ArrayList<>(),
                       startColumnMathL   = new ArrayList<>(), endColumnMathL   = new ArrayList<>(),
@@ -233,8 +210,8 @@ public class TrialExamService {
 
         try {
             while ((line = reader.readLine()) != null) {
+                line = convertToTurkishChars(line);
                 int startColumnName = 0, endColumnName = 0,
-                        startColumnTC = 0, endColumnTC = 0,
                         startColumnTurkce = 0, endColumnTurkce = 0,
                         startColumnSosyal = 0, endColumnSosyal = 0,
                         startColumnMath   = 0, endColumnMath   = 0,
@@ -279,23 +256,89 @@ public class TrialExamService {
                 endColumnMathL.add(endColumnMath);
                 startColumnFenL.add(startColumnFen);
                 endColumnFenL.add(endColumnFen);
-                for(int i = 0; i < line.length(); i++) {
-                    char c = line.charAt(i);
-                    if (Character.isLetter(c)) {
-                        startColumnName = i;
-                        endColumnName = i + 1;
-                        break;
-                    }
+                Matcher nameMatcher = NAME_PATTERN.matcher(line);
+                if (nameMatcher.find()) {
+                    startColumnNameL.add(nameMatcher.start());
+                    endColumnNameL.add(nameMatcher.end());
                 }
-                // TODO: increment endColumnName until two consecutive space or any digit
+                Matcher tcMatcher = TC_PATTERN.matcher(line);
+                if (tcMatcher.find()) {
+                    startColumnTCL.add(tcMatcher.start());
+                    endColumnTCL.add(tcMatcher.end());
+                }
+                Matcher phoneMatcher = PHONE_PATTERN.matcher(line);
+                if (phoneMatcher.find()) {
+                    startColumnPhoneL.add(phoneMatcher.start());
+                    endColumnPhoneL.add(phoneMatcher.end());
+                }
             }
         } catch (IOException e) {
             log.error("Exception occurred while processing text files: {}", e.getMessage(), e);
             throw new RuntimeException("Exception occurred while processing text files: " + e.getMessage(), e);
         }
 
+        // lists are completed now. TODO: check lists to find actual start and end columns
+
         return "";
     }
+
+    private List<String> extractSections(String line) {
+        List<String> sections = new ArrayList<>();
+        StringBuilder currentSection = new StringBuilder();
+        boolean inAnswerSection = false;
+        int answerCount = 0;
+
+        for (char c : line.toCharArray()) {
+            if (ANSWER_PATTERN.matcher(String.valueOf(c)).matches()) {
+                if (!inAnswerSection) {
+                    if (!currentSection.isEmpty()) {
+                        sections.add(currentSection.toString());
+                    }
+                    currentSection = new StringBuilder();
+                    inAnswerSection = true;
+                }
+                currentSection.append(c);
+                answerCount++;
+
+                // Check for section breaks based on expected lengths
+                if ((sections.isEmpty() && answerCount == 40) || // Turkce
+                        (sections.size() == 1 && answerCount == 20) || // Sosyal
+                        (sections.size() == 2 && answerCount == 40) || // Matematik
+                        (sections.size() == 3 && answerCount == 20)) { // Fen
+                    sections.add(currentSection.toString());
+                    currentSection = new StringBuilder();
+                    answerCount = 0;
+                    inAnswerSection = false;
+                }
+            } else if (inAnswerSection) {
+                currentSection.append(c);
+            }
+        }
+
+        if (!currentSection.isEmpty()) {
+            sections.add(currentSection.toString());
+        }
+
+        return sections;
+    }
+
+    private String extractPhoneNumber(String line) {
+        Pattern phonePattern = Pattern.compile("\\d{10,11}");
+        Matcher matcher = phonePattern.matcher(line);
+        List<String> numbers = new ArrayList<>();
+
+        while (matcher.find()) {
+            String number = matcher.group();
+            if (number.startsWith("05")) { // Turkish mobile number format
+                return number;
+            }
+            numbers.add(number);
+        }
+
+        // If no phone number with "05" prefix found, return empty
+        return "";
+    }
+
 
     private String convertAnswerKeyToCsvAYT(String textContent) {
         StringBuilder csvContent = new StringBuilder();
