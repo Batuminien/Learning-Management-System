@@ -203,6 +203,24 @@ public class SecurityConfig {
                     registry.requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**")
                             .hasAuthority("ROLE_ADMIN");
 
+                    // Coordinator management endpoints
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/coordinators/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/coordinators/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/coordinators/**")
+                            .hasAuthority("ROLE_ADMIN");
+
+                    // Profile photo management endpoints
+                    registry.requestMatchers(HttpMethod.POST, "/api/v1/profile-photo/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR", "ROLE_TEACHER", "ROLE_STUDENT");
+                    registry.requestMatchers(HttpMethod.GET, "/api/v1/profile-photo/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR", "ROLE_TEACHER", "ROLE_STUDENT");
+                    registry.requestMatchers(HttpMethod.PUT, "/api/v1/profile-photo/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR", "ROLE_TEACHER", "ROLE_STUDENT");
+                    registry.requestMatchers(HttpMethod.DELETE, "/api/v1/profile-photo/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_COORDINATOR", "ROLE_TEACHER", "ROLE_STUDENT");
+
                     // Past exam endpoints
                     registry.requestMatchers(HttpMethod.POST, "/api/v1/past-exams/**")
                             .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_COORDINATOR");

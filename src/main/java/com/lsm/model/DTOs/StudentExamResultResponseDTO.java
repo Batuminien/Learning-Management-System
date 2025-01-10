@@ -12,5 +12,6 @@ public class StudentExamResultResponseDTO {
     private Long id;
     private Long studentId;
     private String studentName;
+    private PastExamBasicDTO pastExam;
     private Set<SubjectResultResponseDTO> subjectResults;
 }

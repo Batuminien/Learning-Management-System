@@ -24,11 +24,13 @@ public class PastExamService {
 
     private final PastExamRepository pastExamRepository;
     private final AppUserRepository appUserRepository;
+    private final AppUserService appUserService;
 
     @Autowired
-    public PastExamService(PastExamRepository pastExamRepository, AppUserRepository appUserRepository) {
+    public PastExamService(PastExamRepository pastExamRepository, AppUserRepository appUserRepository, AppUserService appUserService) {
         this.pastExamRepository = pastExamRepository;
         this.appUserRepository = appUserRepository;
+        this.appUserService = appUserService;
     }
 
     @Transactional
@@ -79,6 +81,7 @@ public class PastExamService {
 
         AppUser student = appUserRepository.findById(studentId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found with ID: " + studentId));
+        student = appUserService.getCurrentUserWithDetails(studentId);
 
         List<StudentExamResult> results = pastExamRepository.findAllResultsByStudentId(studentId);
         return results.stream()
@@ -212,11 +215,21 @@ public class PastExamService {
                 .build();
     }
 
+    private PastExamBasicDTO mapToBasicDTO(PastExam exam) {
+        return PastExamBasicDTO.builder()
+                .id(exam.getId())
+                .name(exam.getName())
+                .examType(exam.getExamType())
+                .overallAverage(exam.getOverallAverage())
+                .build();
+    }
+
     private StudentExamResultResponseDTO mapToStudentResultResponseDTO(StudentExamResult result) {
         return StudentExamResultResponseDTO.builder()
                 .id(result.getId())
                 .studentId(result.getStudent().getId())
                 .studentName(result.getStudent().getName() + " " + result.getStudent().getSurname())
+                .pastExam(mapToBasicDTO(result.getExam()))  // Use the basic DTO here
                 .subjectResults(result.getSubjectResults().stream()
                         .map(this::mapToSubjectResultResponseDTO)
                         .collect(Collectors.toSet()))
