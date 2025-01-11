@@ -1,0 +1,47 @@
+.photo-card{
+    border: 2px solid var(--placeholder-text);
+    display: inline-flex;
+    flex-direction: column;
+    width: fit-content;
+    padding: 24px;
+    justify-content: center;
+    align-items: center;
+    row-gap: 24px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.card-options{
+    display: flex;
+    column-gap: 8px;
+}
+
+.photo-container{
+    width: 100%;
+    display: grid;
+    place-items: center;
+}
+
+.profile-photo{
+    border: 2px solid black;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.photo-upload{
+    width: 100%;
+    height: 128px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    background-color: #ccc;
+    cursor: not-allowed;
+}

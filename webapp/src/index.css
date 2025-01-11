@@ -40,6 +40,11 @@
     --subtitle-size : 16px;
     --subtitle-weight : 600;
     --subtitle-font : 'Poppins', sans-serif;
+
+    --correctAnswer : #9470FC;
+    --wrongAnswer : #4183D2;
+    --blankAnswer : #BE51AA;
+    --netScore : #BCD0EC;
 }
 
 * {
@@ -278,6 +283,12 @@ ul li {
     overflow-wrap: break-word; /* Ensures breaking long words for modern browsers */
 }
 
+.unit-footer {
+    display: flex;
+    column-gap: 24px;
+    justify-content: flex-end;
+}
+
 .dashboard-template {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -321,4 +332,16 @@ ul li {
 
 .success {
     color: green;
+}
+
+.exam-result-content {
+    display: flex;
+}
+
+.exam-result-table {
+    flex: 2;
+}
+
+.exam-result-chart {
+    flex: 3;
 }

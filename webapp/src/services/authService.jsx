@@ -21,7 +21,6 @@ const logout = async (accessToken, refreshToken = null) => {
       }
     }
   );
-  console.log(response);
   return response.data;
 }
 export default { login, logout, register };
