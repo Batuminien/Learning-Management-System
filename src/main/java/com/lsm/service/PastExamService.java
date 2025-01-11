@@ -209,6 +209,7 @@ public class PastExamService {
                 .name(exam.getName())
                 .examType(exam.getExamType())
                 .overallAverage(exam.getOverallAverage())
+                .date(exam.getExamDate())
                 .results(exam.getResults().stream()
                         .map(this::mapToStudentResultResponseDTO)
                         .collect(Collectors.toSet()))

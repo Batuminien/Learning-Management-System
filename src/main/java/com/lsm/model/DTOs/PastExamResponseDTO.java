@@ -3,6 +3,7 @@ package com.lsm.model.DTOs;
 import com.lsm.model.entity.PastExam;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -14,5 +15,6 @@ public class PastExamResponseDTO {
     private String name;
     private PastExam.ExamType examType;
     private Double overallAverage;
+    private LocalDateTime date;
     private Set<StudentExamResultResponseDTO> results;
 }

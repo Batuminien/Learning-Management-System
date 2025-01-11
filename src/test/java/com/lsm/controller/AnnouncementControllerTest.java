@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +60,7 @@ class AnnouncementControllerTest {
         announcementDTO.setTitle("Test Announcement");
         announcementDTO.setContent("Test Content");
         announcementDTO.setClassId(1L);
-        announcementDTO.setCreatedAt(LocalDate.now());
+        announcementDTO.setCreatedAt(LocalDateTime.now());
     }
 
     @Test

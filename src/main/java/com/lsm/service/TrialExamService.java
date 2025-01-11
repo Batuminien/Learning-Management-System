@@ -37,6 +37,7 @@ public class TrialExamService {
 
     private final AppUserRepository appUserRepository;
     private final AppUserService appUserService;
+    private final PastExamService pastExamService;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -290,16 +291,26 @@ public class TrialExamService {
         int endPhone = endColumnPhoneL.stream().max(Integer::compare).get();
 
         Integer mceFen = findMostCommonElement(startColumnFenL);
-        int endFen = endColumnNameL.stream().max(Integer::compare).get();
+        int endFen = endColumnFenL.stream().max(Integer::compare).get();
 
         Integer mceMath = findMostCommonElement(startColumnMathL);
-        int endMath = endColumnNameL.stream().max(Integer::compare).get();
+        int endMath = endColumnMathL.stream().max(Integer::compare).get();
 
         Integer mceSosyal = findMostCommonElement(startColumnSosyalL);
-        int endSosyal = endColumnNameL.stream().max(Integer::compare).get();
+        int endSosyal = endColumnSosyalL.stream().max(Integer::compare).get();
 
         Integer mceTurkce = findMostCommonElement(startColumnTurkceL);
-        int endTurkce = endColumnNameL.stream().max(Integer::compare).get();
+        int endTurkce = endColumnTurkceL.stream().max(Integer::compare).get();
+
+        // TODO: validate
+        if (endSosyal - mceSosyal < 24) {
+            endSosyal = mceSosyal + 24;
+        }
+        if (endTurkce - mceTurkce > 39) {
+            mceTurkce = endTurkce - 39;
+        }
+
+        // TODO: try to find exam type A, B, C, D
 
         StringBuilder csv = new StringBuilder();
         String csvHeader = "İsim,Sınıf,TC,Telefon,Turkce,Sosyal,Matematik,Fen\n";
@@ -314,7 +325,6 @@ public class TrialExamService {
                 String tc = line.substring(mceTc, endTc);
                 String phone = line.substring(mcePhone, endPhone);
 
-                // TODO: validate student with repo
                 AppUser student = appUserRepository.findByNamePlusSurname(name)
                         .orElse(null);
                 AppUser studentByTc = null;
@@ -324,7 +334,27 @@ public class TrialExamService {
                         studentByTc = appUserRepository.getByStudentDetails_Tc(tc).orElse(null);
                     if (phone.length() == 11)
                         studentByPhone = appUserRepository.getByStudentDetails_phone(phone).orElse(null);
+
+                    if (studentByTc == null && studentByPhone == null) {
+                        continue;
+                    }
+                    else if (studentByTc != null && studentByPhone != null) {
+                        if (!studentByTc.getId().equals(studentByPhone.getId())) {
+                            log.info("Conflict between infos: tc and phone.");
+                            continue;
+                        } else {
+                            student = studentByPhone;
+                        }
+                    }
+                    else if (studentByTc != null) {
+                        student = studentByTc;
+                    }
+                    else {
+                        student = studentByPhone;
+                    }
                 }
+                student = appUserService.getCurrentUserWithDetails(student.getId());
+                String classEntityName = student.getStudentDetails().getClassEntity().getName();
 
                 // TODO: create PastExam and save it
 
@@ -333,13 +363,14 @@ public class TrialExamService {
                 String math = line.substring(mceMath, endMath);
                 String fen = line.substring(mceFen, endFen);
 
-                csvLine.append(name);
-                csvLine.append(tc);
-                csvLine.append(phone);
-                csvLine.append(turkce);
-                csvLine.append(sosyal);
-                csvLine.append(math);
-                csvLine.append(fen);
+                csvLine.append(name).append(",");
+                csvLine.append(classEntityName).append(",");
+                csvLine.append(tc).append(",");
+                csvLine.append(phone).append(",");
+                csvLine.append(turkce).append(",");
+                csvLine.append(sosyal).append(",");
+                csvLine.append(math).append(",");
+                csvLine.append(fen).append('\n');
 
                 csv.append(csvLine);
             }
