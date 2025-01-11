@@ -82,6 +82,21 @@ kotlin {
                 implementation("com.darkrockstudios:mpfilepicker:3.1.0")
                 implementation("com.google.accompanist:accompanist-permissions:0.33.1-alpha")
 
+                // File sending (Melikşah)
+                implementation("io.ktor:ktor-client-core:2.3.0")
+                implementation("io.ktor:ktor-client-cio:2.3.0") // Or another engine like OkHttp
+                implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
+                implementation("io.ktor:ktor-client-serialization:2.3.0")
+                implementation("io.ktor:ktor-client-logging:2.3.0")
+
+
+                implementation("io.ktor:ktor-client-auth:2.3.3") // Replace with your Ktor version
+                implementation("io.ktor:ktor-client-logging:2.3.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.3")
+
+                // Kotlin Serialization
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
             }
         }
         val commonTest by getting {

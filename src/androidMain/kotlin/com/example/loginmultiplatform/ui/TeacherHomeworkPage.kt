@@ -1,7 +1,6 @@
 package com.example.loginmultiplatform.ui
 
 //noinspection UsingMaterialAndMaterial3Libraries
-import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -65,34 +64,26 @@ import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.AssignmentDocument
 import com.example.loginmultiplatform.model.TeacherAssignmentRequest
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
-import com.mohamedrejeb.calf.io.getName
-import com.mohamedrejeb.calf.picker.FilePickerFileType
-import com.mohamedrejeb.calf.picker.FilePickerSelectionMode
-import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
-import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import android.content.Context
-import android.provider.OpenableColumns
 import android.net.Uri
 import android.os.Build
-import androidx.core.net.toUri
-import android.provider.DocumentsContract
-import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.ui.platform.LocalContext
+import com.example.loginmultiplatform.model.BulkGradeItem
+import com.example.loginmultiplatform.model.BulkGradeRequest
+import com.example.loginmultiplatform.model.GradeDTO
+import com.example.loginmultiplatform.model.StudentSubmission
 import com.example.loginmultiplatform.ui.components.SharedDocument
 import com.example.loginmultiplatform.ui.components.rememberDocumentManager
-import kotlinx.coroutines.selects.select
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -101,6 +92,13 @@ import java.time.format.DateTimeFormatter
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentDateTime(): String {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        .withZone(ZoneOffset.UTC)
+    return formatter.format(Instant.now())
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun getCurrentDate(): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         .withZone(ZoneOffset.UTC)
     return formatter.format(Instant.now())
 }
@@ -159,10 +157,20 @@ fun saveFileFromUri(context: Context, uri: Uri, outputFileName: String): File? {
     return outputFile
 }
 
+fun findStudentSubmissionById(studentId : Int, studentSubmission: List<StudentSubmission>?) : StudentSubmission?{
+    studentSubmission?.forEach { submission ->
+        if (studentId == submission.studentId){
+            return submission
+        }
+    }
+
+    return null
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, teacherViewModel: TeacherAssignmentViewModel){
+fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, teacherViewModel: TeacherAssignmentViewModel, teacherId: Int?, changeStatus : MutableState<Boolean>, mode : MutableState<Boolean>){
 
     var displayExpand by remember { mutableStateOf(false) }
     var dateDisplayExpanded by remember { mutableStateOf(false) }
@@ -170,7 +178,7 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
 
     val context = LocalPlatformContext.current
 
-    var selectedDateLastDisplay by remember { mutableStateOf("gg.aa.yyyy") }
+    var selectedDateLastDisplay by remember { mutableStateOf(assignment.dueDate) }
 
     var titleDisplay by remember { mutableStateOf(assignment.title) }
 
@@ -186,31 +194,21 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
 
     var selectedFile by remember { mutableStateOf<AssignmentDocument?>(assignment.teacherDocuments) }
 
-
+    titleDisplay = assignment.title
+    descriptionDisplay = assignment.description
 
     // Callback to handle the selected document
     val onDocumentSelectedUpdate: (SharedDocument?) -> Unit = { document ->
         if (document != null) {
-            println("HMMMMM")
-            try {
-                if (document.fileName() != null && document.filePath() != null && document.fileSize() != null){
-                    selectedFile = AssignmentDocument(assignment.id,
-                        if (assignment.teacherDocuments != null) assignment.teacherDocuments.documentId else 0,
-                        document.fileName()!!,
-                        "PDF",
-                        document.filePath()!!,
-                        document.fileSize()!!,
-                        getCurrentDateTime(),
-                        userName
-                    )
 
-                }
+            try {
+
             }catch (e: Exception){
                 println(e.toString())
             }
 
 
-            Toast.makeText(context, "Selected file: ${document.fileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Selected file: ${document.getFileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
 
         }
     }
@@ -251,6 +249,8 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
                         modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                         fontSize = 13.sp
                     )
+
+
 
 
 
@@ -504,6 +504,7 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
                             IconButton(
                                 onClick = {
                                     selectedFile = null
+
                                 },
                                 modifier = Modifier.fillMaxSize()
                             ){
@@ -533,6 +534,23 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
                         modifier = Modifier.align(Alignment.CenterVertically),
                         onClick = {
                             displayExpand = !displayExpand
+                            changeStatus.value = !changeStatus.value
+                            teacherId?.let {
+                                TeacherAssignmentRequest(
+                                    it,
+                                    titleDisplay,
+                                    descriptionDisplay,
+                                    selectedDateLastDisplay,
+                                    assignment.classId,
+                                    assignment.courseId,
+                                    null
+                                )
+                            }?.let {
+                                mode.value = true
+                                teacherViewModel.updateHomework(assignment.id,
+                                    it
+                                )
+                            }
 
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -550,6 +568,7 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
                         modifier = Modifier.align(Alignment.CenterVertically),
                         onClick = {
                             displayExpand = !displayExpand
+                            changeStatus.value = !changeStatus.value
                             if (assignment.teacherDocuments != null){
                                 teacherViewModel.deleteDocument(assignment.teacherDocuments.documentId)
                             }
@@ -568,6 +587,413 @@ fun DisplayHomeworks(assignment: TeacherAssignmentResponse, userName: String, te
                     }
 
                     Spacer(modifier = Modifier.width(15.dp))
+                }
+
+            }
+        }
+
+    }
+
+
+
+
+}
+
+
+
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String, teacherViewModel: TeacherAssignmentViewModel, teacherId: Int?, changeStatus: MutableState<Boolean>, mode: MutableState<Boolean>, classStudents: Map<String, String>?, focusRequester: FocusRequester.Companion){
+
+    var displayExpand by remember { mutableStateOf(false) }
+    var dateDisplayExpanded by remember { mutableStateOf(false) }
+    var checkedDisplayDate by remember { mutableStateOf(false) }
+
+    val context = LocalPlatformContext.current
+
+    var selectedDateLastDisplay by remember { mutableStateOf(assignment.dueDate) }
+
+    var grades = remember { mutableMapOf<Int, Long>() }
+
+    var feedbacks = remember { mutableMapOf<Int, String?>() }
+
+    val focusRequesterTitleDisplay = remember { FocusRequester() }
+
+    var isFocusedGrade by remember { mutableStateOf(false) }
+
+    var feedback by remember { mutableStateOf("Bir geri dönüş giriniz") }
+
+    val focusRequesterDescDisplay = remember { FocusRequester() }
+
+    var isFocusedFeedback by remember { mutableStateOf(false) }
+
+    var selectedFile by remember { mutableStateOf<AssignmentDocument?>(assignment.teacherDocuments) }
+
+    var grade by remember { mutableStateOf("0-100") }
+
+
+
+    // Callback to handle the selected document
+    val onDocumentSelectedUpdate: (SharedDocument?) -> Unit = { document ->
+        if (document != null) {
+
+            try {
+
+            }catch (e: Exception){
+                println(e.toString())
+            }
+
+
+            Toast.makeText(context, "Selected file: ${document.getFileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
+
+        }
+    }
+
+    val documentManagerUpdate = rememberDocumentManager(onResult = onDocumentSelectedUpdate)
+
+
+    Card(
+        modifier = Modifier.fillMaxWidth().height( if (displayExpand)  500.dp else 100.dp).padding(10.dp),
+        elevation = 8.dp,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column (
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth().height( 80.dp).
+                clickable{
+                    displayExpand = !displayExpand
+                },
+                verticalAlignment = Alignment.CenterVertically
+            ){
+
+                Icon(
+                    imageVector = Icons.Default.Assignment,
+                    contentDescription = "Assignment",
+                    modifier = Modifier.fillMaxWidth(0.2f).size(50.dp).padding(10.dp)
+                )
+
+                Column (
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.55f)
+                ){
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = assignment.title,
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
+                        fontSize = 13.sp
+                    )
+
+
+
+
+
+                    Text(
+                        text = assignment.courseName,
+                        modifier = Modifier.fillMaxSize(),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Column (
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.6f)
+                ){
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = assignment.createdDate,
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
+                        fontSize = 13.sp
+                    )
+
+                    Text(
+                        text = assignment.dueDate,
+                        modifier = Modifier.fillMaxSize(),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Icon(
+                    imageVector = if (displayExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(10.dp)
+                )
+            }
+            if (displayExpand) {
+
+                Spacer(modifier = Modifier.height(15.dp))
+                LazyColumn (
+                    modifier = Modifier.fillMaxWidth().height(325.dp).background(Color.LightGray)
+                ){
+                    classStudents?.keys?.forEach { students ->
+                        item {
+                            val submission = findStudentSubmissionById(students.toInt(), assignment.studentSubmissions)
+
+                            if (submission != null && submission.status == "GRADED"){
+                                grade = submission.grade.toString()
+                                feedback = submission.feedback ?: "-"
+                            }
+
+
+
+                            Card(
+                                modifier = Modifier.height(375.dp).fillParentMaxWidth().padding(12.dp).background(Color.Gray)
+                            ){
+                                Column(
+                                    modifier = Modifier.fillMaxSize().background(Color.Transparent),
+                                    verticalArrangement = Arrangement.SpaceAround
+                                ){
+
+
+                                    Row (
+                                        modifier = Modifier.fillMaxWidth().background(Color.Transparent),
+                                        horizontalArrangement = Arrangement.SpaceAround
+
+                                    ){
+
+
+                                        Column{
+                                            Text(
+                                                text = "Öğrenci adı"
+                                            )
+
+                                            Spacer(modifier = Modifier.height(5.dp))
+
+                                            classStudents[students]?.let {
+                                                Text(
+                                                    text = it
+                                                )
+                                            }
+
+
+                                        }
+
+
+
+
+                                        Column{
+                                            Text(
+                                                text = "Ödev Durumu"
+                                            )
+
+                                            Spacer(modifier = Modifier.height(5.dp))
+
+                                            Text(
+                                                text = if(submission != null ) if(submission.status == "GRADED") "Puanlandı"
+                                                else if (submission.status == "SUBMITTED") "Teslim edildi"
+                                                else (if (getCurrentDate() > assignment.dueDate) "Bekleniyor" else "Teslim edilmedi")
+                                                else "Ödev yüklenmedi"
+                                            )
+                                        }
+
+                                    }
+
+
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.Center
+                                    ){
+                                        Text (
+                                            text = "Yüklenen Döküman",
+                                            modifier = Modifier.fillParentMaxWidth(),
+                                            textAlign = TextAlign.Center
+
+                                        )
+
+                                        Spacer(modifier = Modifier.height(5.dp))
+
+
+                                        Text (
+                                            text = if (submission != null ) if (submission.document == null) "Döküman eklenmedi" else submission.document.fileName else "-",
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillParentMaxWidth()
+
+                                        )
+
+                                    }
+
+
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.Center
+                                    ){
+                                        Text (
+                                            text = "Teslim Notu",
+                                            modifier = Modifier.fillParentMaxWidth(),
+                                            textAlign = TextAlign.Center
+
+                                        )
+
+                                        Spacer(modifier = Modifier.height(5.dp))
+
+
+                                        Text (
+                                            text = if (submission != null ) if (submission.comment == null) "-" else submission.comment else "-",
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillParentMaxWidth()
+
+                                        )
+
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ){
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = "Ödev Notu :"
+                                        )
+
+                                        Spacer(modifier = Modifier.width(15.dp))
+
+
+                                        Box (
+                                            modifier = Modifier.fillMaxWidth().height(50.dp).padding(start = 10.dp, end = 10.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                                        ){
+
+                                            if (submission != null){
+                                                if (submission.status == "GRADED"){
+                                                    grade = submission.grade.toString()
+                                                }
+                                            }else {
+                                                grade = "Ödev teslim edilmedi"
+                                            }
+                                            BasicTextField(
+                                                value = grade,
+                                                onValueChange = { if (it.length <= 3 ) grade = it },
+                                                enabled = (submission != null),
+                                                modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                                    .focusRequester(focusRequester.Default).onFocusChanged { focusState: FocusState ->
+                                                        isFocusedGrade = focusState.isFocused
+                                                        if (isFocusedGrade && grade == "0-100") {
+                                                            grade = "" // Clear placeholder text when focused
+                                                        }
+
+                                                        if (!isFocusedGrade && grade != "0-100" && grade != "" && submission != null){
+                                                            if (grade.toLongOrNull() == null || grade.toLong() > 100  || grade.toLong() < 0 || (grade.toLong() < 100 && grade.length > 2)){
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "Lütfen 0 ile 100 arası bir not giriniz",
+                                                                    Toast.LENGTH_SHORT
+                                                                ).show()
+                                                            }else {
+                                                                grades[students.toInt()] = grade.toLong()
+                                                            }
+                                                        }
+                                                    }
+                                            )
+
+                                        }
+
+                                    }
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ){
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = "Geri Dönüt :"
+                                        )
+
+                                        Spacer(modifier = Modifier.width(15.dp))
+
+
+                                        Box (
+                                            modifier = Modifier.fillMaxWidth().height(130.dp).padding(start = 10.dp, end = 10.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                                        ){
+                                            if (submission == null || submission.status == "PENDING"){
+                                                feedback = "Ödev teslim edilmedi"
+                                            }
+
+
+                                            BasicTextField(
+                                                value = feedback,
+                                                onValueChange = { if (it.length <= 150) feedback = it },
+                                                enabled = (submission != null),
+                                                modifier = Modifier.fillMaxSize().padding(end = 20.dp, bottom = 20.dp).offset(x = 15.dp, y = 15.dp)
+                                                    .focusRequester(focusRequester.Default).onFocusChanged { focusState: FocusState ->
+                                                        isFocusedFeedback = focusState.isFocused
+                                                        if (isFocusedFeedback && feedback == "Bir geri dönüş giriniz") {
+                                                            feedback = "" // Clear placeholder text when focused
+                                                        }
+
+                                                        if (!isFocusedFeedback){
+                                                            if (feedback == "" || feedback == "Bir geri dönüş giriniz" || feedback == "-"){
+                                                                feedbacks[students.toInt()] = null
+                                                            }else{
+                                                                feedbacks[students.toInt()] = feedback
+                                                            }
+
+                                                        }
+
+                                                    }
+                                            )
+
+                                        }
+
+                                    }
+
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+
+                                }
+                            }
+
+
+
+                        }
+                    }
+                }
+                Button(
+                    onClick = {
+                        //TODO
+                        val bulkList = mutableListOf<BulkGradeItem>()
+                        isFocusedFeedback = false
+
+                        if (classStudents != null){
+                            if (grades.keys.size != classStudents.keys.size){
+                                Toast.makeText(
+                                    context,
+                                    "Eksik veya hatalı notlandırmalar var",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }else{
+                                classStudents.keys.forEach { studentsIds ->
+                                    bulkList.add(BulkGradeItem(studentsIds.toInt(), GradeDTO(grades[studentsIds.toInt()]!!, feedbacks[studentsIds.toInt()])))
+
+                                }
+                                println("Cevaplanacak ödevler : $bulkList")
+                                teacherViewModel.bulkGrades(assignment.id, BulkGradeRequest(bulkList))
+                                changeStatus.value = !changeStatus.value
+                                displayExpand = false
+                            }
+                        }
+
+
+
+
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color(0xFF334BBE)
+                    )
+
+
+                ){
+                    Text(
+                        text = "Tamamla",
+                        color = Color.White
+                    )
                 }
 
             }
@@ -603,11 +1029,23 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     val teacherAssignments by teacherViewModel.teacherAssignments.collectAsState()
 
+    val teacherAssignmentsPast by teacherViewModel.teacherAssignmentsPast.collectAsState()
+
+    val classStudents by teacherViewModel.classStudents.collectAsState()
+
     val addedDoc by teacherViewModel.returnedDoc.collectAsState()
+
+    val errorDoc by teacherViewModel.errorDoc.collectAsState()
+
+    val docSuccess by teacherViewModel.docSended.collectAsState()
 
     val sendedAssignment by teacherViewModel.sendedAssignment.collectAsState()
 
     val isLoad by teacherViewModel.isLoading.collectAsState()
+
+    val isDeleted by teacherViewModel.isDeleted.collectAsState()
+
+    val isUpdated by teacherViewModel.isUpdated.collectAsState()
 
 
     LaunchedEffect(Unit) {
@@ -678,6 +1116,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     var dateExpanded by remember { mutableStateOf(false) }
 
 
+    val focusRequester = remember { FocusRequester }
 
     val focusRequesterTitle = remember { FocusRequester() }
     val focusManagerTitle: FocusManager = LocalFocusManager.current
@@ -695,7 +1134,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     val scope = rememberCoroutineScope()
 
 
-    var selectedFileContent by remember { mutableStateOf<String>("") }
+    var selectedFileContent by remember { mutableStateOf<SharedDocument?>(null) }
     var fileName by remember { mutableStateOf<String>("") }
     var filePath by remember { mutableStateOf<String>("") }
     var fileSize by remember { mutableStateOf<Long>(0) }
@@ -706,12 +1145,18 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     // Callback to handle the selected document
     val onDocumentSelected: (SharedDocument?) -> Unit = { document ->
         if (document != null) {
-            println("HMMMMM")
-            selectedFileContent = document.toText() ?: "Empty file"
-            fileName = document.fileName().toString()
+            selectedFileContent = document
+            fileName = document.getFileName().toString()
 
-            Toast.makeText(context, "Selected file: ${document.fileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}", Toast.LENGTH_SHORT).show()
-
+            // Display detailed file info in Toast
+            Toast.makeText(
+                context,
+                "Selected file: ${document.getFileName()}, fileSize: ${document.fileSize()}, fileTime: ${getCurrentDateTime()}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            // Handle case where no file is selected
+            Toast.makeText(context, "No document selected.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -761,208 +1206,641 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     }
 
+    var homeworkSearched by remember { mutableStateOf(false) }
+    var refreshLazyColumn by remember { mutableStateOf(false) }
 
+
+
+    var mode =  remember { mutableStateOf(true) }
     LaunchedEffect(searchHomework){
         if (teacherId != null ) {
             println("Exploooosion")
             println(selectedCourseSearchId)
             println(selectedClassSearchId)
             println(selectedDateLastSearch)
-            if ( selectedClassSearchId != -1 && selectedCourseSearchId != -1 ) {
+            if (  (selectedClassSearchId != -1 && selectedCourseSearchId != -1) || (selectedClassPastId != -1 && selectedCoursePastId != -1) ) {
 
-                if (selectedDateLastSearch == "gg.aa.yyyy"){
-                    teacherViewModel.fetchTeacherAssignments(
-                        teacherId,
-                        selectedClassSearchId,
-                        selectedCourseSearchId,
-                        ""
-                    )
+                if ( if (mode.value) selectedDateLastSearch == "gg.aa.yyyy" else selectedDateLastPast == "gg.aa.yyyy"){
+                    if (mode.value){
+                        teacherViewModel.fetchTeacherAssignments(
+                            teacherId,
+                            selectedClassSearchId,
+                            selectedCourseSearchId,
+                            "",
+                            mode.value
+                        )
+                    }else {
+                        teacherViewModel.fetchTeacherAssignments(
+                            teacherId,
+                            selectedCoursePastId,
+                            selectedCoursePastId,
+                            "",
+                            mode.value
+                        )
+                    }
+
                 }else{
-                    teacherViewModel.fetchTeacherAssignments(
-                        teacherId,
-                        selectedClassSearchId,
-                        selectedCourseSearchId,
-                        selectedDateLastSearch
-                    )
-                }
-
-
-
-                if (isLoad || errorMessage != null) {
-                    Toast.makeText(
-                        context,
-                        "Bir hata var ${(errorMessage != null) ?: errorMessage}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Ödevler Yüklendi. Ödev miktarı: ${teacherAssignments.size}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    if (mode.value){
+                        teacherViewModel.fetchTeacherAssignments(
+                            teacherId,
+                            selectedClassSearchId ,
+                            selectedCourseSearchId ,
+                            selectedDateLastSearch,
+                            mode.value
+                        )
+                    }else {
+                        teacherViewModel.fetchTeacherAssignments(
+                            teacherId,
+                            selectedClassPastId,
+                            selectedCoursePastId,
+                            selectedDateLastPast,
+                            mode.value
+                        )
+                    }
 
                 }
+                homeworkSearched = true
+                refreshLazyColumn = false
+
             }
         }
+    }
+
+    LaunchedEffect(teacherAssignments){
+        if (homeworkSearched){
+
+
+
+            Toast.makeText(
+                context,
+                "Ödevler başarı ile yüklendi. Ödev sayısı ${teacherAssignments.size}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
     }
 
     LaunchedEffect(selectedClassPast){
         teacherId?.let { teacherViewModel.fetchTeacherCoursesPast(it) }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize().
-            clickable(
-                onClick = {
-                    classexpanded.value = false
-                    courseexpanded.value = false
-                    focusManagerTitle.clearFocus()
-                    focusManagerDesc.clearFocus()
-                },
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            )
 
-    ) {
-        Card (
-            modifier = Modifier.
-                fillMaxWidth().
-                height(80.dp).
-                padding(4.dp),
+    var changeStatus = remember { mutableStateOf(false) }
+    LaunchedEffect(changeStatus.value){
 
-            elevation = 6.dp,
-            backgroundColor = Color.White,
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Row (
-                modifier = Modifier.
-                fillMaxWidth().
-                height(80.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ){
+        searchHomework = !searchHomework
+        changeStatus.value = false
+        println("Bir şeyler oldu")
+    }
 
-                get_buttons(content_of_assignment,0 , "Ödev Ekle", classexpanded, courseexpanded)
+    LaunchedEffect(sendedAssignment) {
 
-                get_buttons(content_of_assignment,1 , "Aktif Ödevler", classexpanded, courseexpanded)
 
-                get_buttons(content_of_assignment,2 ,"Geçmiş Ödevler", classexpanded, courseexpanded)
+        if (selectedFileContent != null && sendedAssignment != null){
 
-            }
+
+            teacherViewModel.addDocument(assignmentId =  sendedAssignment!!.id, shareddocument = selectedFileContent!!, context = context)
+
+        }else {
+            Toast.makeText(
+                context,
+                "Ödev atarken bir sorun oluştu",
+                Toast.LENGTH_SHORT
+            ).show()
         }
+    }
 
-        if (content_of_assignment.value == 0){
-            Card (
-                modifier = Modifier.offset(y = 85.dp).fillMaxSize().padding(4.dp).padding(bottom = 88.dp),
-                backgroundColor = Color.White,
-                shape = RoundedCornerShape(8.dp),
-                elevation = 6.dp
-            ){
-                LazyColumn (
-                    modifier = Modifier.fillMaxSize()
+
+
+    var docAdded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(docSuccess){
+        if (docSuccess){
+            println("Dosya başarı ile eklendi")
+        }else {
+            println("Dosya eklenemedi")
+            sendedAssignment?.let { teacherViewModel.deleteAssignment(it.id) }
+        }
+    }
+
+    LaunchedEffect(errorDoc){
+        if (sendedAssignment != null)
+            teacherViewModel.deleteAssignment(sendedAssignment!!.id)
+
+    }
+
+
+    LaunchedEffect(classStudents){
+        description = classStudents?.entries.toString()
+    }
+
+Box(
+modifier = Modifier
+    .fillMaxSize().
+    clickable(
+        onClick = {
+            classexpanded.value = false
+            courseexpanded.value = false
+            focusManagerTitle.clearFocus()
+            focusManagerDesc.clearFocus()
+        },
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null
+    )
+
+) {
+Card (
+    modifier = Modifier.
+        fillMaxWidth().
+        height(80.dp).
+        padding(4.dp),
+
+    elevation = 6.dp,
+    backgroundColor = Color.White,
+    shape = RoundedCornerShape(8.dp)
+) {
+    Row (
+        modifier = Modifier.
+        fillMaxWidth().
+        height(80.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceAround
+    ){
+
+        get_buttons(content_of_assignment,0 , "Ödev Ekle", classexpanded, courseexpanded)
+
+        get_buttons(content_of_assignment,1 , "Aktif Ödevler", classexpanded, courseexpanded)
+
+        get_buttons(content_of_assignment,2 ,"Geçmiş Ödevler", classexpanded, courseexpanded)
+
+    }
+}
+
+if (content_of_assignment.value == 0){
+    Card (
+        modifier = Modifier.offset(y = 85.dp).fillMaxSize().padding(4.dp).padding(bottom = 88.dp),
+        backgroundColor = Color.White,
+        shape = RoundedCornerShape(8.dp),
+        elevation = 6.dp
+    ){
+        LazyColumn (
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+
+                Box (
+                    modifier = Modifier.fillMaxWidth().height(800.dp)
                 ) {
-                    item {
 
-                        Box (
-                            modifier = Modifier.fillMaxWidth().height(800.dp)
-                        ) {
+                    Row(
+                        modifier = Modifier.offset(y = 700.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        Button(
 
-                            Row(
-                                modifier = Modifier.offset(y = 700.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center
+                            onClick = {
+                                //TODO
+                                if (title != "Başlık giriniz"  && selectedClass != "Sınıf Seçiniz" && selectedCourse != "Ders Seçiniz" && selectedDateLast != "gg.aa.yyyy"){
+                                    var newAssignment = teacherId?.let {
+                                        TeacherAssignmentRequest(
+                                            teacherId =  it,
+                                            title =  title,
+                                            description = description,
+                                            dueDate =  selectedDateLast,
+                                            classId =  selectedClassId,
+                                            courseId =  selectedCourseId,
+                                            document = null)
+                                    }
+
+                                    if (newAssignment != null) {
+                                        docAdded = true
+
+                                        teacherViewModel.addAssignment(newAssignment)
+
+                                    }
+
+
+                                }else {
+                                    Toast.makeText(
+                                        context,
+                                        "Eksik bilgi girdiniz",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+                                title = "Başlık giriniz"
+                                selectedClass = "Sınıf Seçiniz"
+                                selectedCourse = "Ders Seçiniz"
+                                selectedDateLast = "gg.aa.yyyy"
+                                description = "Açıklama giriniz"
+                                checkedDate = false
+
+
+
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color(0xFF334BBE )
+                            )
+
+                        ){
+                            Text(
+                                text = "Oluştur",
+                                color = Color.White
+                            )
+                        }
+                    }
+
+
+
+
+
+                    Box (
+                        modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(60.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+                    ){
+                        Row (
+                            modifier = Modifier.fillMaxSize()
+                        ){
+                            Button(
+                                modifier = Modifier.fillMaxHeight().fillMaxWidth(if (selectedFileContent == null)0.5f else 0.8f),
+
+                                onClick = {
+                                    if (selectedFileContent == null){
+
+                                        documentManager.launch()
+
+                                    }
+
+
+
+                                },
+
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color.White
+                                )
+
+
+
                             ){
-                                Button(
 
+                                Text(
+                                    text = if (fileName == "") "Dosya Seç" else fileName,
+                                    modifier = Modifier.fillMaxSize(),
+                                    textAlign = TextAlign.Center
+                                )
+
+                            }
+
+                            if (selectedFileContent == null){
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text (
+                                    text = "Dosya Seçilmedi",
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                            }else {
+                                IconButton(
                                     onClick = {
-                                        //TODO
-                                        if (title != "Başlık Giriniz"  && selectedClass != "Sınıf Seçiniz" && selectedCourse != "Ders Seçiniz" && selectedDateLast != "gg.aa.yyyy"){
-                                            var newAssignment = teacherId?.let {
-                                                TeacherAssignmentRequest(
-                                                    teacherId =  it,
-                                                    title =  title,
-                                                    description = description,
-                                                    dueDate =  selectedDateLast,
-                                                    classId =  selectedClassId,
-                                                    courseId =  selectedCourseId,
-                                                    document = null)
-                                            }
+                                        selectedFileContent = null
+                                        fileName = ""
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                ){
 
-                                            if (newAssignment != null) {
-                                                teacherViewModel.addAssignment(newAssignment)
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete file"
+                                    )
+                                }
+                            }
 
-                                                if (sendedAssignment == null){
-                                                    println("Allah Allahhh")
-                                                }else{
-                                                    println("Güzel")
-                                                }
-                                            }
 
-                                            if (selectedFileContent != "" && !isLoad ){
 
-                                                if (sendedAssignment == null){
-                                                    println("Sended ass neden nulll")
-                                                }else {
-                                                    println("tamamdır bir sorun yok")
-                                                }
 
-                                                sendedAssignment?.let { teacherViewModel.addDocument(it.id, selectedFileContent) }
+                        }
+                    }
 
-                                                println("HMMMMMMMMM")
+                    Box (
+                        modifier = Modifier.fillMaxWidth().height(100.dp).offset(y = 450.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                    ){
+                        BasicTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                .focusRequester(focusRequesterDesc).onFocusChanged { focusState: FocusState ->
+                                    isFocusedDesc = focusState.isFocused
+                                    if (isFocusedDesc && description == "Açıklama giriniz") {
+                                        description = "" // Clear placeholder text when focused
+                                    }
+                                }
+                        )
+                    }
 
-                                                if (!isLoad ){
-                                                    teacherViewModel.updateHomework(assignmentId = sendedAssignment!!.id,
-                                                        sendedAssignment!!.let {
-                                                            TeacherAssignmentRequest(
-                                                                teacherId!!,
-                                                                it.title,
-                                                                sendedAssignment!!.description,
-                                                                sendedAssignment!!.dueDate,
-                                                                sendedAssignment!!.classId,
-                                                                sendedAssignment!!.courseId,
-                                                                addedDoc?.let { it1 ->
-                                                                    AssignmentDocument(
-                                                                        sendedAssignment!!.id,
-                                                                        it1.documentId,
-                                                                        fileName,
-                                                                        "PDF",
-                                                                        filePath,
-                                                                        fileSize,
-                                                                        uploadTime,
-                                                                        username
-                                                                    )
-                                                                }
-                                                            )
-                                                        }
-                                                    )
-                                                }else{
-                                                    sendedAssignment?.let {
-                                                        teacherViewModel.deleteAssignment(
-                                                            it.id)
-                                                    }
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Dosyayı yüklerken bir sorun oluştu",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            }else {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Ödev atarken bir sorun oluştu",
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                            }
-                                        }else {
+                    Text (
+                        text = "   Açıklama",
+                        modifier = Modifier.offset(y = 430.dp).fillMaxWidth().height(20.dp)
+                    )
+
+
+
+
+
+                    Box (
+                        modifier = Modifier.fillMaxWidth().height(50.dp).offset(y = 350.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
+                    ){
+                        BasicTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
+                                .focusRequester(focusRequesterTitle).onFocusChanged { focusState: FocusState ->
+                                    isFocusedTitle = focusState.isFocused
+                                    if (isFocusedTitle && title == "Başlık giriniz") {
+                                        title = "" // Clear placeholder text when focused
+                                    }
+                                }
+                        )
+                    }
+
+                    Text (
+                        text = "   Başlık",
+                        modifier = Modifier.offset(y = 330.dp).fillMaxWidth().height(20.dp)
+                    )
+
+
+
+
+
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 250.dp)
+                            .fillMaxWidth()
+                            .clickable { dateExpanded = !dateExpanded }
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+
+                    ) {
+                        Text(text = if (checkedDate) selectedDateLast else "Bitiş tarihini seçiniz", color = Color.Black)
+                    }
+
+
+
+                    if (dateExpanded){
+                        val datePickerState = rememberDatePickerState()
+                        DatePickerDialog(
+                            onDismissRequest = { /*TODO*/  },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                        val selectedDate = Calendar.getInstance().apply {
+                                            timeInMillis = datePickerState.selectedDateMillis!!
+                                        }
+                                        if (selectedDate.after(Calendar.getInstance())) {
                                             Toast.makeText(
                                                 context,
-                                                "Eksik bilgi girdiniz",
+                                                "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            selectedDateLast = dateFormatter.format(selectedDate.time)
+                                            dateExpanded = false
+                                            checkedDate = true
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Seçilen tarih geçmemiş bir tarih olmalı lütfen başka bir tarih seçiniz",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
+                                    }
+                                ) { Text("Tamam") }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        dateExpanded= false
+                                    }
+                                ) { Text("İptal") }
+                            }
+                        )
+                        {
+                            DatePicker(state = datePickerState)
+                        }
+
+                    }
+
+                    Text (
+                        text = "   Bitiş Tarihi",
+                        modifier = Modifier.offset(y = 230.dp).fillMaxWidth().height(20.dp)
+                    )
 
 
 
+
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 150.dp)
+                            .fillMaxWidth()
+                            .clickable { if (selectedClass != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+
+                    ) {
+                        selectedCourse?.let { Text(text = it, color = Color.Black) }
+                    }
+
+
+                    if (courseexpanded.value){
+                        LazyColumn (
+                            modifier = Modifier.fillMaxWidth().height(130.dp ).
+                            background(Color.Transparent).
+                            offset(y = 195.dp)
+                        ){
+
+
+                            courses.forEach { option ->
+                                item {
+                                    Row (
+                                        modifier = Modifier.fillMaxWidth().height(40.dp).
+                                        clickable(
+                                            onClick = {
+                                                selectedCourse = option.name
+                                                selectedCourseId = option.id
+                                                courseexpanded.value = false
+                                                print("Clicked\n")
+                                            }
+                                        ).background(color = Color.White)
+                                    ){
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        option.name?.let {
+                                            Text(
+                                                text = it
+                                            )
+                                        }
+                                    }
+
+                                }
+                            }
+
+
+                        }
+                    }
+
+
+                    Text (
+                        text = "   Ders Adı",
+                        modifier = Modifier.offset(y = 130.dp).fillMaxWidth().height(20.dp)
+                    )
+
+
+
+
+
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 50.dp)
+                            .fillMaxWidth()
+                            .clickable { classexpanded.value = !classexpanded.value }
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+
+                    ) {
+                        Text(text = selectedClass, color = Color.Black)
+                    }
+
+
+
+                    if (classexpanded.value){
+                        LazyColumn (
+                            modifier = Modifier.fillMaxWidth().height( 130.dp ).
+                            background(Color.Transparent).
+                            offset(y = 95.dp)
+                        ){
+                            classes.forEach { option ->
+                                item {
+                                    Row (
+                                        modifier = Modifier.fillMaxWidth().height(40.dp).
+                                        clickable(
+                                            onClick = {
+                                                selectedClass = option.name
+                                                selectedClassId = option.id
+                                                classexpanded.value = false
+                                                print("Clicked\n")
+                                            }
+                                        ).background(color = Color.White)
+                                    ){
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = option.name
+                                        )
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+
+
+                    Text (
+                        text = "   Sınıf Adı",
+                        modifier = Modifier.offset(y = 30.dp).fillMaxWidth().height(20.dp)
+                    )
+
+
+                }
+
+            }
+
+
+
+
+        }
+    }
+
+}else if (content_of_assignment.value == 1){
+
+    Box (
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+
+        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f ).background(Color.Red)) {
+            if (!refreshLazyColumn){
+                refreshLazyColumn = true
+            }else{
+                teacherAssignments.forEach { assignment ->
+                    item {
+                        Spacer(modifier = Modifier.height(15.dp))
+                    }
+
+                    item {
+
+                        DisplayHomeworks(assignment, username, teacherViewModel, teacherId, changeStatus, mode)
+                    }
+
+
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(15.dp))
+                }
+            }
+
+
+        }
+
+
+
+
+
+
+        Card(
+            modifier = Modifier.fillMaxWidth().height(if (searchExpand) 430.dp else 80.dp).offset(y = 80.dp).padding(4.dp),
+            elevation = 6.dp,
+            shape = RoundedCornerShape(8.dp)
+
+        ){
+
+            LazyColumn {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height( 80.dp).
+                        clickable{
+                            searchExpand = !searchExpand
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+                        Text(
+                            text = "Ödev Ara",
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                            textAlign = TextAlign.Center
+                        )
+
+                        Icon(
+                            imageVector = if (searchExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().padding(10.dp)
+                        )
+                    }
+
+                    if (searchExpand){
+                        Divider(modifier = Modifier.fillMaxWidth())
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Box (
+                            modifier = Modifier.fillMaxSize()
+                        ){
+
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(80.dp).offset(y = 260.dp),
+
+                                ){
+                                Button(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    onClick = {
+                                        searchExpand = !searchExpand
+                                        mode.value = true
+                                        searchHomework = !searchHomework
 
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -971,144 +1849,24 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                                 ){
                                     Text(
-                                        text = "Oluştur",
+                                        text = "Ara",
                                         color = Color.White
                                     )
                                 }
                             }
 
 
-
-
-
-                            Box (
-                                modifier = Modifier.offset(y = 600.dp).fillMaxWidth().height(60.dp)
-                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ){
-                                Row (
-                                    modifier = Modifier.fillMaxSize()
-                                ){
-                                    Button(
-                                        modifier = Modifier.fillMaxHeight().fillMaxWidth(if (selectedFileContent == "")0.5f else 0.8f),
-
-                                        onClick = {
-                                            if (selectedFileContent == ""){
-
-                                                documentManager.launch()
-
-                                            }
-
-
-
-                                        },
-
-                                        colors = ButtonDefaults.buttonColors(
-                                            backgroundColor = Color.White
-                                        )
-
-
-
-                                    ){
-
-                                        Text(
-                                            text = if (fileName == "") "Dosya Seç" else fileName,
-                                            modifier = Modifier.fillMaxSize(),
-                                            textAlign = TextAlign.Center
-                                        )
-
-                                    }
-
-                                    if (selectedFileContent == ""){
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text (
-                                            text = "Dosya Seçilmedi",
-                                            modifier = Modifier.align(Alignment.CenterVertically)
-                                        )
-                                    }else {
-                                        IconButton(
-                                            onClick = {
-                                                selectedFileContent = ""
-                                                fileName = ""
-                                            },
-                                            modifier = Modifier.fillMaxSize()
-                                        ){
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Delete file"
-                                            )
-                                        }
-                                    }
-
-
-
-
-                                }
-                            }
-
-                            Box (
-                                modifier = Modifier.fillMaxWidth().height(100.dp).offset(y = 450.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
-                            ){
-                                BasicTextField(
-                                    value = description,
-                                    onValueChange = { description = it },
-                                    modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
-                                        .focusRequester(focusRequesterDesc).onFocusChanged { focusState: FocusState ->
-                                            isFocusedDesc = focusState.isFocused
-                                            if (isFocusedDesc && description == "Açıklama giriniz") {
-                                                description = "" // Clear placeholder text when focused
-                                            }
-                                        }
-                                )
-                            }
-
-                            Text (
-                                text = "   Açıklama",
-                                modifier = Modifier.offset(y = 430.dp).fillMaxWidth().height(20.dp)
-                            )
-
-
-
-
-
-                            Box (
-                                modifier = Modifier.fillMaxWidth().height(50.dp).offset(y = 350.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
-                            ){
-                                BasicTextField(
-                                    value = title,
-                                    onValueChange = { title = it },
-                                    modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
-                                        .focusRequester(focusRequesterTitle).onFocusChanged { focusState: FocusState ->
-                                            isFocusedTitle = focusState.isFocused
-                                            if (isFocusedTitle && title == "Başlık giriniz") {
-                                                title = "" // Clear placeholder text when focused
-                                            }
-                                        }
-                                )
-                            }
-
-                            Text (
-                                text = "   Başlık",
-                                modifier = Modifier.offset(y = 330.dp).fillMaxWidth().height(20.dp)
-                            )
-
-
-
-
-
                             Box(
                                 modifier = Modifier
-                                    .offset(y = 250.dp)
+                                    .offset(y = 220.dp)
                                     .fillMaxWidth()
                                     .clickable { dateExpanded = !dateExpanded }
                                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                     .padding(12.dp)
 
                             ) {
-                                Text(text = if (checkedDate) selectedDateLast else "Bitiş tarihini seçiniz", color = Color.Black)
+                                Text(text = if (checkedDate) selectedDateLastSearch else "Bitiş tarihini seçiniz", color = Color.Black)
                             }
-
-
 
                             if (dateExpanded){
                                 val datePickerState = rememberDatePickerState()
@@ -1127,7 +1885,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                                         "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
                                                         Toast.LENGTH_SHORT
                                                     ).show()
-                                                    selectedDateLast = dateFormatter.format(selectedDate.time)
+                                                    selectedDateLastSearch = dateFormatter.format(selectedDate.time)
                                                     dateExpanded = false
                                                     checkedDate = true
                                                 } else {
@@ -1156,7 +1914,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                             Text (
                                 text = "   Bitiş Tarihi",
-                                modifier = Modifier.offset(y = 230.dp).fillMaxWidth().height(20.dp)
+                                modifier = Modifier.offset(y = 200.dp).fillMaxWidth().height(20.dp)
                             )
 
 
@@ -1164,33 +1922,32 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                             Box(
                                 modifier = Modifier
-                                    .offset(y = 150.dp)
+                                    .offset(y = 120.dp)
                                     .fillMaxWidth()
-                                    .clickable { if (selectedClass != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
+                                    .clickable { if (selectedClassSearch != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
                                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                     .padding(12.dp)
 
                             ) {
-                                selectedCourse?.let { Text(text = it, color = Color.Black) }
+                                selectedCourseSearch?.let { Text(text = it, color = Color.Black) }
                             }
+
 
 
                             if (courseexpanded.value){
                                 LazyColumn (
                                     modifier = Modifier.fillMaxWidth().height(130.dp ).
                                     background(Color.Transparent).
-                                    offset(y = 195.dp)
+                                    offset(y = 165.dp)
                                 ){
-
-
-                                    courses.forEach { option ->
+                                    coursesSearch.forEach { option ->
                                         item {
                                             Row (
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedCourse = option.name
-                                                        selectedCourseId = option.id
+                                                        selectedCourseSearch = option.name
+                                                        selectedCourseSearchId = option.id
                                                         courseexpanded.value = false
                                                         print("Clicked\n")
                                                     }
@@ -1206,15 +1963,13 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                                         }
                                     }
-
-
                                 }
                             }
 
 
                             Text (
                                 text = "   Ders Adı",
-                                modifier = Modifier.offset(y = 130.dp).fillMaxWidth().height(20.dp)
+                                modifier = Modifier.offset(y = 100.dp).fillMaxWidth().height(20.dp)
                             )
 
 
@@ -1223,14 +1978,14 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                             Box(
                                 modifier = Modifier
-                                    .offset(y = 50.dp)
+                                    .offset(y = 20.dp)
                                     .fillMaxWidth()
                                     .clickable { classexpanded.value = !classexpanded.value }
                                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                     .padding(12.dp)
 
                             ) {
-                                Text(text = selectedClass, color = Color.Black)
+                                Text(text = selectedClassSearch, color = Color.Black)
                             }
 
 
@@ -1239,7 +1994,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                 LazyColumn (
                                     modifier = Modifier.fillMaxWidth().height( 130.dp ).
                                     background(Color.Transparent).
-                                    offset(y = 95.dp)
+                                    offset(y = 65.dp)
                                 ){
                                     classes.forEach { option ->
                                         item {
@@ -1247,8 +2002,8 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedClass = option.name
-                                                        selectedClassId = option.id
+                                                        selectedClassSearch = option.name
+                                                        selectedClassSearchId = option.id
                                                         classexpanded.value = false
                                                         print("Clicked\n")
                                                     }
@@ -1268,541 +2023,296 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
                             Text (
                                 text = "   Sınıf Adı",
-                                modifier = Modifier.offset(y = 30.dp).fillMaxWidth().height(20.dp)
+                                modifier = Modifier.fillMaxWidth().height(20.dp)
                             )
-
-
                         }
-
-                    }
-
-
-
-
-                }
-            }
-
-        }else if (content_of_assignment.value == 1){
-
-            Box (
-                modifier = Modifier.fillMaxSize()
-            ) {
-
-                LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize().background(Color.Red)) {
-                    teacherAssignments.forEach { assignment ->
-                        item {
-                            Spacer(modifier = Modifier.height(15.dp))
-                        }
-
-                        item {
-
-                            DisplayHomeworks(assignment, username, teacherViewModel)
-                        }
-
-
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(15.dp))
                     }
                 }
-
-                Text (
-                    text = "Exploosion",
-                    modifier = Modifier.offset(y = 170.dp).padding(start = 4.dp)
-                )
-
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(if (searchExpand) 430.dp else 80.dp).offset(y = 80.dp).padding(4.dp),
-                    elevation = 6.dp,
-                    shape = RoundedCornerShape(8.dp)
-
-                ){
-
-                    LazyColumn {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().height( 80.dp).
-                                clickable{
-                                    searchExpand = !searchExpand
-                                },
-                                verticalAlignment = Alignment.CenterVertically
-                            ){
-                                Text(
-                                    text = "Ödev Ara",
-                                    modifier = Modifier.fillMaxWidth(0.85f),
-                                    textAlign = TextAlign.Center
-                                )
-
-                                Icon(
-                                    imageVector = if (searchExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize().padding(10.dp)
-                                )
-                            }
-
-                            if (searchExpand){
-                                Divider(modifier = Modifier.fillMaxWidth())
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Box (
-                                    modifier = Modifier.fillMaxSize()
-                                ){
-
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().height(80.dp).offset(y = 260.dp),
-
-                                        ){
-                                        Button(
-                                            modifier = Modifier.align(Alignment.Center),
-                                            onClick = {
-                                                searchExpand = !searchExpand
-                                                searchHomework = !searchHomework
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                backgroundColor = Color(0xFF334BBE )
-                                            )
-
-                                        ){
-                                            Text(
-                                                text = "Ara",
-                                                color = Color.White
-                                            )
-                                        }
-                                    }
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 220.dp)
-                                            .fillMaxWidth()
-                                            .clickable { dateExpanded = !dateExpanded }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        Text(text = if (checkedDate) selectedDateLastSearch else "Bitiş tarihini seçiniz", color = Color.Black)
-                                    }
-
-                                    if (dateExpanded){
-                                        val datePickerState = rememberDatePickerState()
-                                        DatePickerDialog(
-                                            onDismissRequest = { /*TODO*/  },
-                                            confirmButton = {
-                                                TextButton(
-                                                    onClick = {
-                                                        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                                        val selectedDate = Calendar.getInstance().apply {
-                                                            timeInMillis = datePickerState.selectedDateMillis!!
-                                                        }
-                                                        if (selectedDate.after(Calendar.getInstance())) {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                            selectedDateLastSearch = dateFormatter.format(selectedDate.time)
-                                                            dateExpanded = false
-                                                            checkedDate = true
-                                                        } else {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Seçilen tarih geçmemiş bir tarih olmalı lütfen başka bir tarih seçiniz",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                    }
-                                                ) { Text("Tamam") }
-                                            },
-                                            dismissButton = {
-                                                TextButton(
-                                                    onClick = {
-                                                        dateExpanded= false
-                                                    }
-                                                ) { Text("İptal") }
-                                            }
-                                        )
-                                        {
-                                            DatePicker(state = datePickerState)
-                                        }
-
-                                    }
-
-                                    Text (
-                                        text = "   Bitiş Tarihi",
-                                        modifier = Modifier.offset(y = 200.dp).fillMaxWidth().height(20.dp)
-                                    )
-
-
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 120.dp)
-                                            .fillMaxWidth()
-                                            .clickable { if (selectedClassSearch != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        selectedCourseSearch?.let { Text(text = it, color = Color.Black) }
-                                    }
-
-
-
-                                    if (courseexpanded.value){
-                                        LazyColumn (
-                                            modifier = Modifier.fillMaxWidth().height(130.dp ).
-                                            background(Color.Transparent).
-                                            offset(y = 165.dp)
-                                        ){
-                                            coursesSearch.forEach { option ->
-                                                item {
-                                                    Row (
-                                                        modifier = Modifier.fillMaxWidth().height(40.dp).
-                                                        clickable(
-                                                            onClick = {
-                                                                selectedCourseSearch = option.name
-                                                                selectedCourseSearchId = option.id
-                                                                courseexpanded.value = false
-                                                                print("Clicked\n")
-                                                            }
-                                                        ).background(color = Color.White)
-                                                    ){
-                                                        Spacer(modifier = Modifier.width(10.dp))
-                                                        option.name?.let {
-                                                            Text(
-                                                                text = it
-                                                            )
-                                                        }
-                                                    }
-
-                                                }
-                                            }
-                                        }
-                                    }
-
-
-                                    Text (
-                                        text = "   Ders Adı",
-                                        modifier = Modifier.offset(y = 100.dp).fillMaxWidth().height(20.dp)
-                                    )
-
-
-
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 20.dp)
-                                            .fillMaxWidth()
-                                            .clickable { classexpanded.value = !classexpanded.value }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        Text(text = selectedClassSearch, color = Color.Black)
-                                    }
-
-
-
-                                    if (classexpanded.value){
-                                        LazyColumn (
-                                            modifier = Modifier.fillMaxWidth().height( 130.dp ).
-                                            background(Color.Transparent).
-                                            offset(y = 65.dp)
-                                        ){
-                                            classes.forEach { option ->
-                                                item {
-                                                    Row (
-                                                        modifier = Modifier.fillMaxWidth().height(40.dp).
-                                                        clickable(
-                                                            onClick = {
-                                                                selectedClassSearch = option.name
-                                                                selectedClassSearchId = option.id
-                                                                classexpanded.value = false
-                                                                print("Clicked\n")
-                                                            }
-                                                        ).background(color = Color.White)
-                                                    ){
-                                                        Spacer(modifier = Modifier.width(10.dp))
-                                                        Text(
-                                                            text = option.name
-                                                        )
-                                                    }
-
-                                                }
-                                            }
-                                        }
-                                    }
-
-
-                                    Text (
-                                        text = "   Sınıf Adı",
-                                        modifier = Modifier.fillMaxWidth().height(20.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                    }
-
-                }
-
 
             }
 
-        }else if (content_of_assignment.value == 2){
-            Box (
-                modifier = Modifier.fillMaxSize()
-            ) {
-
-                Text (
-                    text = "Exploosion",
-                    modifier = Modifier.offset(y = 170.dp).padding(start = 4.dp)
-                )
-
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(if (pastExpand) 430.dp else 80.dp).offset(y = 80.dp).padding(4.dp),
-                    elevation = 6.dp,
-                    shape = RoundedCornerShape(8.dp)
-
-                ){
-                    LazyColumn {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().height( 80.dp).
-                                clickable{
-                                    pastExpand = !pastExpand
-                                },
-                                verticalAlignment = Alignment.CenterVertically
-                            ){
-                                Text(
-                                    text = "Ödev Ara",
-                                    modifier = Modifier.fillMaxWidth(0.85f),
-                                    textAlign = TextAlign.Center
-                                )
-
-                                Icon(
-                                    imageVector = if (pastExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize().padding(10.dp)
-                                )
-                            }
-
-                            if (pastExpand){
-                                Divider(modifier = Modifier.fillMaxWidth())
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Box (
-                                    modifier = Modifier.fillMaxSize()
-                                ){
-
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().height(80.dp).offset(y = 260.dp),
-
-                                        ){
-                                        Button(
-                                            modifier = Modifier.align(Alignment.Center),
-                                            onClick = {
-                                                pastExpand = !pastExpand
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                backgroundColor = Color(0xFF334BBE )
-                                            )
-
-                                        ){
-                                            Text(
-                                                text = "Ara",
-                                                color = Color.White
-                                            )
-                                        }
-                                    }
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 220.dp)
-                                            .fillMaxWidth()
-                                            .clickable { dateExpanded = !dateExpanded }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        Text(text = if (checkedDate) selectedDateLastPast else "Bitiş tarihini seçiniz", color = Color.Black)
-                                    }
-
-
-
-                                    if (dateExpanded){
-                                        val datePickerState = rememberDatePickerState()
-                                        DatePickerDialog(
-                                            onDismissRequest = { /*TODO*/  },
-                                            confirmButton = {
-                                                TextButton(
-                                                    onClick = {
-                                                        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                                        val selectedDate = Calendar.getInstance().apply {
-                                                            timeInMillis = datePickerState.selectedDateMillis!!
-                                                        }
-                                                        if (selectedDate.before(Calendar.getInstance())) {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                            selectedDateLastPast = dateFormatter.format(selectedDate.time)
-                                                            dateExpanded = false
-                                                            checkedDate = true
-                                                        } else {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Seçilen tarih geçmiş bir tarih olmalı lütfen başka bir tarih seçiniz",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                    }
-                                                ) { Text("Tamam") }
-                                            },
-                                            dismissButton = {
-                                                TextButton(
-                                                    onClick = {
-                                                        dateExpanded= false
-                                                    }
-                                                ) { Text("İptal") }
-                                            }
-                                        )
-                                        {
-                                            DatePicker(state = datePickerState)
-                                        }
-
-                                    }
-
-                                    Text (
-                                        text = "   Bitiş Tarihi",
-                                        modifier = Modifier.offset(y = 200.dp).fillMaxWidth().height(20.dp)
-                                    )
-
-
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 120.dp)
-                                            .fillMaxWidth()
-                                            .clickable { if (selectedClassPast != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        selectedCoursePast?.let { Text(text = it, color = Color.Black) }
-                                    }
-
-
-
-                                    if (courseexpanded.value){
-                                        LazyColumn (
-                                            modifier = Modifier.fillMaxWidth().height(130.dp ).
-                                            background(Color.Transparent).
-                                            offset(y = 165.dp)
-                                        ){
-                                            coursesPast.forEach { option ->
-                                                item {
-                                                    Row (
-                                                        modifier = Modifier.fillMaxWidth().height(40.dp).
-                                                        clickable(
-                                                            onClick = {
-                                                                selectedCoursePast = option.name
-                                                                selectedCoursePastId = option.id
-                                                                courseexpanded.value = false
-                                                                print("Clicked\n")
-                                                            }
-                                                        ).background(color = Color.White)
-                                                    ){
-                                                        Spacer(modifier = Modifier.width(10.dp))
-                                                        option.name?.let { Text ( text = it) }
-                                                    }
-
-                                                }
-                                            }
-                                        }
-                                    }
-
-
-                                    Text (
-                                        text = "   Ders Adı",
-                                        modifier = Modifier.offset(y = 100.dp).fillMaxWidth().height(20.dp)
-                                    )
-
-
-
-
-
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = 20.dp)
-                                            .fillMaxWidth()
-                                            .clickable { classexpanded.value = !classexpanded.value }
-                                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-
-                                    ) {
-                                        Text(text = selectedClassPast, color = Color.Black)
-                                    }
-
-
-
-                                    if (classexpanded.value){
-                                        LazyColumn (
-                                            modifier = Modifier.fillMaxWidth().height( 130.dp ).
-                                            background(Color.Transparent).
-                                            offset(y = 65.dp)
-                                        ){
-                                            classes.forEach { option ->
-                                                item {
-                                                    Row (
-                                                        modifier = Modifier.fillMaxWidth().height(40.dp).
-                                                        clickable(
-                                                            onClick = {
-                                                                selectedClassPast = option.name
-                                                                selectedClassPastId = option.id
-                                                                classexpanded.value = false
-                                                                print("Clicked\n")
-                                                            }
-                                                        ).background(color = Color.White)
-                                                    ){
-                                                        Spacer(modifier = Modifier.width(10.dp))
-                                                        Text(
-                                                            text = option.name
-                                                        )
-                                                    }
-
-                                                }
-                                            }
-                                        }
-                                    }
-
-
-                                    Text (
-                                        text = "   Sınıf Adı",
-                                        modifier = Modifier.fillMaxWidth().height(20.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                    }
-
-                }
-
-
-            }
         }
 
 
     }
+
+}else if (content_of_assignment.value == 2){
+    Box (
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+
+        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f ).background(Color.Blue)) {
+            if (!refreshLazyColumn){
+                refreshLazyColumn = true
+            }else{
+                teacherAssignmentsPast.forEach { assignment ->
+                    item {
+                        Spacer(modifier = Modifier.height(15.dp))
+                    }
+
+                    item {
+
+                        DisplayPastHomeworks(assignment, username, teacherViewModel, teacherId, changeStatus, mode, classStudents, focusRequester)
+                    }
+
+
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(15.dp))
+                }
+            }
+
+
+        }
+
+
+
+
+        Card(
+            modifier = Modifier.fillMaxWidth().height(if (pastExpand) 430.dp else 80.dp).offset(y = 80.dp).padding(4.dp),
+            elevation = 6.dp,
+            shape = RoundedCornerShape(8.dp)
+
+        ){
+            LazyColumn {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height( 80.dp).
+                        clickable{
+                            pastExpand = !pastExpand
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+                        Text(
+                            text = "Ödev Ara",
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                            textAlign = TextAlign.Center
+                        )
+
+                        Icon(
+                            imageVector = if (pastExpand) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().padding(10.dp)
+                        )
+                    }
+
+                    if (pastExpand){
+                        Divider(modifier = Modifier.fillMaxWidth())
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Box (
+                            modifier = Modifier.fillMaxSize()
+                        ){
+
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(80.dp).offset(y = 260.dp),
+
+                                ){
+                                Button(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    onClick = {
+                                        pastExpand = !pastExpand
+                                        mode.value = false
+                                        searchHomework = !searchHomework
+                                        teacherViewModel.getClassStudents(selectedClassPastId)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = Color(0xFF334BBE )
+                                    )
+
+                                ){
+                                    Text(
+                                        text = "Ara",
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 220.dp)
+                                    .fillMaxWidth()
+                                    .clickable { dateExpanded = !dateExpanded }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
+
+                            ) {
+                                Text(text = if (checkedDate) selectedDateLastPast else "Bitiş tarihini seçiniz", color = Color.Black)
+                            }
+
+
+
+                            if (dateExpanded){
+                                val datePickerState = rememberDatePickerState()
+                                DatePickerDialog(
+                                    onDismissRequest = { /*TODO*/  },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                                val selectedDate = Calendar.getInstance().apply {
+                                                    timeInMillis = datePickerState.selectedDateMillis!!
+                                                }
+                                                if (selectedDate.before(Calendar.getInstance())) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Seçilen tarih ${dateFormatter.format(selectedDate.time)} kaydedildi",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    selectedDateLastPast = dateFormatter.format(selectedDate.time)
+                                                    dateExpanded = false
+                                                    checkedDate = true
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Seçilen tarih geçmiş bir tarih olmalı lütfen başka bir tarih seçiniz",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        ) { Text("Tamam") }
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                dateExpanded= false
+                                            }
+                                        ) { Text("İptal") }
+                                    }
+                                )
+                                {
+                                    DatePicker(state = datePickerState)
+                                }
+
+                            }
+
+                            Text (
+                                text = "   Bitiş Tarihi",
+                                modifier = Modifier.offset(y = 200.dp).fillMaxWidth().height(20.dp)
+                            )
+
+
+
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 120.dp)
+                                    .fillMaxWidth()
+                                    .clickable { if (selectedClassPast != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
+
+                            ) {
+                                selectedCoursePast?.let { Text(text = it, color = Color.Black) }
+                            }
+
+
+
+                            if (courseexpanded.value){
+                                LazyColumn (
+                                    modifier = Modifier.fillMaxWidth().height(130.dp ).
+                                    background(Color.Transparent).
+                                    offset(y = 165.dp)
+                                ){
+                                    coursesPast.forEach { option ->
+                                        item {
+                                            Row (
+                                                modifier = Modifier.fillMaxWidth().height(40.dp).
+                                                clickable(
+                                                    onClick = {
+                                                        selectedCoursePast = option.name
+                                                        selectedCoursePastId = option.id
+                                                        courseexpanded.value = false
+                                                        print("Clicked\n")
+                                                    }
+                                                ).background(color = Color.White)
+                                            ){
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                option.name?.let { Text ( text = it) }
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+
+
+                            Text (
+                                text = "   Ders Adı",
+                                modifier = Modifier.offset(y = 100.dp).fillMaxWidth().height(20.dp)
+                            )
+
+
+
+
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = 20.dp)
+                                    .fillMaxWidth()
+                                    .clickable { classexpanded.value = !classexpanded.value }
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
+
+                            ) {
+                                Text(text = selectedClassPast, color = Color.Black)
+                            }
+
+
+
+                            if (classexpanded.value){
+                                LazyColumn (
+                                    modifier = Modifier.fillMaxWidth().height( 130.dp ).
+                                    background(Color.Transparent).
+                                    offset(y = 65.dp)
+                                ){
+                                    classes.forEach { option ->
+                                        item {
+                                            Row (
+                                                modifier = Modifier.fillMaxWidth().height(40.dp).
+                                                clickable(
+                                                    onClick = {
+                                                        selectedClassPast = option.name
+                                                        selectedClassPastId = option.id
+                                                        classexpanded.value = false
+                                                        print("Clicked\n")
+                                                    }
+                                                ).background(color = Color.White)
+                                            ){
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    text = option.name
+                                                )
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+
+
+                            Text (
+                                text = "   Sınıf Adı",
+                                modifier = Modifier.fillMaxWidth().height(20.dp)
+                            )
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+
+    }
+}
+
+
+}
 }
 
 // Burayı halledeceğim bir şekil

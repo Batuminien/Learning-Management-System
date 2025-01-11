@@ -15,7 +15,7 @@ expect class DocumentManager(
 expect class SharedDocument {
     fun toByteArray(): ByteArray?
     fun toText(): String?
-    fun fileName(): String?
+    fun getFileName(): String?
     fun filePath(): String?
     fun fileSize(): Long?
 }

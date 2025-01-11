@@ -5,6 +5,7 @@ import com.example.loginmultiplatform.model.AssignmentDocument
 import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
+import com.example.loginmultiplatform.model.BulkGradeRequest
 import com.example.loginmultiplatform.model.CourseStatisticsResponse
 import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
@@ -23,6 +24,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
@@ -136,11 +138,13 @@ interface ApiService {
         @Body newAssignment: TeacherAssignmentRequest
     ) : ResponseWrapper<TeacherAssignmentResponse>
 
-    @POST("/api/v1/assignments/{assignmentId}/documents")
-    suspend fun newDocument (
+
+    @Multipart
+    @POST("api/v1/assignments/{assignmentId}/documents")
+    suspend fun uploadDocument(
         @Path("assignmentId") assignmentId: Long,
-        @Body newDocument : String
-    ) : ResponseWrapper<AssignmentDocument>
+        @Part file: MultipartBody.Part
+    ): ResponseWrapper<AssignmentDocument>
 
     @DELETE("/api/v1/assignments/{assignmentId}")
     suspend fun deleteAssignment(
@@ -159,6 +163,18 @@ interface ApiService {
         @Query("courseId") courseId: Int,
         @Query("dueDate") dueDate: String
     ): ResponseWrapper<List<TeacherAssignmentResponse>>
+
+    @PATCH("/api/v1/assignments/{assignmentId}/bulk-grade")
+    suspend fun bulkGradeSubmissions (
+        @Path("assignmentId") assignmentId: Long,
+        @Body bulkGrades : BulkGradeRequest
+    ) : ResponseWrapper<TeacherAssignmentResponse>
+
+
+    @GET("/api/v1/classes/{id}")
+    suspend fun getClass(
+        @Path("id") classId: Int
+    ): ResponseWrapper<StudentClassResponse>
 
     @GET("/api/v1/profile-photo/{userId}")
     suspend fun fetchProfilePhoto (
