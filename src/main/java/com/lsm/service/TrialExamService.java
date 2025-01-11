@@ -23,7 +23,9 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
@@ -34,6 +36,7 @@ import javax.annotation.PostConstruct;
 public class TrialExamService {
 
     private final AppUserRepository appUserRepository;
+    private final AppUserService appUserService;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -205,10 +208,9 @@ public class TrialExamService {
                       startColumnMathL   = new ArrayList<>(), endColumnMathL   = new ArrayList<>(),
                       startColumnFenL    = new ArrayList<>(), endColumnFenL    = new ArrayList<>();
 
-        BufferedReader reader = new BufferedReader(new StringReader(textContent));
-        String line;
-
         try {
+            BufferedReader reader = new BufferedReader(new StringReader(textContent));
+            String line;
             while ((line = reader.readLine()) != null) {
                 line = convertToTurkishChars(line);
                 int startColumnName = 0, endColumnName = 0,
@@ -272,222 +274,134 @@ public class TrialExamService {
                     endColumnPhoneL.add(phoneMatcher.end());
                 }
             }
+            reader.close();
         } catch (IOException e) {
             log.error("Exception occurred while processing text files: {}", e.getMessage(), e);
             throw new RuntimeException("Exception occurred while processing text files: " + e.getMessage(), e);
         }
 
-        // lists are completed now. TODO: check lists to find actual start and end columns
+        Integer mceName = findMostCommonElement(startColumnNameL);
+        int endName = endColumnNameL.stream().max(Integer::compare).get();
 
-        return "";
-    }
+        Integer mceTc = findMostCommonElement(startColumnTCL);
+        int endTc = endColumnTCL.stream().max(Integer::compare).get();
 
-    private List<String> extractSections(String line) {
-        List<String> sections = new ArrayList<>();
-        StringBuilder currentSection = new StringBuilder();
-        boolean inAnswerSection = false;
-        int answerCount = 0;
+        Integer mcePhone = findMostCommonElement(startColumnPhoneL);
+        int endPhone = endColumnPhoneL.stream().max(Integer::compare).get();
 
-        for (char c : line.toCharArray()) {
-            if (ANSWER_PATTERN.matcher(String.valueOf(c)).matches()) {
-                if (!inAnswerSection) {
-                    if (!currentSection.isEmpty()) {
-                        sections.add(currentSection.toString());
-                    }
-                    currentSection = new StringBuilder();
-                    inAnswerSection = true;
+        Integer mceFen = findMostCommonElement(startColumnFenL);
+        int endFen = endColumnNameL.stream().max(Integer::compare).get();
+
+        Integer mceMath = findMostCommonElement(startColumnMathL);
+        int endMath = endColumnNameL.stream().max(Integer::compare).get();
+
+        Integer mceSosyal = findMostCommonElement(startColumnSosyalL);
+        int endSosyal = endColumnNameL.stream().max(Integer::compare).get();
+
+        Integer mceTurkce = findMostCommonElement(startColumnTurkceL);
+        int endTurkce = endColumnNameL.stream().max(Integer::compare).get();
+
+        StringBuilder csv = new StringBuilder();
+        String csvHeader = "İsim,Sınıf,TC,Telefon,Turkce,Sosyal,Matematik,Fen\n";
+        csv.append(csvHeader);
+
+        try {
+            BufferedReader reader = new BufferedReader(new StringReader(textContent));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                StringBuilder csvLine = new StringBuilder();
+                String name = line.substring(mceName, endName);
+                String tc = line.substring(mceTc, endTc);
+                String phone = line.substring(mcePhone, endPhone);
+
+                // TODO: validate student with repo
+                AppUser student = appUserRepository.findByNamePlusSurname(name)
+                        .orElse(null);
+                AppUser studentByTc = null;
+                AppUser studentByPhone = null;
+                if (student == null) {
+                    if (tc.length() == 11)
+                        studentByTc = appUserRepository.getByStudentDetails_Tc(tc).orElse(null);
+                    if (phone.length() == 11)
+                        studentByPhone = appUserRepository.getByStudentDetails_phone(phone).orElse(null);
                 }
-                currentSection.append(c);
-                answerCount++;
 
-                // Check for section breaks based on expected lengths
-                if ((sections.isEmpty() && answerCount == 40) || // Turkce
-                        (sections.size() == 1 && answerCount == 20) || // Sosyal
-                        (sections.size() == 2 && answerCount == 40) || // Matematik
-                        (sections.size() == 3 && answerCount == 20)) { // Fen
-                    sections.add(currentSection.toString());
-                    currentSection = new StringBuilder();
-                    answerCount = 0;
-                    inAnswerSection = false;
-                }
-            } else if (inAnswerSection) {
-                currentSection.append(c);
+                // TODO: create PastExam and save it
+
+                String turkce = line.substring(mceTurkce, endTurkce);
+                String sosyal = line.substring(mceSosyal, endSosyal);
+                String math = line.substring(mceMath, endMath);
+                String fen = line.substring(mceFen, endFen);
+
+                csvLine.append(name);
+                csvLine.append(tc);
+                csvLine.append(phone);
+                csvLine.append(turkce);
+                csvLine.append(sosyal);
+                csvLine.append(math);
+                csvLine.append(fen);
+
+                csv.append(csvLine);
             }
+            reader.close();
+        } catch (IOException e) {
+            log.error("Exception occurred while processing text files: {}", e.getMessage(), e);
+            throw new RuntimeException("Exception occurred while processing text files: " + e.getMessage(), e);
         }
 
-        if (!currentSection.isEmpty()) {
-            sections.add(currentSection.toString());
-        }
-
-        return sections;
-    }
-
-    private String extractPhoneNumber(String line) {
-        Pattern phonePattern = Pattern.compile("\\d{10,11}");
-        Matcher matcher = phonePattern.matcher(line);
-        List<String> numbers = new ArrayList<>();
-
-        while (matcher.find()) {
-            String number = matcher.group();
-            if (number.startsWith("05")) { // Turkish mobile number format
-                return number;
-            }
-            numbers.add(number);
-        }
-
-        // If no phone number with "05" prefix found, return empty
-        return "";
+        return csv.toString();
     }
 
 
     private String convertAnswerKeyToCsvAYT(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
-
-        // Split content into lines
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
-        }
-
-        return csvContent.toString();
+        // TODO: to be implemented
+        return "";
     }
 
     private String convertResultsToCsvAYT(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
-
-        // Split content into lines
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
-        }
-
-        return csvContent.toString();
+        // TODO: to be implemented
+        return "";
     }
 
     private String convertAnswerKeyToCsvYDT(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
-
-        // Split content into lines
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
-        }
-
-        return csvContent.toString();
+        // TODO: to be implemented
+        return "";
     }
 
     private String convertResultsToCsvYDT(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
-
-        // Split content into lines
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
-        }
-
-        return csvContent.toString();
+        // TODO: to be implemented
+        return "";
     }
 
     private String convertAnswerKeyToCsvLGS(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
-
-        // Split content into lines
-        String[] lines = textContent.split("\n");
-
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
-        }
-
-        return csvContent.toString();
+        // TODO: to be implemented
+        return "";
     }
 
     private String convertResultsToCsvLGS(String textContent) {
-        StringBuilder csvContent = new StringBuilder();
+        // TODO: to be implemented
+        return "";
+    }
 
-        // Split content into lines
-        String[] lines = textContent.split("\n");
+    private static <T> T findMostCommonElement(List<T> list) {
+        HashMap<T, Integer> countMap = new HashMap<>();
 
-        for (String line : lines) {
-            // Remove any leading/trailing whitespace
-            line = line.trim();
-
-            if (!line.isEmpty()) {
-                line = convertToTurkishChars(line);
-
-                // Split line into parts (assuming space or tab separation in text file)
-                String[] parts = line.split("\\s+");
-
-                // Join parts with commas for CSV format
-                String csvLine = String.join(",", parts);
-                csvContent.append(csvLine).append("\n");
-            }
+        // Count occurrences of each element
+        for (T element : list) {
+            countMap.put(element, countMap.getOrDefault(element, 0) + 1);
         }
 
-        return csvContent.toString();
+        // Find the element with the maximum count
+        T mostCommonElement = null;
+        int maxCount = 0;
+
+        for (Map.Entry<T, Integer> entry : countMap.entrySet()) {
+            if (entry.getValue() > maxCount) {
+                maxCount = entry.getValue();
+                mostCommonElement = entry.getKey();
+            }
+        }
+        return mostCommonElement;
     }
 
     private String convertToTurkishChars(String text) {

@@ -58,4 +58,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     @Query("SELECT u FROM AppUser  u WHERE CONCAT(u.name, ' ', u.surname) LIKE %:fullName%")
     Optional<AppUser> findByNamePlusSurname(@Param("fullName") String fullName);
+
+    Optional<AppUser> getByStudentDetails_Tc(String studentDetailsTc);
+
+    Optional<AppUser> getByStudentDetails_phone(String studentDetailsTc);
 }

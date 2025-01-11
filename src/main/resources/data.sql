@@ -185,8 +185,8 @@ INSERT INTO attendance (id, student_id, date_a, attendance, comment, class_id, c
      (SELECT id FROM courses WHERE code = 'MAT-1'));
 
 -- Insert sample TYT exam
-INSERT INTO past_exams (id, name, exam_type, overall_average) VALUES
-    (nextval('past_exams_seq'), '2024 Ocak TYT Deneme', 'TYT', 65.75);
+INSERT INTO past_exams (id, name, exam_date, exam_type, overall_average) VALUES
+    (nextval('past_exams_seq'), '2024 Ocak TYT Deneme', '2024-01-15 10:00:00', 'TYT', 65.75);
 
 -- Insert student exam results for student1 (Alice Brown)
 INSERT INTO student_exam_results (id, exam_id, student_id) VALUES
@@ -239,8 +239,8 @@ INSERT INTO subject_results (id, exam_result_id, subject_name, correct_answers, 
                                                                                                                                   'Fen Bilimleri', 16, 4, 0, 15.0);
 
 -- Insert sample AYT exam
-INSERT INTO past_exams (id, name, exam_type, overall_average) VALUES
-    (nextval('past_exams_seq'), '2024 Ocak AYT Deneme', 'AYT', 58.25);
+INSERT INTO past_exams (id, name, exam_date, exam_type, overall_average) VALUES
+    (nextval('past_exams_seq'), '2024 Ocak AYT Deneme', '2024-01-15 10:15:00', 'AYT', 58.25);
 
 -- Insert student exam results for student1 (Alice Brown) - AYT
 INSERT INTO student_exam_results (id, exam_id, student_id) VALUES

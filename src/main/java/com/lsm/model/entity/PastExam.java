@@ -2,6 +2,8 @@ package com.lsm.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -24,6 +26,9 @@ public class PastExam {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
+    private LocalDateTime examDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
