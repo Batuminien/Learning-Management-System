@@ -352,3 +352,7 @@ ul li {
     border-radius: 50%;
     border: 1px solid var(--placeholder-text);
 }
+
+.student-result-table {
+    width: 100%;
+}

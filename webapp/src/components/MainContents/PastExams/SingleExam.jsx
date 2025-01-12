@@ -1,17 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowDown, ArrowUp } from "../../../../public/icons/Icons";
 import ExamResultChart from "./ExamResultChart";
 
-
-
-
 const SingleExam = ({exam}) => {
-
-
     const [isExpanded, setIsExpanded] = useState(false);
-   
-
-    console.log(exam);
 
     return(
         <div className="unit-container">

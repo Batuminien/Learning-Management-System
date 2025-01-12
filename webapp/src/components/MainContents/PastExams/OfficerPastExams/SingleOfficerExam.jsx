@@ -1,16 +1,53 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { ArrowDown, ArrowUp } from "../../../../../public/icons/Icons";
-import { AuthContext } from "../../../../contexts/AuthContext";
-
-
+import useAuth from "../../../../hooks/useAuth";
+import SingleStudentResultInfo from "./SingleStudentResultInfo";
+import { deletePastExam, updatePastExam } from "../../../../services/pastExamService";
 
 const SingleOfficerExam = ({exam}) => {
-    const { user } = useContext(AuthContext);
-
+    const { user } = useAuth();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [examResults, setExamResults] = useState(exam.results);
 
-    const handleExamDeletion = () => {
-        console.log('going to delete the exam : ', exam.name);
+    const handleExamDeletion = async () => {
+        try{
+            const response = await deletePastExam(exam.id);
+            console.log(response);
+        }catch(error){
+            console.log(error);
+        }
+    }
+
+    const handleExamUpdate = async () => {
+        const updatedResults = examResults.map(studentResult => ({
+            studentId : studentResult.studentId,
+            subjectResults : studentResult.subjectResults.map(subject => ({
+                subjectName : subject.subjectName,
+                correctAnswers : subject.correctAnswers,
+                incorrectAnswers : subject.incorrectAnswers,
+                blankAnswers : subject.blankAnswers 
+            }))
+        }))
+        console.log(updatedResults);
+        const updatedExam = {
+            name : exam.name,
+            examType : exam.examType,
+            results : updatedResults,
+        }
+        console.log('updated results : ', updatedExam);
+        try{
+            const response = await updatePastExam(exam.id, updatedExam);
+            console.log(response);
+        }catch(error){
+            console.log(error);
+        }
+    }
+
+    const handleResultChange = (updatedStudent) => {
+        const updatedResults = examResults.map(student => (
+            student.id === updatedStudent.id ? updatedStudent : student
+        ));
+        setExamResults(updatedResults);
     }
 
     return(
@@ -28,15 +65,21 @@ const SingleOfficerExam = ({exam}) => {
             </div>
             {isExpanded && (
                 <div className="unit-body">
-                    <div style={{border : '1px solid grey'}}></div>
-                    {exam.results.map(student => (
-                        <p>{student.studentName}</p>
+                    <br />
+                    {examResults.map((student, index) => (
+                        <div>
+                            <SingleStudentResultInfo
+                                student={student}
+                                index={index}
+                                onChange={handleResultChange}
+                            />
+                        </div>
                     ))}
                     {user.role === 'ROLE_ADMIN' && (
                         <>
-                            <div style={{border : '1px solid grey'}}></div>
                             <div className="unit-footer">
                                 <button className="delete-btn btn" onClick={handleExamDeletion}>Sil</button>
+                                <button className="btn" onClick={handleExamUpdate}>Kaydet</button>
                             </div>
                         </>
                     )}

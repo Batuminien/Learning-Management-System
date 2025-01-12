@@ -5,10 +5,7 @@ import NoResult from "../../common/IconComponents/NoResult";
 import Warning from "../../common/IconComponents/Warning";
 import SingleExam from "./SingleExam";
 
-
-
 const StundentPastExams = ({user}) => {
-
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [exams, setExams] = useState([]);

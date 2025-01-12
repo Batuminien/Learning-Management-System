@@ -11,6 +11,7 @@ import SingleOfficerExam from './SingleOfficerExam';
 const PreviousExams = () => {
     const [warning, setWarning] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [filtering, setFiltering] = useState(false);
 
     const [searchError, setSearchError] = useState(false);
     const [isSearched, setIsSearched] = useState(false);
@@ -46,13 +47,14 @@ const PreviousExams = () => {
     ];
 
     const handleSearch = () => {
-        setIsSearched(true);
-        console.log('all exams : ', allExams);
         setSearchError(false);
         if(startDate && endDate && new Date(startDate) > new Date(endDate)){
             setSearchError(true);
             return;
         }
+        setIsSearched(true);
+        setFiltering(true);
+        setSearchedExams([]);
 
         let filterResult = allExams;
 
@@ -62,6 +64,7 @@ const PreviousExams = () => {
 
         console.log('all exams after filter : ', filterResult);
         setSearchedExams(filterResult);
+        setFiltering(false);
     }
 
     if(loading) return <Loading/>;
@@ -100,11 +103,12 @@ const PreviousExams = () => {
                 </div>
             </div>
             {isSearched && (
+                filtering ? (<Loading/>) : (
                 searchedExams.length === 0 ? (<NoResult/>) : (
                     searchedExams.map(exam => (
                         <SingleOfficerExam exam={exam}/>
                     ))
-                )
+                ))
             )}
 
         </>

@@ -2,11 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import { getProfilePhoto } from "../services/profilePhotoService";
 
-
-
-
 const ProfilePhotoContext = createContext();
-
 export const useProfilePhoto = () => useContext(ProfilePhotoContext);
 
 export const ProfilePhotoProvider = ({children}) => {

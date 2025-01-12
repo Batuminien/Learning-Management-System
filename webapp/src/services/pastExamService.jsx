@@ -25,3 +25,28 @@ export const getAllExams = async () => {
     );
     return response.data;
 }
+
+export const updatePastExam = async (examID, updatedData) => {
+    const response = await axios.put(
+        `${EXAM_URL}/${examID}`,
+        updatedData,
+        {
+            headers : {
+                Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`,
+            },
+        }
+    );
+    return response;
+}
+
+export const deletePastExam = async (examID) => {
+    const response = await axios.delete(
+        `${EXAM_URL}/${examID}`,
+        {
+            headers : {
+                Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`,
+            },
+        }
+    );
+    return response; 
+}
