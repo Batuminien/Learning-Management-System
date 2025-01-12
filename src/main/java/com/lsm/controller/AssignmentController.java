@@ -762,7 +762,7 @@ public class AssignmentController {
         }
 
         if (file.getSize() > 5_000_000) { // 5MB limit
-            throw new IllegalArgumentException("File size exceeds maximum limit");
+            throw new IllegalArgumentException("File size exceeds maximum limit: " + file.getSize() + "> 5MB");
         }
 
         String contentType = file.getContentType();

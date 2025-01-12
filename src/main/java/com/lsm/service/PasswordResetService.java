@@ -32,18 +32,21 @@ public class PasswordResetService {
     @Value("${app.password-reset.token.expiration:3600000}") // 1 hour default
     private long tokenValidityPeriod;
 
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
     private final AppUserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EventPublisher eventPublisher;
     private final RateLimiter rateLimiterService;
+    private final EmailService emailService;
 
     @Transactional
     public void requestPasswordReset(PasswordResetRequestDTO request, String clientIp)
             throws TooManyRequestsException {
         String email = request.getEmail().toLowerCase().trim();
 
-        // Rate limiting check using your implementation
         try {
             rateLimiterService.checkRateLimit("password_reset:" + email);
         } catch (RateLimitExceededException e) {
@@ -53,7 +56,7 @@ public class PasswordResetService {
         AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Invalidate any existing tokens
+        // Invalidate existing tokens
         tokenRepository.findByUserEmail(email)
                 .ifPresent(token -> {
                     token.setUsed(true);
@@ -71,11 +74,19 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        // Publish event for email notification
+        // Send email using Resend
+        emailService.sendPasswordResetEmail(
+                user.getEmail(),
+                resetToken.getToken(),
+                user.getName() + " " + user.getSurname()
+        );
+
+        // Publish event
         eventPublisher.publishEvent(new PasswordResetRequestedEvent(user, resetToken.getToken()));
 
         log.info("Password reset requested for user: {}", email);
     }
+
 
     @Transactional
     public void confirmPasswordReset(PasswordResetConfirmDTO request) {
@@ -99,7 +110,13 @@ public class PasswordResetService {
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
 
-        // Publish event for notification
+        // Send confirmation email
+        emailService.sendPasswordResetConfirmationEmail(
+                user.getEmail(),
+                user.getName() + " " + user.getSurname()
+        );
+
+        // Publish event
         eventPublisher.publishEvent(new PasswordResetCompletedEvent(user));
 
         log.info("Password reset completed for user: {}", user.getEmail());

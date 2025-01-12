@@ -63,25 +63,59 @@ public class TrialExamServiceTest {
                 .replace("ЗERЭBAЮ", "ÇERİBAŞ"); // Special case handling
     }
 
-    private static boolean isTurkishName(String text) {
-        // Split into words
-        String[] words = text.trim().split("\\s+");
-
-        // Turkish names typically have 2-3 words
-        if (words.length < 2 || words.length > 3) {
+    private static boolean isTurkishName(String fullName) {
+        // If empty or null
+        if (fullName == null || fullName.trim().isEmpty()) {
             return false;
         }
 
-        // Each word should:
-        // 1. Start with capital letter
-        // 2. Have reasonable length (2-20 chars)
-        // 3. Not contain consecutive consonants (unusual in Turkish)
-        for (String word : words) {
-            if (word.length() < 2 || word.length() > 20) return false;
-            if (!Character.isUpperCase(word.charAt(0))) return false;
+        if (fullName.length() < 3 || fullName.length() > 30)
+            return false;
 
-            // Check for unlikely character patterns
-            if (word.matches(".*[0-9BCDEA]+.*")) return false;
+        // Split into parts (name and surname)
+        String[] nameParts = fullName.trim().split("\\s+");
+
+        // Must have at least 2 parts (name and surname)
+        if (nameParts.length < 2) {
+            return false;
+        }
+
+        // Valid Turkish characters (lowercase and uppercase)
+        String turkishChars = "abcçdefgğhıijklmnoöprsştuüvyzABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+
+        // Check each part
+        for (String part : nameParts) {
+            // Each part must be at least 2 characters
+            if (part.length() < 2) {
+                return false;
+            }
+
+            // Must start with uppercase
+            if (!Character.isUpperCase(part.codePointAt(0))) {
+                return false;
+            }
+
+            // Check for consecutive ABCDE pattern
+            int consecutiveCount = 1;
+            for (int i = 0; i < part.length(); i++) {
+                char current = Character.toUpperCase(part.charAt(i));
+
+                if (current >= 'A' && current <= 'E') {
+                    consecutiveCount++;
+                    if (consecutiveCount >= 5) {
+                        return false;
+                    }
+                } else {
+                    consecutiveCount = 1;
+                }
+            }
+
+            // Check if all characters are valid Turkish letters
+            for (int i = 0; i < part.length(); i++) {
+                if (turkishChars.indexOf(part.charAt(i)) == -1) {
+                    return false;
+                }
+            }
         }
 
         return true;
@@ -107,7 +141,7 @@ public class TrialExamServiceTest {
         // Use properly formatted test data
         String testData =
                 "1     19802242952          MERT ALЭ ЦLMEZ             BEEBBCDBCB BCADBCEDECDECBAEDCEDAABCADCEDA          BCADECB ECCDBDBAADBB D                            ADADEACBDEBDC    B  CD                            DBACCEDBEEDCEAEBAEBE                                   \n" +
-                "1     10640845862          ЗERЭBAЮ ЭSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
+                "1     10640845862          ÇERÝBAÞ ÝSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
                 "1     24800076300          IRMAK ÇELÝK                BEEBBCDB    EA BCEAECDECBAEDCEDDABCADCEDA            B   E   E   BA BB                                DE A  EB   A       C                             BB D E B D                                             \n" +
                 "1     24005104938          ELA YANARDAÐ               AEBEBDCBCAD BAED EBEDCCEBADEC EDAC DAECAD          BBE   CCA C E  AECBEBCBAC                               E A        C                    E           D B    C  C        A                                   \n" +
                 "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n";
@@ -188,7 +222,7 @@ public class TrialExamServiceTest {
     void testConvertResultsToCsvTYT_WithRealData() {
         // Single line test with properly formatted data
         String testInput = "1     19802242952          MERT ALЭ ЦLMEZ             BEEBBCDBCB BCADBCEDECDECBAEDCEDAABCADCEDA          BCADECB ECCDBDBAADBB D                            ADADEACBDEBDC    B  CD                            DBACCEDBEEDCEAEBAEBE                                   \n" +
-                "1     10640845862          ЗERЭBAЮ ЭSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
+                "1     10640845862          ÇERÝBAÞ ÝSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
                 "1     24800076300          IRMAK ÇELÝK                BEEBBCDB    EA BCEAECDECBAEDCEDDABCADCEDA            B   E   E   BA BB                                DE A  EB   A       C                             BB D E B D                                             \n" +
                 "1     24005104938          ELA YANARDAÐ               AEBEBDCBCAD BAED EBEDCCEBADEC EDAC DAECAD          BBE   CCA C E  AECBEBCBAC                               E A        C                    E           D B    C  C        A                                   \n" +
                 "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n";
@@ -204,7 +238,7 @@ public class TrialExamServiceTest {
         System.out.println("\n=== NAME MATCHES ===");
         while (matcher.find()) {
             String potentialName = matcher.group();
-            System.out.println("Found potential name: [" + potentialName + "] at position " + matcher.start() + "-" + matcher.end());
+            // System.out.println("Found potential name: [" + potentialName + "] at position " + matcher.start() + "-" + matcher.end());
             if (isTurkishName(potentialName)) {
                 System.out.println("Found name: [" + potentialName + "] at position " + matcher.start() + "-" + matcher.end());
             }

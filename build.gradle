@@ -116,6 +116,7 @@ dependencies {
     implementation 'com.google.api-client:google-api-client:2.2.0'
 
     // implementation 'org.flywaydb:flyway-core'
+    implementation 'com.resend:resend-java:2.0.0'
 }
 
 tasks.named('test') {

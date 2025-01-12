@@ -41,7 +41,7 @@ public class TrialExamService {
     private String examResultUploadDir;
 
     private static final Pattern ANSWER_PATTERN = Pattern.compile("[ABCDE ]+");
-    private static final Pattern NAME_PATTERN = Pattern.compile("\\b([a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s+[a-zA-ZİıĞğÜüÖöŞşÇç]+'?-?[a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s?([a-zA-ZİıĞğÜüŞşÖöÇç]{1,})?)\\b");
+    private static final Pattern NAME_PATTERN = Pattern.compile("\\b([a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s+[a-zA-ZİıĞğÜüÖöŞşÇç]+'?-?[a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s?([a-zA-ZİıĞğÜüŞşÖöÇç]+)?)\\b");
     private static final Pattern TC_PATTERN = Pattern.compile("(?<!\\d)(?!0)\\d{10}[02468](?!\\d)");
     private static final Pattern PHONE_PATTERN = Pattern.compile("(?<!\\d)05\\d{9}(?!\\d)");
 
@@ -198,6 +198,7 @@ public class TrialExamService {
     }
 
     private String convertResultsToCsvTYT(String textContent) {
+        textContent = convertToTurkishChars(textContent);
         List<Integer> startColumnNameL   = new ArrayList<>(), endColumnNameL   = new ArrayList<>(),
                       startColumnTCL = new ArrayList<>(), endColumnTCL = new ArrayList<>(),
                       startColumnPhoneL    = new ArrayList<>(), endColumnPhoneL    = new ArrayList<>(),
@@ -210,9 +211,8 @@ public class TrialExamService {
             BufferedReader reader = new BufferedReader(new StringReader(textContent));
             String line;
             while ((line = reader.readLine()) != null) {
-                line = convertToTurkishChars(line);
-                int startColumnName = 0, endColumnName = 0,
-                        startColumnTurkce = 0, endColumnTurkce = 0,
+                // line = convertToTurkishChars(line);
+                int startColumnTurkce = 0, endColumnTurkce = 0,
                         startColumnSosyal = 0, endColumnSosyal = 0,
                         startColumnMath   = 0, endColumnMath   = 0,
                         startColumnFen    = 0, endColumnFen    = 0;
@@ -236,7 +236,7 @@ public class TrialExamService {
                     char c = line.charAt(i);
                     if (c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E') {
                         endColumnSosyal = i;
-                        startColumnSosyal = endColumnSosyal - 19; // 20 questions long TODO: might be 25
+                        startColumnSosyal = endColumnSosyal - 24; // 20 questions long TODO: might be 25
                         break;
                     }
                 }
@@ -331,8 +331,8 @@ public class TrialExamService {
         }
 
         // TODO: validate
-        if (endSosyal - mceSosyal < 24) {
-            endSosyal = mceSosyal + 24;
+        if (endSosyal - mceSosyal < 25) {
+            endSosyal = mceSosyal + 25;
         }
         if (endTurkce - mceTurkce > 39) {
             mceTurkce = endTurkce - 39;
@@ -535,25 +535,59 @@ public class TrialExamService {
                 .replace("ЗERЭBAЮ", "ÇERİBAŞ"); // Special case handling
     }
 
-    private static boolean isTurkishName(String text) {
-        // Split into words
-        String[] words = text.trim().split("\\s+");
-
-        // Turkish names typically have 2-3 words
-        if (words.length < 2 || words.length > 3) {
+    private static boolean isTurkishName(String fullName) {
+        // If empty or null
+        if (fullName == null || fullName.trim().isEmpty()) {
             return false;
         }
 
-        // Each word should:
-        // 1. Start with capital letter
-        // 2. Have reasonable length (2-20 chars)
-        // 3. Not contain consecutive consonants (unusual in Turkish)
-        for (String word : words) {
-            if (word.length() < 2 || word.length() > 20) return false;
-            if (!Character.isUpperCase(word.charAt(0))) return false;
+        if (fullName.length() < 3 || fullName.length() > 30)
+            return false;
 
-            // Check for unlikely character patterns
-            if (word.matches(".*[0-9BCDEA]+.*")) return false;
+        // Split into parts (name and surname)
+        String[] nameParts = fullName.trim().split("\\s+");
+
+        // Must have at least 2 parts (name and surname)
+        if (nameParts.length < 2) {
+            return false;
+        }
+
+        // Valid Turkish characters (lowercase and uppercase)
+        String turkishChars = "abcçdefgğhıijklmnoöprsştuüvyzABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+
+        // Check each part
+        for (String part : nameParts) {
+            // Each part must be at least 2 characters
+            if (part.length() < 2) {
+                return false;
+            }
+
+            // Must start with uppercase
+            if (!Character.isUpperCase(part.codePointAt(0))) {
+                return false;
+            }
+
+            // Check for consecutive ABCDE pattern
+            int consecutiveCount = 1;
+            for (int i = 0; i < part.length(); i++) {
+                char current = Character.toUpperCase(part.charAt(i));
+
+                if (current >= 'A' && current <= 'E') {
+                    consecutiveCount++;
+                    if (consecutiveCount >= 5) {
+                        return false;
+                    }
+                } else {
+                    consecutiveCount = 1;
+                }
+            }
+
+            // Check if all characters are valid Turkish letters
+            for (int i = 0; i < part.length(); i++) {
+                if (turkishChars.indexOf(part.charAt(i)) == -1) {
+                    return false;
+                }
+            }
         }
 
         return true;

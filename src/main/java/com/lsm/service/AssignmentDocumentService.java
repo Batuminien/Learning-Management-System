@@ -52,49 +52,77 @@ public class AssignmentDocumentService {
     @Transactional
     public AssignmentDocument uploadDocument(MultipartFile file, Long assignmentId, AppUser currentUser)
             throws IOException {
-        if (currentUser.getRole() == Role.ROLE_STUDENT)
+        log.info("Starting document upload process for assignment {} by user {}", assignmentId, currentUser.getUsername());
+
+        if (file == null) {
+            log.error("File is null");
+            throw new IllegalArgumentException("File cannot be null");
+        }
+
+        log.info("File details - Name: {}, Size: {}, ContentType: {}",
+                file.getOriginalFilename(),
+                file.getSize(),
+                file.getContentType());
+
+        if (currentUser.getRole() == Role.ROLE_STUDENT) {
+            log.error("Access denied for student role");
             throw new AccessDeniedException("You are not allowed to upload a student document");
+        }
 
+        log.info("Looking up assignment with ID: {}", assignmentId);
         Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
+                .orElseThrow(() -> {
+                    log.error("Assignment not found with ID: {}", assignmentId);
+                    return new EntityNotFoundException("Assignment not found");
+                });
 
-        // First, delete existing document if any
+        // Handle existing document
         if (assignment.getTeacherDocument() != null) {
+            log.info("Deleting existing document for assignment {}", assignmentId);
             AssignmentDocument oldDoc = assignment.getTeacherDocument();
             assignment.setTeacherDocument(null);
-            deleteFileIfExists(oldDoc.getFilePath());
-            documentRepository.delete(oldDoc);
+            try {
+                deleteFileIfExists(oldDoc.getFilePath());
+                documentRepository.delete(oldDoc);
+            } catch (Exception e) {
+                log.error("Error deleting existing document: {}", e.getMessage(), e);
+            }
         }
-        assignmentRepository.save(assignment);
 
-        // Create assignment-specific directory
+        // Create directory
         Path assignmentDir = Paths.get(uploadDir, "assignments", assignmentId.toString());
-        Files.createDirectories(assignmentDir);
-        log.info("Created directory at {}", assignmentDir.toAbsolutePath());
+        log.info("Creating directory at: {}", assignmentDir.toAbsolutePath());
+        try {
+            Files.createDirectories(assignmentDir);
+        } catch (IOException e) {
+            log.error("Failed to create directory: {}", e.getMessage(), e);
+            throw e;
+        }
 
-        // Generate unique filename with original extension
+        // Generate filename
         String originalFilename = file.getOriginalFilename();
+        log.info("Original filename: {}", originalFilename);
         String fileExtension = originalFilename != null
                 ? originalFilename.substring(originalFilename.lastIndexOf("."))
                 : "";
         String uniqueFilename = UUID.randomUUID() + fileExtension;
-
-        // Create complete file path
         Path filePath = assignmentDir.resolve(uniqueFilename);
-        log.info("Saving file to {}", filePath.toAbsolutePath());
 
-        // Save file
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        log.info("Attempting to save file to: {}", filePath.toAbsolutePath());
 
-        // Verify file was saved
-        if (!Files.exists(filePath)) {
-            throw new IOException("Failed to save file");
+        // Save file with additional error context
+        try {
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("Failed to save file: {} - Error: {}", filePath, e.getMessage(), e);
+            throw new IOException("Failed to save file: " + e.getMessage(), e);
         }
 
-        // Create and save document
+        // Create document entity
+        log.info("Creating document entity");
         AssignmentDocument document = AssignmentDocument.builder()
                 .fileName(originalFilename)
-                .filePath(filePath.toAbsolutePath().toString()) // Store absolute path
+                .filePath(filePath.toAbsolutePath().toString())
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
                 .uploadTime(LocalDateTime.now())
@@ -102,10 +130,18 @@ public class AssignmentDocumentService {
                 .assignment(assignment)
                 .build();
 
-        document = documentRepository.save(document);
-        assignment.setTeacherDocument(document);
-
-        return document;
+        log.info("Saving document to database");
+        try {
+            document = documentRepository.save(document);
+            assignment.setTeacherDocument(document);
+            log.info("Document saved successfully with ID: {}", document.getId());
+            return document;
+        } catch (Exception e) {
+            log.error("Failed to save document to database: {}", e.getMessage(), e);
+            // Clean up the saved file if database operation fails
+            deleteFileIfExists(filePath.toString());
+            throw new RuntimeException("Failed to save document: " + e.getMessage(), e);
+        }
     }
 
     @Transactional

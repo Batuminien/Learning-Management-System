@@ -101,14 +101,50 @@ public class PastExamService {
         exam.setExamType(requestDTO.getExamType());
 
         if (requestDTO.getResults() != null) {
+            // Create a map of existing results by student ID for easy lookup
+            Map<Long, StudentExamResult> existingResultsMap = exam.getResults().stream()
+                    .collect(Collectors.toMap(
+                            result -> result.getStudent().getId(),
+                            result -> result
+                    ));
+
+            // Process new results
+            Set<StudentExamResult> newResults = new HashSet<>();
+            for (StudentExamResultRequestDTO resultDTO : requestDTO.getResults()) {
+                StudentExamResult result;
+                if (existingResultsMap.containsKey(resultDTO.getStudentId())) {
+                    // Update existing result
+                    result = existingResultsMap.get(resultDTO.getStudentId());
+                    updateStudentExamResult(result, resultDTO);
+                } else {
+                    // Create new result
+                    result = createStudentExamResult(resultDTO, exam);
+                }
+                newResults.add(result);
+            }
+
+            // Remove results that are no longer present
             exam.getResults().clear();
-            Set<StudentExamResult> results = processStudentResults(requestDTO.getResults(), exam);
-            exam.setResults(results);
+            exam.getResults().addAll(newResults);
+
             calculateAndSetOverallAverage(exam);
         }
 
         PastExam updatedExam = pastExamRepository.save(exam);
         return mapToResponseDTO(updatedExam);
+    }
+
+    private void updateStudentExamResult(StudentExamResult existingResult, StudentExamResultRequestDTO resultDTO) {
+        // Clear existing subject results
+        existingResult.getSubjectResults().clear();
+
+        // Add new subject results
+        if (resultDTO.getSubjectResults() != null) {
+            Set<SubjectResult> subjectResults = resultDTO.getSubjectResults().stream()
+                    .map(subjectDTO -> createSubjectResult(subjectDTO, existingResult))
+                    .collect(Collectors.toSet());
+            existingResult.getSubjectResults().addAll(subjectResults);
+        }
     }
 
     @Transactional
