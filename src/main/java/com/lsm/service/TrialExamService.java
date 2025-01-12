@@ -22,10 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
@@ -44,9 +41,9 @@ public class TrialExamService {
     private String examResultUploadDir;
 
     private static final Pattern ANSWER_PATTERN = Pattern.compile("[ABCDE ]+");
-    private static final Pattern NAME_PATTERN = Pattern.compile("[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s+(?:[A-ZĞÜŞİÖÇIa-zğüşıöç]+\\s*)+");
-    private static final Pattern TC_PATTERN = Pattern.compile("^(?!0)\\d{10}[02468]$");
-    private static final Pattern PHONE_PATTERN = Pattern.compile("^05\\d{9}$");
+    private static final Pattern NAME_PATTERN = Pattern.compile("\\b([a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s+[a-zA-ZİıĞğÜüÖöŞşÇç]+'?-?[a-zA-ZİıĞğÜüÖöŞşÇç]{2,}\\s?([a-zA-ZİıĞğÜüŞşÖöÇç]{1,})?)\\b");
+    private static final Pattern TC_PATTERN = Pattern.compile("(?<!\\d)(?!0)\\d{10}[02468](?!\\d)");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("(?<!\\d)05\\d{9}(?!\\d)");
 
     @PostConstruct
     private void init() {
@@ -260,9 +257,12 @@ public class TrialExamService {
                 startColumnFenL.add(startColumnFen);
                 endColumnFenL.add(endColumnFen);
                 Matcher nameMatcher = NAME_PATTERN.matcher(line);
-                if (nameMatcher.find()) {
-                    startColumnNameL.add(nameMatcher.start());
-                    endColumnNameL.add(nameMatcher.end());
+                while (nameMatcher.find()) {
+                    String potentialName = nameMatcher.group();
+                    if (isTurkishName(potentialName)) {
+                        startColumnNameL.add(nameMatcher.start());
+                        endColumnNameL.add(nameMatcher.end());
+                    }
                 }
                 Matcher tcMatcher = TC_PATTERN.matcher(line);
                 if (tcMatcher.find()) {
@@ -282,25 +282,53 @@ public class TrialExamService {
         }
 
         Integer mceName = findMostCommonElement(startColumnNameL);
-        int endName = endColumnNameL.stream().max(Integer::compare).get();
+        Optional<Integer> endNameOpt = endColumnNameL.stream().max(Integer::compare);
+        int endName = -1;
+        if (endNameOpt.isPresent()) {
+            endName = endNameOpt.get();
+        }
 
         Integer mceTc = findMostCommonElement(startColumnTCL);
-        int endTc = endColumnTCL.stream().max(Integer::compare).get();
+        Optional<Integer> endTcOpt = endColumnTCL.stream().max(Integer::compare);
+        int endTc = -1;
+        if (endTcOpt.isPresent()) {
+            endTc = endTcOpt.get();
+        }
 
         Integer mcePhone = findMostCommonElement(startColumnPhoneL);
-        int endPhone = endColumnPhoneL.stream().max(Integer::compare).get();
+        Optional<Integer> endPhoneOpt = endColumnPhoneL.stream().max(Integer::compare);
+        int endPhone = -1;
+        if (endPhoneOpt.isPresent()) {
+            endName = endPhoneOpt.get();
+        }
 
         Integer mceFen = findMostCommonElement(startColumnFenL);
-        int endFen = endColumnFenL.stream().max(Integer::compare).get();
+        Optional<Integer> endFenOpt = endColumnFenL.stream().max(Integer::compare);
+        int endFen = -1;
+        if (endFenOpt.isPresent()) {
+            endFen = endFenOpt.get();
+        }
 
         Integer mceMath = findMostCommonElement(startColumnMathL);
-        int endMath = endColumnMathL.stream().max(Integer::compare).get();
+        Optional<Integer> endMathOpt = endColumnMathL.stream().max(Integer::compare);
+        int endMath = -1;
+        if (endMathOpt.isPresent()) {
+            endMath = endMathOpt.get();
+        }
 
         Integer mceSosyal = findMostCommonElement(startColumnSosyalL);
-        int endSosyal = endColumnSosyalL.stream().max(Integer::compare).get();
+        Optional<Integer> endSosyalOpt = endColumnSosyalL.stream().max(Integer::compare);
+        int endSosyal = -1;
+        if (endSosyalOpt.isPresent()) {
+            endSosyal = endSosyalOpt.get();
+        }
 
         Integer mceTurkce = findMostCommonElement(startColumnTurkceL);
-        int endTurkce = endColumnTurkceL.stream().max(Integer::compare).get();
+        Optional<Integer> endTurkceOpt = endColumnTurkceL.stream().max(Integer::compare);
+        int endTurkce = -1;
+        if (endTurkceOpt.isPresent()) {
+            endTurkce = endTurkceOpt.get();
+        }
 
         // TODO: validate
         if (endSosyal - mceSosyal < 24) {
@@ -309,11 +337,55 @@ public class TrialExamService {
         if (endTurkce - mceTurkce > 39) {
             mceTurkce = endTurkce - 39;
         }
+        if (endMath - mceMath < 39) {
+            endMath = mceMath + 39;
+        }
+        if (endFen - mceFen > 19) {
+            mceFen = endFen - 19;
+        }
 
-        // TODO: try to find exam type A, B, C, D
+        // TODO: try to find column of the exam type: A, B, C, D
+        // TODO: (which is a column probably only contains one of them, I should only search other columns then line[mce..., end...])
+        // Find exam type column
+        Map<Integer, Character> examTypeColumns = new HashMap<>();
+
+        try {
+            BufferedReader reader = new BufferedReader(new StringReader(textContent));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = convertToTurkishChars(line);
+                // Skip already identified answer columns
+                for (int i = 0; i < line.length(); i++) {
+                    if (i >= mceTurkce && i <= endTurkce) continue;
+                    if (i >= mceSosyal && i <= endSosyal) continue;
+                    if (i >= mceMath && i <= endMath) continue;
+                    if (i >= mceFen && i <= endFen) continue;
+
+                    char c = line.charAt(i);
+                    if (c == 'A' || c == 'B' || c == 'C' || c == 'D') {
+                        examTypeColumns.merge(i, c, (existing, current) ->
+                                existing == current ? existing : 'X'); // 'X' marks conflicts
+                    }
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            log.error("Exception occurred while finding exam type: {}", e.getMessage(), e);
+            throw new RuntimeException("Exception occurred while finding exam type: " + e.getMessage(), e);
+        }
+
+        // Find the column that consistently has the same value (A, B, C, or D)
+        Integer examTypeColumn = examTypeColumns.entrySet().stream()
+                .filter(e -> e.getValue() != 'X')
+                .findFirst()
+                .map(Map.Entry::getKey)
+                .orElse(null);
+
+        // TODO: check it is not class name like 12A
+        Character examType = examTypeColumn != null ? examTypeColumns.get(examTypeColumn) : null;
 
         StringBuilder csv = new StringBuilder();
-        String csvHeader = "İsim,Sınıf,TC,Telefon,Turkce,Sosyal,Matematik,Fen\n";
+        String csvHeader = "İsim,Sınıf,TC,Telefon,Kitapçık,Turkce,Sosyal,Matematik,Fen\n";
         csv.append(csvHeader);
 
         try {
@@ -322,18 +394,26 @@ public class TrialExamService {
             while ((line = reader.readLine()) != null) {
                 StringBuilder csvLine = new StringBuilder();
                 String name = line.substring(mceName, endName);
-                String tc = line.substring(mceTc, endTc);
-                String phone = line.substring(mcePhone, endPhone);
+                String tc = null;
+                if (mceTc != null && endTc != -1)
+                    tc = line.substring(mceTc, endTc);
+                String phone = null;
+                if (mcePhone != null && endPhone != -1)
+                    phone = line.substring(mcePhone, endPhone);
 
                 AppUser student = appUserRepository.findByNamePlusSurname(name)
                         .orElse(null);
                 AppUser studentByTc = null;
                 AppUser studentByPhone = null;
                 if (student == null) {
-                    if (tc.length() == 11)
-                        studentByTc = appUserRepository.getByStudentDetails_Tc(tc).orElse(null);
-                    if (phone.length() == 11)
-                        studentByPhone = appUserRepository.getByStudentDetails_phone(phone).orElse(null);
+                    if (tc != null) {
+                        if (tc.length() == 11)
+                            studentByTc = appUserRepository.getByStudentDetails_Tc(tc).orElse(null);
+                    }
+                    if (phone != null) {
+                        if (phone.length() == 11)
+                            studentByPhone = appUserRepository.getByStudentDetails_phone(phone).orElse(null);
+                    }
 
                     if (studentByTc == null && studentByPhone == null) {
                         continue;
@@ -367,6 +447,7 @@ public class TrialExamService {
                 csvLine.append(classEntityName).append(",");
                 csvLine.append(tc).append(",");
                 csvLine.append(phone).append(",");
+                csvLine.append(examType).append(",");
                 csvLine.append(turkce).append(",");
                 csvLine.append(sosyal).append(",");
                 csvLine.append(math).append(",");
@@ -436,12 +517,13 @@ public class TrialExamService {
     }
 
     private String convertToTurkishChars(String text) {
-        return text.replace("Ý", "İ")
-                .replace("Þ", "Ş")
-                .replace("Ð", "Ğ")
-                .replace("ý", "ı")
-                .replace("þ", "ş")
-                .replace("ð", "ğ")
+        return text.replaceAll("[ÝЭ]", "İ")
+                .replaceAll("ý", "ı")
+                .replaceAll("Ц", "Ö")
+                .replaceAll("Þ|Åž", "Ş")
+                .replaceAll("þ|åž", "ş")
+                .replaceAll("Ð|ÄŸ", "Ğ")
+                .replaceAll("ð|äŸ", "ğ")
                 .replace("Ã–", "Ö")
                 .replace("Ã‡", "Ç")
                 .replace("Ã›", "Ü")
@@ -450,9 +532,31 @@ public class TrialExamService {
                 .replace("Ã¶", "ö")
                 .replace("Ã§", "ç")
                 .replace("Ã¼", "ü")
-                .replace("ÄŸ", "ğ")
-                .replace("Åž", "Ş")
-                .replace("Åž", "ş");
+                .replace("ЗERЭBAЮ", "ÇERİBAŞ"); // Special case handling
+    }
+
+    private static boolean isTurkishName(String text) {
+        // Split into words
+        String[] words = text.trim().split("\\s+");
+
+        // Turkish names typically have 2-3 words
+        if (words.length < 2 || words.length > 3) {
+            return false;
+        }
+
+        // Each word should:
+        // 1. Start with capital letter
+        // 2. Have reasonable length (2-20 chars)
+        // 3. Not contain consecutive consonants (unusual in Turkish)
+        for (String word : words) {
+            if (word.length() < 2 || word.length() > 20) return false;
+            if (!Character.isUpperCase(word.charAt(0))) return false;
+
+            // Check for unlikely character patterns
+            if (word.matches(".*[0-9BCDEA]+.*")) return false;
+        }
+
+        return true;
     }
 
     private String createExamResultDir() {

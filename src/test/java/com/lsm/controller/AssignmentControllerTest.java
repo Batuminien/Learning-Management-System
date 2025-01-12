@@ -193,7 +193,7 @@ class AssignmentControllerTest {
                 .id(1L)
                 .student(studentUser)
                 .assignment(testAssignment)
-                .submissionDate(LocalDate.now())
+                .submissionDate(LocalDateTime.now())
                 .build();
 
         when(authentication.getPrincipal()).thenReturn(studentUser);

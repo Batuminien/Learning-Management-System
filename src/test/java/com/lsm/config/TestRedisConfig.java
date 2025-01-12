@@ -9,7 +9,7 @@ import org.mockito.Mockito;
 
 @TestConfiguration
 public class TestRedisConfig {
-
+/*
     @Bean
     public RedisProperties redisProperties() {
         return new RedisProperties();
@@ -24,4 +24,6 @@ public class TestRedisConfig {
     public RedisTemplate<String, Object> redisTemplate() {
         return Mockito.mock(RedisTemplate.class);
     }
+
+ */
 }

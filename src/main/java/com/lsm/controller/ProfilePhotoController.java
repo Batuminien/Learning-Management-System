@@ -7,6 +7,7 @@ import com.lsm.model.DTOs.ProfilePhotoUpdateRequestDTO;
 import com.lsm.model.entity.ProfilePhoto;
 import com.lsm.model.entity.enums.Role;
 import com.lsm.repository.ProfilePhotoRepository;
+import com.lsm.service.AppUserService;
 import com.lsm.service.FileStorageService;
 import com.lsm.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +25,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.lsm.model.entity.base.AppUser;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/v1/profile-photo")
@@ -37,6 +43,7 @@ public class ProfilePhotoController {
     private final FileStorageService fileStorageService;
     private final UserService userService;
     private final ProfilePhotoRepository profilePhotoRepository;
+    private final AppUserService appUserService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload profile photo", description = "Upload or update user's profile photo")
@@ -141,6 +148,36 @@ public class ProfilePhotoController {
         } catch (Exception e) {
             log.error("Error retrieving profile photo for user {}: {}", userId, e.getMessage());
             return ApiResponse_.httpError(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving profile photo");
+        }
+    }
+
+    @GetMapping("/{userId}/file")
+    @Operation(summary = "Get user's profile photo file", description = "Get profile photo file for any user")
+    public ResponseEntity<Resource> getUserProfilePhotoFile(@PathVariable Long userId,
+                                                            Authentication authentication) {
+        try {
+            AppUser loggedInUser = (AppUser) authentication.getPrincipal();
+            AppUser user = userService.getUserById(userId);
+            user = appUserService.getCurrentUserWithDetails(userId);
+
+            // Keep your existing authorization logic
+            if ((loggedInUser.getRole().equals(Role.ROLE_STUDENT) || loggedInUser.getRole().equals(Role.ROLE_TEACHER))
+                    && !loggedInUser.getId().equals(user.getId())) {
+                throw new AccessDeniedException("Students can't access others' profile photos");
+            }
+
+            ProfilePhoto photo = profilePhotoRepository.findByUser(user)
+                    .orElseThrow(() -> new ResourceNotFoundException("Profile photo not found"));
+
+            Path path = Paths.get(photo.getPhotoUrl());
+            Resource resource = new FileSystemResource(path);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(photo.getFileType()))
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Error retrieving profile photo file for user {}: {}", userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not retrieve photo");
         }
     }
 }

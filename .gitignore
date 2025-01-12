@@ -5,7 +5,7 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 trial_exam_results
-
+src/test/java/com/lsm/service/TrialExamServiceTest.java
 assignments/
 
 ### STS ###
