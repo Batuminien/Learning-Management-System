@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getStudentExams } from "../../../services/pastExamService";
 import Loading from "../../common/Loading/Loading";
 import NoResult from "../../common/IconComponents/NoResult";
+import Warning from "../../common/IconComponents/Warning";
 import SingleExam from "./SingleExam";
 
 
@@ -9,8 +10,9 @@ import SingleExam from "./SingleExam";
 const StundentPastExams = ({user}) => {
 
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
     const [exams, setExams] = useState([]);
-    
+
     useEffect(() => {
         const fetchData = async () => {
             try{
@@ -19,6 +21,7 @@ const StundentPastExams = ({user}) => {
                 setExams(response.data);
             }catch(error){
                 console.log(error);
+                setError(true);
             }finally{
                 setLoading(false);
             }
@@ -27,6 +30,7 @@ const StundentPastExams = ({user}) => {
     }, []);
 
     if(loading) return <Loading/>;
+    if(error) return <Warning/>
 
     return(
         <>

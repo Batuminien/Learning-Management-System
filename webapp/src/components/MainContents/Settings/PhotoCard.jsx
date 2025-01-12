@@ -1,58 +1,27 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import './PhotoCard.css'
 import Document from "../../common/Document";
 import { deleteProfilePhoto, uploadProfilePhoto } from "../../../services/profilePhotoService";
-import { AuthContext } from "../../../contexts/AuthContext";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { useProfilePhoto } from "../../../contexts/ProfilePhotoContext";
 
 
-const PhotoCard = ({url = null, onPhotoChange = null}) => {
-    const { user } = useContext(AuthContext);
-
-    console.log(url);
-
+const PhotoCard = () => {
+    
+    
+    const { profilePhoto, setProfilePhoto } = useProfilePhoto();
     const [editing, setEditing] = useState(false);
-    const [newPhoto, setNewPhoto] = useState(null);
     const [uploaded, setUploaded] = useState(false);
-    const [uploadError, setUploadError] = useState('');
-
+    
+    const [newPhoto, setNewPhoto] = useState(null);
     const [newPhotoError, setNewPhotoError] = useState('');
 
     const handlePhotoDeletion = async () => {
         try{
-            const response = await deleteProfilePhoto(user.accessToken);
-            onPhotoChange(null);
+            const response = await deleteProfilePhoto();
+            setProfilePhoto(null);
         }catch(error){
             console.log(error);
         }
-    }
-
-    const handlePhotoUpdate = async () => {
-        if(newPhoto === null){
-            setNewPhotoError('Lütfen dosya seçiniz.');
-        }
-        try{
-            const formData = new FormData();
-            formData.append('file', newPhoto);
-            const response = await uploadProfilePhoto(formData, user.accessToken);
-            console.log(response);
-            setEditing(false);
-            setNewPhoto(null);
-            setUploaded(false);
-            onPhotoChange(BASE_URL + response.data.data.photoUrl);
-        }catch(error){
-            console.log(error);
-            setNewPhotoError('Dosya yüklenemedi.');
-            setNewPhoto(null);
-            setUploaded(false);
-        }
-    }
-
-    const handleUpdateCancellation = () => {
-        setEditing(false);
-        setUploaded(false);
-        setNewPhoto(null);
-        setNewPhotoError('');
     }
 
     const handleFileUpload = (event) => {
@@ -77,16 +46,44 @@ const PhotoCard = ({url = null, onPhotoChange = null}) => {
         }
     }
 
+    const handleUpdateCancellation = () => {
+        setEditing(false);
+        setUploaded(false);
+        setNewPhoto(null);
+        setNewPhotoError('');
+    }
+
+    const handlePhotoUpdate = async () => {
+        if(newPhoto === null){
+            setNewPhotoError('Lütfen dosya seçiniz.');
+        }
+        try{
+            const formData = new FormData();
+            formData.append('file', newPhoto);
+            const response = await uploadProfilePhoto(formData);
+            console.log(response);
+            setEditing(false);
+            setNewPhoto(null);
+            setUploaded(false);
+            setProfilePhoto(URL.createObjectURL(newPhoto));
+        }catch(error){
+            console.log(error);
+            setNewPhotoError('Dosya yüklenemedi.');
+            setNewPhoto(null);
+            setUploaded(false);
+        }
+    }
+    
     return(
         <div className='photo-card'>
             {!editing ? (
                 <>
                     <div className='photo-container'>
-                        <img src={url ? url : 'icons/profile-picture.svg'} className="profile-photo" width='128px' height='128px'/>
+                        <img src={profilePhoto ? profilePhoto : 'icons/profile-picture.svg'} className="profile-photo" width='128px' height='128px'/>
                     </div>
                     <span className='card-options'>
                         <button className='btn' onClick={() => setEditing(true)}>Değiştir</button>
-                        <button className='btn delete-btn' disabled={!url} onClick={handlePhotoDeletion}>Sil</button>
+                        <button className='btn delete-btn' disabled={!profilePhoto} onClick={handlePhotoDeletion}>Sil</button>
                     </span>
                 </>
             ) : (

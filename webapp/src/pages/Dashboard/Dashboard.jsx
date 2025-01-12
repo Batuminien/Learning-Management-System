@@ -5,11 +5,10 @@ import MainContent from "../../components/common/MainContent/MainContent";
 import { useContext, useState } from "react";
 import { AuthContext } from '../../contexts/AuthContext';
 import { getSidebarOptions } from "../../utils/userOptions";
-
+import { useProfilePhoto } from "../../contexts/ProfilePhotoContext";
 
 const Dashboard = () => {
-
-    
+    const { profilePhoto } = useProfilePhoto();
     const { user } = useContext(AuthContext);
     const sidebarOptions = getSidebarOptions(user.role);
     const [selectedOption, setSelectedOption] = useState(sidebarOptions[0]);
@@ -28,7 +27,7 @@ const Dashboard = () => {
                     title={selectedOption.title}
                     user={{
                         name : user.name + ' ' + user.surname,
-                        imgSource : 'icons/profile-picture.svg'
+                        imgSource : profilePhoto ? profilePhoto : 'icons/profile-picture.svg'
                     }}
                 />
                 <MainContent 

@@ -23,7 +23,7 @@ const NewUser = () => {
                     onClick={() => {
                         setUserType('ROLE_STUDENT');
                     }}
-                    IconSource={PiChalkboardTeacherBold}
+                    IconSource={PiStudentBold}
                 />
                 <NavigationOption 
                     title='Öğretmen'
@@ -31,7 +31,7 @@ const NewUser = () => {
                     onClick={() => {
                         setUserType('ROLE_TEACHER');
                     }}
-                    IconSource={PiStudentBold}
+                    IconSource={PiChalkboardTeacherBold}
                 />
             </div>
                 {userType === 'ROLE_STUDENT'

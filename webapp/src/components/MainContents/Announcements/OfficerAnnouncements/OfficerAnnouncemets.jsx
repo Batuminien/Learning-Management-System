@@ -15,7 +15,7 @@ const OfficerAnnouncements = () => {
         {title : 'Duyuru Ekle', component : NewAnnouncement, iconSource : PiPlusBold},
         {title : 'Oluşturulan Duyurular', component : CreatedAnnouncements, iconSource : PiChatBold},
         {title : 'Diğer Duyurular', component : OtherAnnouncements, iconSource : PiBellRingingBold}
-    ]
+    ];
     const [selectedOption, setSelectedOption] = useState(announcementOptions[0]);
 
     return(

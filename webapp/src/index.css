@@ -345,3 +345,10 @@ ul li {
 .exam-result-chart {
     flex: 3;
 }
+
+.user-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 1px solid var(--placeholder-text);
+}

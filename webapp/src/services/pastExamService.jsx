@@ -13,3 +13,15 @@ export const getStudentExams = async (studentID) => {
     );
     return response.data;
 }
+
+export const getAllExams = async () => {
+    const response = await axios.get(
+        `${EXAM_URL}`,
+        {
+            headers : {
+                Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`
+            }
+        }
+    );
+    return response.data;
+}

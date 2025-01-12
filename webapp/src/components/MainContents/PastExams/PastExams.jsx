@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
 import StundentPastExams from "./StudentPastExams";
-import OfficerPastExams from "./OfficerPastExams";
+import OfficerPastExams from "./OfficerPastExams/OfficerPastExams";
 
 
 const PastExams = () => {
