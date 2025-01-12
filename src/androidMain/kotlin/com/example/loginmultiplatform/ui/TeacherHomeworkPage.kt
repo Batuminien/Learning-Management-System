@@ -78,6 +78,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.mutableStateMapOf
 import com.example.loginmultiplatform.model.BulkGradeItem
 import com.example.loginmultiplatform.model.BulkGradeRequest
 import com.example.loginmultiplatform.model.GradeDTO
@@ -614,9 +615,9 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
 
     var selectedDateLastDisplay by remember { mutableStateOf(assignment.dueDate) }
 
-    var grades = remember { mutableMapOf<Int, Long>() }
+    var grades = remember { mutableStateMapOf<Int, String>() }
 
-    var feedbacks = remember { mutableMapOf<Int, String?>() }
+    var feedbacks = remember { mutableStateMapOf<Int, String?>() }
 
     val focusRequesterTitleDisplay = remember { FocusRequester() }
 
@@ -724,6 +725,24 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
             }
             if (displayExpand) {
 
+                classStudents?.keys?.forEach{students ->
+                    val submission = findStudentSubmissionById(students.toInt(), assignment.studentSubmissions)
+                    if (submission != null && submission.status == "GRADED") {
+                        grades[students.toInt()] =  submission.grade.toString()
+                        feedbacks[students.toInt()] =  submission.feedback ?: "-"
+
+                    }else {
+                        feedbacks[students.toInt()] = "Bir geri dönüş giriniz"
+                        grades[students.toInt()] = "0-100"
+                    }
+
+                    /*if (feedbacks[students.toInt()] == null){
+                        feedbacks[students.toInt()] = "Bir geri dönüş giriniz"
+                    }*/
+
+
+                }
+
                 Spacer(modifier = Modifier.height(15.dp))
                 LazyColumn (
                     modifier = Modifier.fillMaxWidth().height(325.dp).background(Color.LightGray)
@@ -731,13 +750,6 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
                     classStudents?.keys?.forEach { students ->
                         item {
                             val submission = findStudentSubmissionById(students.toInt(), assignment.studentSubmissions)
-
-                            if (submission != null && submission.status == "GRADED"){
-                                grade = submission.grade.toString()
-                                feedback = submission.feedback ?: "-"
-                            }
-
-
 
                             Card(
                                 modifier = Modifier.height(375.dp).fillParentMaxWidth().padding(12.dp).background(Color.Gray)
@@ -831,7 +843,7 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
 
 
                                         Text (
-                                            text = if (submission != null ) if (submission.comment == null) "-" else submission.comment else "-",
+                                            text = if (submission != null ) submission.comment ?: "-" else "-",
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.fillParentMaxWidth()
 
@@ -863,30 +875,31 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
                                             }else {
                                                 grade = "Ödev teslim edilmedi"
                                             }
+
                                             BasicTextField(
-                                                value = grade,
-                                                onValueChange = { if (it.length <= 3 ) grade = it },
+                                                value = grades[students.toInt()]!!,
+                                                onValueChange = { if (it.length <= 3 ) grades[students.toInt()] = it },
                                                 enabled = (submission != null),
                                                 modifier = Modifier.fillMaxSize().offset(x = 15.dp, y = 15.dp)
                                                     .focusRequester(focusRequester.Default).onFocusChanged { focusState: FocusState ->
                                                         isFocusedGrade = focusState.isFocused
                                                         if (isFocusedGrade && grade == "0-100") {
-                                                            grade = "" // Clear placeholder text when focused
+                                                            grades[students.toInt()] = "" // Clear placeholder text when focused
                                                         }
 
-                                                        if (!isFocusedGrade && grade != "0-100" && grade != "" && submission != null){
-                                                            if (grade.toLongOrNull() == null || grade.toLong() > 100  || grade.toLong() < 0 || (grade.toLong() < 100 && grade.length > 2)){
+                                                        if (!isFocusedGrade && grades[students.toInt()] != "0-100" && grades[students.toInt()] != "" && submission != null){
+                                                            if (grades[students.toInt()]!!.toLongOrNull() == null || grades[students.toInt()]!!.toLong() > 100  || grades[students.toInt()]!!.toLong() < 0 || (grades[students.toInt()]!!.toLong() < 100 && grades[students.toInt()]!!.length > 2)){
                                                                 Toast.makeText(
                                                                     context,
                                                                     "Lütfen 0 ile 100 arası bir not giriniz",
                                                                     Toast.LENGTH_SHORT
                                                                 ).show()
-                                                            }else {
-                                                                grades[students.toInt()] = grade.toLong()
+                                                                grades[students.toInt()] = "0-100"
                                                             }
                                                         }
                                                     }
                                             )
+
 
                                         }
 
@@ -911,29 +924,21 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
                                             modifier = Modifier.fillMaxWidth().height(130.dp).padding(start = 10.dp, end = 10.dp).background(Color.LightGray, RoundedCornerShape(8.dp))
                                         ){
                                             if (submission == null || submission.status == "PENDING"){
-                                                feedback = "Ödev teslim edilmedi"
+                                                feedbacks[students.toInt()] = "Ödev teslim edilmedi"
                                             }
 
 
                                             BasicTextField(
-                                                value = feedback,
-                                                onValueChange = { if (it.length <= 150) feedback = it },
+                                                value = feedbacks[students.toInt()]!!,
+                                                onValueChange = { if (it.length <= 150) feedbacks[students.toInt()] = it },
                                                 enabled = (submission != null),
                                                 modifier = Modifier.fillMaxSize().padding(end = 20.dp, bottom = 20.dp).offset(x = 15.dp, y = 15.dp)
                                                     .focusRequester(focusRequester.Default).onFocusChanged { focusState: FocusState ->
                                                         isFocusedFeedback = focusState.isFocused
-                                                        if (isFocusedFeedback && feedback == "Bir geri dönüş giriniz") {
-                                                            feedback = "" // Clear placeholder text when focused
+                                                        if (isFocusedFeedback && feedbacks[students.toInt()] == "Bir geri dönüş giriniz") {
+                                                            feedbacks[students.toInt()] = "" // Clear placeholder text when focused
                                                         }
 
-                                                        if (!isFocusedFeedback){
-                                                            if (feedback == "" || feedback == "Bir geri dönüş giriniz" || feedback == "-"){
-                                                                feedbacks[students.toInt()] = null
-                                                            }else{
-                                                                feedbacks[students.toInt()] = feedback
-                                                            }
-
-                                                        }
 
                                                     }
                                             )
@@ -954,6 +959,7 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
                         }
                     }
                 }
+
                 Button(
                     onClick = {
                         //TODO
@@ -969,7 +975,7 @@ fun DisplayPastHomeworks(assignment: TeacherAssignmentResponse, userName: String
                                 ).show()
                             }else{
                                 classStudents.keys.forEach { studentsIds ->
-                                    bulkList.add(BulkGradeItem(studentsIds.toInt(), GradeDTO(grades[studentsIds.toInt()]!!, feedbacks[studentsIds.toInt()])))
+                                    bulkList.add(BulkGradeItem(studentsIds.toInt(), GradeDTO(grades[studentsIds.toInt()]!!.toLong(), if(feedbacks[studentsIds.toInt()] == "-" || feedbacks[studentsIds.toInt()] == "" || feedbacks[studentsIds.toInt()] == "Bir geri dönüş giriniz") null else feedbacks[studentsIds.toInt()])))
 
                                 }
                                 println("Cevaplanacak ödevler : $bulkList")
@@ -1763,7 +1769,7 @@ if (content_of_assignment.value == 0){
     ) {
 
 
-        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f ).background(Color.Red)) {
+        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f )) {
             if (!refreshLazyColumn){
                 refreshLazyColumn = true
             }else{
@@ -2042,7 +2048,7 @@ if (content_of_assignment.value == 0){
     ) {
 
 
-        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f ).background(Color.Blue)) {
+        LazyColumn (modifier = Modifier.offset(y = 190.dp).padding(bottom = 185.dp).fillMaxSize(if (!refreshLazyColumn) 0.0f else 1.0f )) {
             if (!refreshLazyColumn){
                 refreshLazyColumn = true
             }else{

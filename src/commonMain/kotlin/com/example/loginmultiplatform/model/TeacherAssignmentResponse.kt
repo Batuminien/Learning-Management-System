@@ -44,8 +44,8 @@ data class StudentSubmission (
     val status : String, // Three different situation will be asked PENDING SUBMITTED GRADED
     val document : AssignmentDocument?,
     val submissionDate : String , // date and time format
-    val comment : String,
-    val grade : Long?,
+    val comment : String?,
+    val grade : Long,
     val feedback : String?
 )
 
