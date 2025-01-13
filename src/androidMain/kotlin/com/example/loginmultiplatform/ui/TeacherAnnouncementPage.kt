@@ -127,6 +127,8 @@ actual fun TeacherAnnouncementPage(loginViewModel: LoginViewModel, teacherAnnoun
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val userRole = loginViewModel.role.value
+    val userId = loginViewModel.id.value
+    val userName = loginViewModel.name.value
     val allClasses = teacherAttendanceViewModel.allClass.collectAsState().value
     val classesToFetch = if (userRole == "ROLE_COORDINATOR" || userRole == "ROLE_ADMIN") allClasses else classes
 
@@ -256,7 +258,10 @@ actual fun TeacherAnnouncementPage(loginViewModel: LoginViewModel, teacherAnnoun
                                         }
                                     }
                                 },
-                                classesToFetch
+                                classesToFetch,
+                                userId ?: 0,
+                                userName ?: "-",
+                                userRole ?: "-"
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -292,7 +297,10 @@ actual fun TeacherAnnouncementPage(loginViewModel: LoginViewModel, teacherAnnoun
                             },
                             onCancel = {
                                 showAddAnnouncementCard = false
-                            }
+                            },
+                            id = userId ?: 0,
+                            name =  userName ?: "-",
+                            role = userRole ?: "-"
                         )
                     }
                 }
@@ -305,7 +313,10 @@ actual fun TeacherAnnouncementPage(loginViewModel: LoginViewModel, teacherAnnoun
 fun AddAnnouncementCard(
     classesToShow: List<TeacherClassResponse>,
     onAddAnnouncement: (StudentAnnouncementResponse) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    id: Int,
+    name: String,
+    role: String
 ) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
@@ -458,7 +469,10 @@ fun AddAnnouncementCard(
                                 classIds = selectedClassIds,
                                 createdAt = getCurrentIsoDateTime(),
                                 readAt = "",
-                                read = false
+                                read = false,
+                                createdById = id,
+                                createdByName = name,
+                                creatorRole = role
                             )
                             onAddAnnouncement(announcement)
                         },
@@ -484,7 +498,10 @@ fun TeacherAnnouncementCard(
     administratorAnnouncementsViewModel: AdministratorAnnouncementsViewModel,
     onRefreshAnnouncements: () -> Unit,
     onUpdateAnnouncement: (StudentAnnouncementResponse, Int?) -> Unit,
-    classes: List<TeacherClassResponse>
+    classes: List<TeacherClassResponse>,
+    userId: Int,
+    userName: String,
+    userRole: String
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
@@ -528,30 +545,32 @@ fun TeacherAnnouncementCard(
                 )
 
                 if (isExpanded) {
+                    val targetAnnouncement = announcements.find {
+                        it.title == announcement.title && it.content == announcement.content
+                    }
                     IconButton(
                         onClick = {
-                            val targetAnnouncement = announcements.find {
-                                it.title == announcement.title && it.content == announcement.content
-                            }
                             targetAnnouncement?.id?.let { id ->
                                 onDeleteAnnouncement(id)
                             }
-                        }
+                        },
+                        enabled = canInteractAnnouncement(userRole, userId, targetAnnouncement)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Delete,
                             contentDescription = "Duyuruyu Sil",
-                            tint = Color.Red
+                            tint = if (canInteractAnnouncement(userRole, userId, targetAnnouncement)) Color.Red else Color.Gray
                         )
                     }
 
                     IconButton(
-                        onClick = { isEditing = true }
+                        onClick = { isEditing = true },
+                        enabled = canInteractAnnouncement(userRole, userId, targetAnnouncement)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Edit,
                             contentDescription = "Duyuruyu Düzenle",
-                            tint = Color(0xFF334BBE)
+                            tint = if (canInteractAnnouncement(userRole, userId, targetAnnouncement)) Color(0xFF334BBE) else Color.Gray
                         )
                     }
                 }
@@ -576,6 +595,8 @@ fun TeacherAnnouncementCard(
                 color = textColor,
                 fontSize = 14.sp
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Divider()
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -594,6 +615,15 @@ fun TeacherAnnouncementCard(
                     fontFamily = customFontFamily
                 )
             }
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Oluşturan Kişi: ${announcement.createdByName}",
+                    style = MaterialTheme.typography.caption,
+                    fontFamily = customFontFamily,
+                    color = textColor
+                )
+            }
 
             if (isEditing) {
                 EditAnnouncementForm(
@@ -603,11 +633,44 @@ fun TeacherAnnouncementCard(
                         onUpdateAnnouncement(updateAnnouncement, attendanceId)
                         isEditing = false
                     },
-                    classes
+                    classes = classes,
+                    id = userId,
+                    name = userName,
+                    role = userRole
                 )
             }
         }
     }
+}
+
+fun canInteractAnnouncement(
+    userRole: String?,
+    userId: Int?,
+    targetAnnouncement: StudentAnnouncementResponse?
+): Boolean {
+
+    if (userRole == "ROLE_COORDINATOR" &&
+        targetAnnouncement?.creatorRole == "ROLE_COORDINATOR" &&
+        targetAnnouncement.createdById != userId
+        ) {
+        return false
+    }
+
+    if (userRole == "ROLE_TEACHER" &&
+        targetAnnouncement?.creatorRole == "ROLE_TEACHER" &&
+        targetAnnouncement.createdById != userId
+        ) {
+        return false
+    }
+
+    return(
+            (userRole == "ROLE_TEACHER"
+                    && targetAnnouncement?.creatorRole != "ROLE_COORDINATOR"
+                    && targetAnnouncement?.creatorRole != "ROLE_ADMIN")
+                    || (userRole == "ROLE_COORDINATOR"
+                    && targetAnnouncement?.creatorRole != "ROLE_ADMIN")
+                    || (userRole == "ROLE_ADMIN")
+            )
 }
 
 @Composable
@@ -615,7 +678,10 @@ fun EditAnnouncementForm(
     announcement: StudentAnnouncementResponse,
     onCancel: () -> Unit,
     onSave: (StudentAnnouncementResponse, Int?) -> Unit,
-    classes: List<TeacherClassResponse>
+    classes: List<TeacherClassResponse>,
+    id: Int,
+    name: String,
+    role: String
 ) {
     var title by remember { mutableStateOf(announcement.title) }
     var content by remember { mutableStateOf(announcement.content) }
