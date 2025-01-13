@@ -30,3 +30,18 @@ data class SubjectResultResponse (
     val blankAnswers : Int,
     val netScore : Float
 )
+
+
+data class StudentDashboard (
+    val id : Long,
+    val title : String,
+    val description: String?,
+    val dueDate: String,
+    val teacherDocuments: AssignmentDocument?,
+    val mySubmission: StudentSubmission?,
+    val createdDate: String,
+    val assignedByTeacherName: String,
+    val className: String,
+    val courseName: String
+
+)

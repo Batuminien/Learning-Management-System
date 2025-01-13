@@ -49,6 +49,7 @@ fun NavigationGraph(
     val studentPastExamResultsViewModel = StudentPastExamResultsViewModel()
     val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
 
+
     val userId by loginViewModel.id.collectAsState()
     val username by loginViewModel.username.collectAsState()
     val role by loginViewModel.role.collectAsState()
@@ -108,8 +109,8 @@ fun NavigationGraph(
             }
 
             composable("dashboard_page") {
-                if (role == "ROLE_STUDENT") {
-                    StudentDashboard(navController = navController, attendanceViewModel = attendanceViewModel, loginViewModel = loginViewModel)
+                if (role == "ROLE_STUDENT" && classId != null) {
+                    StudentDashboard(navController = navController, attendanceViewModel = attendanceViewModel, loginViewModel = loginViewModel, studentId = userId, classId = classId)
                 } else if (role == "ROLE_TEACHER") {
                     TeacherDashboard(loginViewModel = loginViewModel, teacherAttendanceViewModel = TeacherAttendanceViewModel(), navController = navController)
                 } else if (role == "ROLE_COORDINATOR") {

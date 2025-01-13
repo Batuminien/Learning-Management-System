@@ -7,6 +7,7 @@ import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.BulkGradeRequest
 import com.example.loginmultiplatform.model.CoordinatorInfoResponse
+import com.example.loginmultiplatform.model.CourseSchedule
 import com.example.loginmultiplatform.model.CourseStatisticsResponse
 import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
@@ -18,6 +19,7 @@ import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.ProfilePhotoResponse
+import com.example.loginmultiplatform.model.StudentDashboard
 import com.example.loginmultiplatform.model.StudentExamResultsResponses
 import com.example.loginmultiplatform.model.StudentInfoResponse
 import com.example.loginmultiplatform.model.TeacherInfoResponse
@@ -167,6 +169,11 @@ interface ApiService {
         @Query("dueDate") dueDate: String
     ): ResponseWrapper<List<TeacherAssignmentResponse>>
 
+    @GET("/api/v1/assignments/student/{studentId}")
+    suspend fun dashboard (
+        @Path("studentId") studentId: Long
+    ) : ResponseWrapper<List<StudentDashboard>>
+
     @PATCH("/api/v1/assignments/{assignmentId}/bulk-grade")
     suspend fun bulkGradeSubmissions (
         @Path("assignmentId") assignmentId: Long,
@@ -208,6 +215,13 @@ interface ApiService {
     suspend fun fetchStudentPastExamResults(
         @Path("studentId") studentId: Long
     ) : ResponseWrapper<List<StudentExamResultsResponses>>
+
+    @GET("/api/v1/schedules/student/{studentId}")
+    suspend fun getStudentSchedule (
+        @Path("studentId") studentId: Long
+    ) : ResponseWrapper<List<CourseSchedule>>
+
+
 
 }
 
