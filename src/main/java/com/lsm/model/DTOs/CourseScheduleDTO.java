@@ -19,8 +19,14 @@ public class CourseScheduleDTO {
     @NotNull(message = "Teacher course ID is required")
     private Long teacherCourseId;
 
+    private String teacherName;
+
+    private String teacherCourseName;
+
     @NotNull(message = "Class ID is required")
     private Long classId;
+
+    private String className;
 
     @NotNull(message = "Day of week is required")
     private DayOfWeek dayOfWeek;
