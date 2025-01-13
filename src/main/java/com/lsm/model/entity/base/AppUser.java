@@ -81,6 +81,9 @@ public class AppUser implements UserDetails {
     @Column(name = "school_level")
     private SchoolLevel schoolLevel;
 
+    @Column(name = "enabled", nullable = false)
+    private boolean enabled = false;
+
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "phone", column = @Column(name = "student_phone")),
@@ -130,6 +133,11 @@ public class AppUser implements UserDetails {
     @JsonIgnore
     public String getUsername() {
         return username;
+    }
+
+    @JsonIgnore
+    public String getFullName() {
+        return name + " " + surname;
     }
 
     @Override

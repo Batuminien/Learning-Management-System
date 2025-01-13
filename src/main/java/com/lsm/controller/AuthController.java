@@ -225,6 +225,44 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/admin/verify")
+    public ResponseEntity<ApiResponse_<Void>> verifyAdminAccount(
+            @RequestParam String token) {
+        try {
+            authService.verifyAdminAccount(token);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Admin account verified successfully",
+                    null
+            ));
+        } catch (InvalidTokenException | TokenExpiredException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse_<>(
+                    false,
+                    e.getMessage(),
+                    null
+            ));
+        }
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse_<Void>> verifyEmail(
+            @RequestParam String token) {
+        try {
+            authService.verifyAccount(token);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Email verified successfully",
+                    null
+            ));
+        } catch (InvalidTokenException | TokenExpiredException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse_<>(
+                    false,
+                    e.getMessage(),
+                    null
+            ));
+        }
+    }
+
     private String extractClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {

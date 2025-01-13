@@ -7,10 +7,8 @@ import com.lsm.model.DTOs.*;
 import com.lsm.model.entity.*;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.model.entity.enums.Role;
-import com.lsm.repository.AppUserRepository;
-import com.lsm.repository.ClassEntityRepository;
-import com.lsm.repository.CourseRepository;
-import com.lsm.repository.ProfilePhotoRepository;
+import com.lsm.repository.*;
+import com.lsm.exception.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,10 +16,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 
 @Service
@@ -33,6 +33,8 @@ public class UserService {
     private final CourseRepository courseRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProfilePhotoRepository profilePhotoRepository;
+    private final EmailService emailService;
+    private final PasswordResetTokenRepository tokenRepository;
 
     // Generic user operations
     public Page<AppUser> getAllUsers(Pageable pageable) {
@@ -54,12 +56,6 @@ public class UserService {
     public AppUser getUserById(Long id) {
         return userRepository.findUserWithAllDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-    }
-
-    @Transactional
-    public void deleteUser(Long id) {
-        AppUser user = getUserById(id);
-        userRepository.delete(user);
     }
 
     @Transactional
@@ -131,8 +127,8 @@ public class UserService {
     @Transactional
     public AppUser updateTeacher(Long id, TeacherUpdateRequestDTO updateRequest) {
         AppUser teacher = getUserById(id);
-        if (teacher.getRole() != Role.ROLE_TEACHER) {
-            throw new IllegalOperationException("User with id: " + id + " is not a teacher");
+        if (teacher.getRole() == Role.ROLE_STUDENT) {
+            throw new IllegalOperationException("Student cannot update teacher");
         }
 
         updateUser(id, updateRequest);
@@ -181,6 +177,71 @@ public class UserService {
 
         return userRepository.save(teacher);
     }
+
+    @Transactional
+    public void initiateAdminDeletion(Long adminId) {
+        AppUser admin = getUserById(adminId);
+        if (admin.getRole() != Role.ROLE_ADMIN) {
+            throw new IllegalOperationException("User is not an admin");
+        }
+
+        // Generate verification token
+        PasswordResetToken verificationToken = PasswordResetToken.builder()
+                .token(generateSecureToken())
+                .user(admin)
+                .expiryDate(Instant.now().plusSeconds(24 * 60 * 60))
+                .used(false)
+                .build();
+        tokenRepository.save(verificationToken);
+
+        // Send verification email
+        emailService.sendAdminDeletionVerificationEmail(
+                admin.getEmail(),
+                admin.getFullName(),
+                verificationToken.getToken()
+        );
+    }
+
+    @Transactional
+    public void confirmAdminDeletion(String token) {
+        PasswordResetToken verificationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
+
+        if (verificationToken.isUsed()) {
+            throw new InvalidTokenException("Token has already been used");
+        }
+
+        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
+            throw new TokenExpiredException("Verification token has expired");
+        }
+
+        AppUser admin = verificationToken.getUser();
+        if (admin.getRole() != Role.ROLE_ADMIN) {
+            throw new IllegalOperationException("User is not an admin");
+        }
+
+        // Delete the admin
+        userRepository.delete(admin);
+
+        // Mark token as used
+        verificationToken.setUsed(true);
+        tokenRepository.save(verificationToken);
+    }
+
+    @Transactional
+    public void deleteUser(Long id) {
+        AppUser user = getUserById(id);
+
+        // If user is admin, initiate verification process
+        if (user.getRole() == Role.ROLE_ADMIN) {
+            initiateAdminDeletion(id);
+            return;
+        }
+
+        // For non-admin users, delete directly
+        userRepository.delete(user);
+    }
+
 
     @Transactional
     public void deleteCoordinator(Long id) {
@@ -275,5 +336,9 @@ public class UserService {
         if (existingUser.isPresent() && !existingUser.get().getId().equals(excludeUserId)) {
             throw new DuplicateResourceException("Email already exists: " + email);
         }
+    }
+
+    private String generateSecureToken() {
+        return UUID.randomUUID().toString();
     }
 }

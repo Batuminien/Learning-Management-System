@@ -11,10 +11,8 @@ import com.lsm.model.DTOs.auth.*;
 import com.lsm.model.DTOs.TokenRefreshResult;
 import com.lsm.model.entity.*;
 import com.lsm.model.entity.base.AppUser;
-import com.lsm.repository.AppUserRepository;
-import com.lsm.repository.ClassEntityRepository;
-import com.lsm.repository.CourseRepository;
-import com.lsm.repository.RefreshTokenRepository;
+import com.lsm.model.entity.enums.Role;
+import com.lsm.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,11 +45,13 @@ public class AuthService {
     private final ClassEntityRepository classEntityRepository;
     private final CourseRepository courseRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptService loginAttemptService;
     private final EventPublisher eventPublisher;
+    private final EmailService emailService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -60,13 +60,66 @@ public class AuthService {
     public AppUser registerUser(RegisterRequestDTO registerRequest) {
         validateRegistrationRequest(registerRequest);
 
+        // Create user with enabled=false
         AppUser newUser = createUserFromRequest(registerRequest);
+        newUser.setEnabled(false); // Email not verified yet
         AppUser savedUser = appUserRepository.save(newUser);
 
+        // Generate verification token
+        PasswordResetToken verificationToken = PasswordResetToken.builder()
+                .token(generateSecureToken())
+                .user(savedUser)
+                .expiryDate(Instant.now().plusSeconds(24 * 60 * 60))
+                .used(false)
+                .build();
+        passwordResetTokenRepository.save(verificationToken);
+
+        // Send verification email based on role
+        if (savedUser.getRole() == Role.ROLE_ADMIN) {
+            emailService.sendAdminVerificationEmail(
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    verificationToken.getToken()
+            );
+        } else {
+            /*
+            emailService.sendUserVerificationEmail(
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    verificationToken.getToken()
+            );
+             */
+            savedUser.setEnabled(true); // Don't send email for now.
+        }
+
         eventPublisher.publishEvent(new UserRegisteredEvent(savedUser));
-        log.info("User registered successfully: {}", savedUser.getUsername());
+        log.info("User registration initiated for: {}", savedUser.getUsername());
 
         return savedUser;
+    }
+
+    @Transactional
+    public void verifyAdminAccount(String token) {
+        PasswordResetToken verificationToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
+
+        if (verificationToken.isUsed()) {
+            throw new InvalidTokenException("Token has already been used");
+        }
+
+        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
+            throw new TokenExpiredException("Verification token has expired");
+        }
+
+        AppUser admin = verificationToken.getUser();
+        admin.setEnabled(true);
+        appUserRepository.save(admin);
+
+        verificationToken.setUsed(true);
+        passwordResetTokenRepository.save(verificationToken);
+
+        // Send welcome email
+        emailService.sendAdminWelcomeEmail(admin.getEmail(), admin.getFullName());
     }
 
     @Transactional
@@ -245,6 +298,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(registerRequest.getRole())
                 .schoolLevel(registerRequest.getSchoolLevel())
+                .enabled(false)
                 .studentDetails(null)
                 .teacherDetails(null);
 
@@ -259,6 +313,34 @@ public class AuthService {
         }
 
         return userBuilder.build();
+    }
+
+    @Transactional
+    public void verifyAccount(String token) {
+        PasswordResetToken verificationToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
+
+        if (verificationToken.isUsed()) {
+            throw new InvalidTokenException("Token has already been used");
+        }
+
+        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
+            throw new TokenExpiredException("Verification token has expired");
+        }
+
+        AppUser user = verificationToken.getUser();
+        user.setEnabled(true); // Email is now verified
+        appUserRepository.save(user);
+
+        verificationToken.setUsed(true);
+        passwordResetTokenRepository.save(verificationToken);
+
+        // Send welcome email based on role
+        if (user.getRole() == Role.ROLE_ADMIN) {
+            emailService.sendAdminWelcomeEmail(user.getEmail(), user.getFullName());
+        } else {
+            emailService.sendUserWelcomeEmail(user.getEmail(), user.getFullName());
+        }
     }
 
     private StudentDetails getStudentDetails(StudentRegisterRequestDTO registerRequest) {
@@ -320,6 +402,13 @@ public class AuthService {
             throw new DuplicateResourceException("Email already exists");
         }
         validatePassword(request.getPassword());
+
+        // Admin-specific validation
+        if (request.getRole() == Role.ROLE_ADMIN) {
+            if (!request.getEmail().endsWith("@learnovify.com")) {
+                throw new InvalidRequestException("Admin email must be a learnovify.com address");
+            }
+        }
     }
 
     private void validatePassword(String password) {

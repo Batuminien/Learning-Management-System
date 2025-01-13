@@ -316,11 +316,14 @@ public class TrialExamService {
             endMath = endMathOpt.get();
         }
 
-        Integer mceSosyal = findMostCommonElement(startColumnSosyalL);
+        Optional<Integer> mceSosyalOpt = startColumnSosyalL.stream().min(Integer::compare);
         Optional<Integer> endSosyalOpt = endColumnSosyalL.stream().max(Integer::compare);
-        int endSosyal = -1;
+        int endSosyal = -1, mceSosyal = -1;
         if (endSosyalOpt.isPresent()) {
             endSosyal = endSosyalOpt.get();
+        }
+        if (mceSosyalOpt.isPresent()) {
+            mceSosyal = mceSosyalOpt.get();
         }
 
         Integer mceTurkce = findMostCommonElement(startColumnTurkceL);

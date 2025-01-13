@@ -63,6 +63,124 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendAdminVerificationEmail(String to, String adminName, String token) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", adminName);
+            context.setVariable("verificationLink",
+                    frontendUrl + "/admin/verify?token=" + token);
+
+            String emailContent = templateEngine.process("admin-verification-email", context);
+
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject("Verify Your Admin Account")
+                    .html(emailContent)
+                    .build();
+
+            resend.emails().send(emailRequest);
+        } catch (Exception e) {
+            log.error("Failed to send admin verification email", e);
+            throw new RuntimeException("Failed to send admin verification email", e);
+        }
+    }
+
+    @Async
+    public void sendAdminWelcomeEmail(String to, String name) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("loginLink", frontendUrl + "/login");
+
+            String emailContent = templateEngine.process("admin-welcome-email", context);
+
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject("Welcome to Learnovify Admin Panel")
+                    .html(emailContent)
+                    .build();
+
+            resend.emails().send(emailRequest);
+        } catch (Exception e) {
+            log.error("Failed to send admin welcome email", e);
+            throw new RuntimeException("Failed to send admin welcome email", e);
+        }
+    }
+
+    @Async
+    public void sendUserVerificationEmail(String to, String name, String token) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("verificationLink",
+                    frontendUrl + "/verify-email?token=" + token);
+
+            String emailContent = templateEngine.process("user-verification-email", context);
+
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject("Verify Your Email Address")
+                    .html(emailContent)
+                    .build();
+
+            resend.emails().send(emailRequest);
+        } catch (Exception e) {
+            log.error("Failed to send user verification email", e);
+            throw new RuntimeException("Failed to send verification email", e);
+        }
+    }
+
+    @Async
+    public void sendUserWelcomeEmail(String to, String name) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("loginLink", frontendUrl + "/login");
+
+            String emailContent = templateEngine.process("user-welcome-email", context);
+
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject("Welcome to Learnovify")
+                    .html(emailContent)
+                    .build();
+
+            resend.emails().send(emailRequest);
+        } catch (Exception e) {
+            log.error("Failed to send welcome email", e);
+            throw new RuntimeException("Failed to send welcome email", e);
+        }
+    }
+
+    @Async
+    public void sendAdminDeletionVerificationEmail(String to, String name, String token) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("verificationLink",
+                    frontendUrl + "/users/admin/confirm-deletion?token=" + token);
+
+            String emailContent = templateEngine.process("admin-deletion-verification-email", context);
+
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject("Verify Admin Account Deletion")
+                    .html(emailContent)
+                    .build();
+
+            resend.emails().send(emailRequest);
+        } catch (Exception e) {
+            log.error("Failed to send admin deletion verification email", e);
+            throw new RuntimeException("Failed to send verification email", e);
+        }
+    }
+
     private void sendEmail(String to, String subject, String content) throws ResendException {
         SendEmailRequest emailRequest = SendEmailRequest.builder()
                 .from(fromEmail)

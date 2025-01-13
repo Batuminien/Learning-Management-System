@@ -85,8 +85,8 @@ public class TrialExamServiceTest {
 
         // Check each part
         for (String part : nameParts) {
-            // Each part must be at least 2 characters
-            if (part.length() < 2) {
+            // Each part must be at least 3 characters
+            if (part.length() < 3) {
                 return false;
             }
 
@@ -144,7 +144,10 @@ public class TrialExamServiceTest {
                 "1     10640845862          ÇERÝBAÞ ÝSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
                 "1     24800076300          IRMAK ÇELÝK                BEEBBCDB    EA BCEAECDECBAEDCEDDABCADCEDA            B   E   E   BA BB                                DE A  EB   A       C                             BB D E B D                                             \n" +
                 "1     24005104938          ELA YANARDAÐ               AEBEBDCBCAD BAED EBEDCCEBADEC EDAC DAECAD          BBE   CCA C E  AECBEBCBAC                               E A        C                    E           D B    C  C        A                                   \n" +
-                "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n";
+                "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n" +
+                "1     23648116742          KUÞÇU NAZLI                BBEBBCDBCADBEADBCEDECDECBEEDDAADABCADCEDA          BCABEABEACCABDBCDBBC                              ADEDBADEDEDDCBEBCBADCDAC EEDCBBDCBDCAECA          EBBCAEDBECECBEEBBCCB                                   \n" +
+                "1     45175408374          SOYSAL MELÝSA NAZ          AEBEBDCBCAACBADDDEBEDCCEBA ECCEDACBDAECAD           AA    B DCBA BAB AD                              DDEABDAECDDDBCCBCC EBD AEC CD CBD                 EEBDAECB  DCEE                                         \n" +
+                "1     15092402878          EMRE GÜZEL                 ABA BECBC  E A DDCAED CECADECAEEACBDAE             ECDDC DCD CAA  ABABC                              EDCC  CCA    C    E           B                   BEEDCAECA                                              \n";
 
         try (BufferedReader reader = new BufferedReader(new StringReader(testData))) {
             String line;
@@ -221,11 +224,14 @@ public class TrialExamServiceTest {
     @Test
     void testConvertResultsToCsvTYT_WithRealData() {
         // Single line test with properly formatted data
-        String testInput = "1     19802242952          MERT ALЭ ЦLMEZ             BEEBBCDBCB BCADBCEDECDECBAEDCEDAABCADCEDA          BCADECB ECCDBDBAADBB D                            ADADEACBDEBDC    B  CD                            DBACCEDBEEDCEAEBAEBE                                   \n" +
+        String testInput =                 "1     19802242952          MERT ALЭ ЦLMEZ             BEEBBCDBCB BCADBCEDECDECBAEDCEDAABCADCEDA          BCADECB ECCDBDBAADBB D                            ADADEACBDEBDC    B  CD                            DBACCEDBEEDCEAEBAEBE                                   \n" +
                 "1     10640845862          ÇERÝBAÞ ÝSME T             AEBEBDCBCAAEB EDCEBEDCCEBADEDAEDACBDAECAD          BCDAEDCCB C ADBABEBC                              DDEABDDCADEDBCCBCC E D B EBCC CBDB C E            BBBDCECBEEEABCED CBE \n" +
                 "1     24800076300          IRMAK ÇELÝK                BEEBBCDB    EA BCEAECDECBAEDCEDDABCADCEDA            B   E   E   BA BB                                DE A  EB   A       C                             BB D E B D                                             \n" +
                 "1     24005104938          ELA YANARDAÐ               AEBEBDCBCAD BAED EBEDCCEBADEC EDAC DAECAD          BBE   CCA C E  AECBEBCBAC                               E A        C                    E           D B    C  C        A                                   \n" +
-                "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n";
+                "1     33418749896          SÖKER TIRPANCI ÝREM        AEBEBDCBBADEBADDCEBEDCCEBADECAADACBDAECAD            DDEDDCBAEBADBABEBE                              ADEBBDDEADDDBCC  CAE D AEEBCB CBDBE  E            A BDC CBCDEEBAEDECBE                                   \n" +
+                "1     23648116742          KUÞÇU NAZLI                BBEBBCDBCADBEADBCEDECDECBEEDDAADABCADCEDA          BCABEABEACCABDBCDBBC                              ADEDBADEDEDDCBEBCBADCDAC EEDCBBDCBDCAECA          EBBCAEDBECECBEEBBCCB                                   \n" +
+                "1     45175408374          SOYSAL MELÝSA NAZ          AEBEBDCBCAACBADDDEBEDCCEBA ECCEDACBDAECAD           AA    B DCBA BAB AD                              DDEABDAECDDDBCCBCC EBD AEC CD CBD                 EEBDAECB  DCEE                                         \n" +
+                "1     15092402878          EMRE GÜZEL                 ABA BECBC  E A DDCAED CECADECAEEACBDAE             ECDDC DCD CAA  ABABC                              EDCC  CCA    C    E           B                   BEEDCAECA                                              \n";
 
         System.out.println("\n=== INPUT DATA ===");
         System.out.println(testInput);

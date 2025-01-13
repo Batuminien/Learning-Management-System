@@ -65,7 +65,40 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse_<Void>> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.ok(new ApiResponse_<>(true, "User deleted successfully", null));
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "User deletion initiated. If this is an admin account, a verification email has been sent.",
+                    null
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse_<>(
+                    false,
+                    e.getMessage(),
+                    null
+            ));
+        }
+    }
+
+    @Operation(summary = "Confirm admin deletion")
+    @PostMapping("/admin/confirm-deletion")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse_<Void>> confirmAdminDeletion(
+            @RequestParam String token) {
+        try {
+            userService.confirmAdminDeletion(token);
+            return ResponseEntity.ok(new ApiResponse_<>(
+                    true,
+                    "Admin account deleted successfully",
+                    null
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse_<>(
+                    false,
+                    e.getMessage(),
+                    null
+            ));
+        }
     }
 }

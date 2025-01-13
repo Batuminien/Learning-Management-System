@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<h2>Welcome to Learnovify Admin Panel</h2>
+<p>Hello [[${name}]],</p>
+<p>Your admin account has been verified successfully. You can now log in to access the admin panel:</p>
+
+<p>
+    <a href="[[${loginLink}]]" class="btn">Login to Admin Panel</a>
+</p>
+
+<div class="footer">
+    <p>Best regards,<br/>Learnovify Team</p>
+</div>
+</body>
+</html>

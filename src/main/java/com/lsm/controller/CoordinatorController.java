@@ -90,7 +90,7 @@ public class CoordinatorController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse_<Void>> deleteCoordinator(@PathVariable Long id) {
-        userService.deleteTeacher(id);
+        userService.deleteCoordinator(id);
         return ResponseEntity.ok(new ApiResponse_<>(true, "Coordinator deleted successfully", null));
     }
 }
