@@ -5,6 +5,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -414,11 +415,15 @@ public class AssignmentService {
             if (theStudentSubmission.getGrade() != null || theStudentSubmission.getStatus() == AssignmentStatus.GRADED)
                 throw new IllegalStateException("The assignment has already been graded");
 
-            Files.deleteIfExists(Paths.get(theStudentSubmission.getDocument().getFilePath()));
-            theStudentSubmission.setDocument(null);
-            assignmentRepository.save(assignment);
+            // Only try to delete the existing document if it exists
+            if (theStudentSubmission.getDocument() != null) {
+                Files.deleteIfExists(Paths.get(theStudentSubmission.getDocument().getFilePath()));
+                theStudentSubmission.setDocument(null);
+                assignmentRepository.save(assignment);
+            }
         }
 
+        // Rest of the method remains the same...
         ClassEntity classEntity = user.getStudentDetails().getClassEntity();
         if (classEntity == null) {
             throw new EntityNotFoundException("Student is not assigned to any class");
@@ -511,20 +516,8 @@ public class AssignmentService {
             Course course,
             TeacherCourse teacherCourse) {
 
-        // Create initial student submissions for all students in the class
-        List<StudentSubmission> initialSubmissions = classEntity.getStudents().stream()
-                .map(student -> StudentSubmission.builder()
-                        .student(student)
-                        .status(AssignmentStatus.PENDING)
-                        .document(null)
-                        .submissionDate(null)
-                        .comment(null)
-                        .grade(null)
-                        .feedback(null)
-                        .build())
-                .collect(Collectors.toList());
-
-        return Assignment.builder()
+        // First create the assignment without submissions
+        Assignment assignment = Assignment.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
                 .dueDate(dto.getDueDate())
@@ -535,7 +528,26 @@ public class AssignmentService {
                 .teacherCourse(teacherCourse)
                 .date(LocalDate.now())
                 .lastModified(LocalDate.now())
-                .studentSubmissions(initialSubmissions)
+                .studentSubmissions(new ArrayList<>())
                 .build();
+
+        // Create initial student submissions for all students in the class
+        List<StudentSubmission> initialSubmissions = classEntity.getStudents().stream()
+                .map(student -> StudentSubmission.builder()
+                        .student(student)
+                        .status(AssignmentStatus.PENDING)
+                        .document(null)
+                        .submissionDate(null)
+                        .comment(null)
+                        .grade(null)
+                        .feedback(null)
+                        .assignment(assignment) // Set the bidirectional relationship
+                        .build())
+                .collect(Collectors.toList());
+
+        // Set the submissions to the assignment
+        assignment.setStudentSubmissions(initialSubmissions);
+
+        return assignment;
     }
 }
