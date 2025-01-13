@@ -78,6 +78,7 @@ public class UserMapper {
                 .firstName(user.getName())
                 .lastName(user.getSurname())
                 .role(user.getRole())
+                .schoolLevel(user.getSchoolLevel())
                 .phone(details.getPhone())
                 .tc(details.getTc())
                 .birthDate(details.getBirthDate())
@@ -98,6 +99,7 @@ public class UserMapper {
                     .firstName(user.getName())
                     .lastName(user.getSurname())
                     .role(user.getRole())
+                    .schoolLevel(user.getSchoolLevel())
                     .build();
         }
 
@@ -120,6 +122,7 @@ public class UserMapper {
                 .firstName(user.getName())
                 .lastName(user.getSurname())
                 .role(user.getRole())
+                .schoolLevel(user.getSchoolLevel())
                 .phone(details.getPhone())
                 .tc(details.getTc())
                 .birthDate(details.getBirthDate())
