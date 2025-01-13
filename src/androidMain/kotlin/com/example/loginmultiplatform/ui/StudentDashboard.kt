@@ -14,6 +14,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,20 +34,61 @@ import androidx.compose.ui.unit.*
 import kotlin.math.pow
 import kotlin.math.round
 import androidx.navigation.NavController
+import com.example.loginmultiplatform.model.CourseSchedule
+import com.example.loginmultiplatform.model.StudentAnnouncementResponse
+import com.example.loginmultiplatform.model.StudentDashboard
+import com.example.loginmultiplatform.model.StudentExamResultsResponses
+import com.example.loginmultiplatform.model.StudentSubmission
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
+import com.example.loginmultiplatform.viewmodel.CourseScheduleViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
+import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import com.example.loginmultiplatform.viewmodel.StudentPastExamResultsViewModel
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-actual fun StudentDashboard(navController: NavController, loginViewModel: LoginViewModel, attendanceViewModel: AttendanceViewModel) {
+actual fun StudentDashboard(navController: NavController, loginViewModel: LoginViewModel, attendanceViewModel: AttendanceViewModel, studentId : Int?, classId : Int?) {
     val username by loginViewModel.username.collectAsState()
 
-    DashboardPage(username)
+    DashboardPage(username, studentId, classId)
 }
 
 @Composable
-fun DashboardPage(username: String?) {
+fun DashboardPage(username: String?, studentId: Int? , classId: Int?) {
     var isExpended by remember { mutableStateOf(false) }
+
+    val studentExamViewModel = StudentPastExamResultsViewModel()
+
+    val studentAnnouncementViewModel = StudentAnnouncementViewModel()
+
+    val courseScheduleViewModel = CourseScheduleViewModel()
+
+    val courseSchedule by courseScheduleViewModel.courseSchedule.collectAsState()
+
+    val announcements by studentAnnouncementViewModel.announcement.collectAsState()
+
+    val PastExams by studentExamViewModel.pastExams.collectAsState()
+
+    val homeworks by studentExamViewModel.homeworks.collectAsState()
+
+
+
+    LaunchedEffect(Unit){
+        if (studentId != null) {
+            studentExamViewModel.fetchStudentPastExams(studentId = studentId.toLong())
+            studentExamViewModel.dashboard(studentId = studentId.toLong())
+            courseScheduleViewModel.getStudentSchedule(studentId.toLong())
+            if(classId != null){
+                studentAnnouncementViewModel.fetchAnnouncementsByClassId(classId!!)
+                println("$classId")
+            }else {
+                println("neden ?")
+            }
+
+        }
+    }
+
+
 
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
@@ -55,14 +100,14 @@ fun DashboardPage(username: String?) {
             ) {
                 // Main Content
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(top = 80.dp, bottom = 80.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item { WeeklyScheduleSection() }
-                    item { ExamsSection() }
-                    item { HomeworkSection() }
-                    item { AnnouncementsSection(isExpended) }
+                    item { WeeklyScheduleSection(courseSchedule) }
+                    item { ExamsSection(PastExams) }
+                    item { HomeworkSection(homeworks) }
+                    item { AnnouncementsSection(isExpended, announcements) }
                 }
             }
             if (username != null) {
@@ -131,6 +176,16 @@ fun DummyExams() = listOf(
 )
 
 //========================= Utility Functions =========================//
+fun timeToFloat(timeString: String): Float {
+    val parts = timeString.split(":")
+    val hours = parts[0].toInt()
+    val minutes = parts[1].toInt()
+
+    // Convert minutes to the fractional part of the hour
+    return hours + minutes / 100f
+}
+
+
 fun formatFloat(value: Float, decimals: Int = 2): String {
     val factor = 10.0.pow(decimals)
     val roundedValue = round(value * factor) / factor
@@ -192,63 +247,30 @@ fun SideBarButton(text: String, onClick: () -> Unit = {}) {
     }
 }
 
+
 @Composable
-fun HomeworkRow(course: Homeworks) {
-    Row(modifier = Modifier.height(50.dp).fillMaxWidth()) {
-        Row(modifier = Modifier.width(95.dp).height(50.dp)) {
-            Spacer(modifier = Modifier.width(7.dp))
-            Text(
-                text = course.CourseName,
-                fontSize = 12.sp,
-                lineHeight = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxSize(),
-                fontFamily = customFontFamily
-            )
-        }
-        Row(modifier = Modifier.width(105.dp).height(50.dp)) {
-            Text(
-                text = course.CourseConcept,
-                fontSize = 12.sp,
-                lineHeight = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxSize(),
-                fontFamily = customFontFamily
-            )
-        }
-        Row(modifier = Modifier.width(45.dp).height(22.dp), verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = course.FinishDate,
-                fontSize = 12.sp,
-                lineHeight = 12.sp,
-                textAlign = TextAlign.Right,
-                modifier = Modifier.fillMaxWidth(),
-                fontFamily = customFontFamily
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Box(
-            modifier = Modifier
-                .width(55.dp)
-                .height(25.dp)
-                .background(
-                    if (course.Statue) Color.Green else Color.Red,
-                    RoundedCornerShape(10.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = if (course.Statue) "Aktif" else "Bitti", fontSize = 10.sp, fontFamily = customFontFamily)
-        }
+fun HomeworkDisplay(content: String) {
+
+    Box (
+        modifier = Modifier.width(125.dp).height(60.dp)
+    ){
+        Text(
+            text = content,
+            modifier = Modifier.align(Alignment.Center),
+            fontSize = 13.sp
+        )
     }
 }
 
+
 @Composable
-fun AnnouncementsRow(item: Announcements, isExpanded: Boolean) {
+fun AnnouncementsRow(item: StudentAnnouncementResponse, isExpanded: Boolean) {
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(8.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = 3.dp,
-        backgroundColor = if (!item.state) Color(0xFFD8EBF5) else Color(0xFFF2F2F2)
+        backgroundColor = if (!item.read) Color(0xFFD8EBF5) else Color(0xFFF2F2F2)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
@@ -259,12 +281,12 @@ fun AnnouncementsRow(item: Announcements, isExpanded: Boolean) {
                 modifier = Modifier.fillMaxHeight().fillMaxWidth(0.80f)
             ) {
                 Text(text = item.title, lineHeight = 15.sp, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = customFontFamily)
-                Text(text = item.description, lineHeight = 15.sp, fontSize = 10.sp, fontFamily = customFontFamily)
+                Text(text = item.content, lineHeight = 15.sp, fontSize = 10.sp, fontFamily = customFontFamily)
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Icon(
-                    painter = painterResource(if (item.state) R.drawable.read else R.drawable.un_read),
-                    contentDescription = if (item.state) "read Mail icon" else "un_read Mail icon",
+                    painter = painterResource(if (item.read) R.drawable.read else R.drawable.un_read),
+                    contentDescription = if (item.read) "read Mail icon" else "un_read Mail icon",
                     modifier = Modifier.size(25.dp).align(Alignment.Center),
                     tint = Color.Unspecified
                 )
@@ -274,29 +296,32 @@ fun AnnouncementsRow(item: Announcements, isExpanded: Boolean) {
 }
 
 @Composable
-fun Bars(personal: Float, overall: Float, examName: String, examType: Boolean) {
-    val divisor = if (examType) 120f else 80f
+fun Bars(personal: Float, overall: Float, examName: String, examType: String) {
+    val divisor = if (examType == "TYT") 120f else if ( examType == "LGS" ) 90f else 80f
     val personalRatio = personal / divisor
     val overallRatio = overall / divisor
 
-    Column(modifier = Modifier.fillMaxHeight().width(55.dp)) {
-        Row(modifier = Modifier.width(55.dp).height(175.dp), verticalAlignment = Alignment.Bottom) {
+    Column(modifier = Modifier.fillMaxHeight().width(80.dp)) {
+        Row(modifier = Modifier.width(80.dp).height(175.dp), verticalAlignment = Alignment.Bottom) {
+            Spacer(modifier = Modifier.width(12.dp))
             Box(
                 modifier = Modifier
                     .fillMaxHeight(personalRatio)
                     .width(25.dp)
-                    .background(Color(0xFF4AB58E), RoundedCornerShape(3.dp))
+                    .background(Color(0xFF28a745), RoundedCornerShape(3.dp))
             )
             Spacer(modifier = Modifier.width(4.dp))
             Box(
                 modifier = Modifier
                     .fillMaxHeight(overallRatio)
                     .width(25.dp)
-                    .background(Color(0xFFFFCF00), RoundedCornerShape(4.dp))
+                    .background(Color(0xFFf76c5e), RoundedCornerShape(4.dp))
             )
+            Spacer(modifier = Modifier.width(22.dp))
         }
 
         Row(modifier = Modifier.height(20.dp).fillMaxWidth()) {
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = personal.toString(),
                 fontSize = 6.sp,
@@ -314,7 +339,18 @@ fun Bars(personal: Float, overall: Float, examName: String, examType: Boolean) {
                 modifier = Modifier.width(25.dp),
                 fontFamily = customFontFamily
             )
+            Spacer(modifier = Modifier.width(22.dp))
         }
+
+        Text(
+            text = examType,
+            fontSize = 10.sp,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            lineHeight = 13.sp,
+            fontFamily = customFontFamily,
+            modifier = Modifier.width(80.dp)
+        )
 
         Text(
             text = examName,
@@ -322,81 +358,101 @@ fun Bars(personal: Float, overall: Float, examName: String, examType: Boolean) {
             color = Color.Black,
             textAlign = TextAlign.Center,
             lineHeight = 13.sp,
-            fontFamily = customFontFamily
+            fontFamily = customFontFamily,
+            modifier = Modifier.width(80.dp)
         )
     }
 }
 
+
+
 //========================= Sections as Composables =========================//
 @Composable
-fun WeeklyScheduleSection() {
-    val days = listOf("Pzt", "Salı", "Çrş", "Prş", "Cuma", "Cmt", "Pzr")
+fun WeeklyScheduleSection(courseSchedule: List<CourseSchedule>) {
+    //"MONDAY" "TUESDAY" "WEDNESDAY" "THURSDAY" "FRIDAY" "SATURDAY" "SUNDAY"
+    val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
     val timeslots = (10..18)
 
-    Column(
-        modifier = Modifier.fillMaxWidth().height(400.dp)
-            .background(Color.White, RoundedCornerShape(20.dp))
-    ) {
-        Spacer(modifier = Modifier.height(5.dp))
-        Text("HAFTALIK DERS PROGRAMI", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontFamily = customFontFamily)
-        Spacer(modifier = Modifier.height(5.dp))
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Spacer(modifier = Modifier.width(15.dp))
-                Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.2f)) {
-                    Row(modifier = Modifier.fillMaxWidth().height(30.dp)) {
-                        Text("Hafta", fontSize = 12.sp, fontFamily = customFontFamily)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth().height(30.dp)) { Text("09.00", fontSize = 12.sp, fontFamily = customFontFamily) }
-                    timeslots.forEach { time ->
+    Card(
+        modifier = Modifier.fillMaxWidth().height(400.dp).background(Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = 5.dp
+    ){
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Spacer(modifier = Modifier.height(5.dp))
+            Text("HAFTALIK DERS PROGRAMI", modifier = Modifier.fillMaxWidth(), fontSize = 16.sp ,textAlign = TextAlign.Center, fontFamily = customFontFamily, fontWeight = FontWeight.Bold)
+            Divider(thickness = 3.dp, color = Color.Black, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end= 10.dp))
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Spacer(modifier = Modifier.width(15.dp))
+                    Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.2f)) {
                         Row(modifier = Modifier.fillMaxWidth().height(30.dp)) {
-                            Text("${time}.00", fontSize = 12.sp, fontFamily = customFontFamily)
+                            Text("Hafta", fontSize = 12.sp, fontFamily = customFontFamily)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth().height(30.dp)) { Text("09.00", fontSize = 12.sp, fontFamily = customFontFamily) }
+                        timeslots.forEach { time ->
+                            Row(modifier = Modifier.fillMaxWidth().height(30.dp)) {
+                                Text("${time}.00", fontSize = 12.sp, fontFamily = customFontFamily)
+                            }
                         }
                     }
-                }
 
-                LazyRow(modifier = Modifier.fillMaxSize()) {
-                    days.forEach { day ->
-                        item {
-                            Box(modifier = Modifier.fillMaxHeight().width(100.dp)) {
-                                DummyLessons().forEach { (start_hour, end_hour, Lday, name) ->
-                                    if (day == Lday) {
-                                        val heightCalc = ((30 * (end_hour.toInt() - start_hour.toInt())) +
-                                                (((end_hour - end_hour.toInt()) - (start_hour - start_hour.toInt())) * 47.5f) +
-                                                ((end_hour.toInt() - start_hour.toInt()) * 1.2f)).dp
+                    LazyRow(modifier = Modifier.fillMaxSize().padding(end = 10.dp)) {
+                        days.forEach { day ->
+                            item {
+                                Box(modifier = Modifier.fillMaxHeight().width(150.dp)) {
+                                    courseSchedule.forEach { schedule ->
 
-                                        val offsetCalc = (42.5 + (29 * ((start_hour - 9.00).toInt()) +
-                                                ((start_hour - start_hour.toInt()) * (1.6f) * 29) +
-                                                (start_hour.toInt() - 9))).dp
+                                        //println("start_hour original: ${schedule.startTime}\n start_hour formatted : ${timeToFloat(schedule.startTime)}")
 
-                                        Box(
-                                            modifier = Modifier
-                                                .height(heightCalc)
-                                                .fillMaxWidth()
-                                                .offset(y = offsetCalc)
-                                                .background(get_lesson_color(name).copy(alpha = 0.8f), RoundedCornerShape(10.dp))
-                                        ) {
-                                            Text(
-                                                text = name,
-                                                modifier = Modifier.align(Alignment.Center).fillMaxWidth(),
-                                                fontSize = 10.sp,
-                                                textAlign = TextAlign.Center,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = customFontFamily
-                                            )
+                                        //println("end_hour original: ${schedule.endTime}\n end_hour formatted : ${timeToFloat(schedule.endTime)}")
+
+                                        val start_hour = timeToFloat(schedule.startTime)
+
+                                        val end_hour = timeToFloat(schedule.endTime)
+
+                                        if (day == schedule.dayOfWeek) {
+                                            val heightCalc = ((30 * (end_hour.toInt() - start_hour.toInt())) +
+                                                    (((end_hour - end_hour.toInt()) - (start_hour - start_hour.toInt())) * 47.5f) +
+                                                    ((end_hour.toInt() - start_hour.toInt()) * 1.2f)).dp
+
+                                            val offsetCalc = (42.5 + (29 * ((start_hour - 9.00).toInt()) +
+                                                    ((start_hour - start_hour.toInt()) * (1.6f) * 29) +
+                                                    (start_hour.toInt() - 9))).dp
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(heightCalc)
+                                                    .fillMaxWidth()
+                                                    .offset(y = offsetCalc)
+                                                    .background(Color(0xFF6d5bfc).copy(alpha = 0.8f), RoundedCornerShape(10.dp))
+                                            ) {
+                                                Text(
+                                                    text = schedule.teacherCourseName,
+                                                    modifier = Modifier.align(Alignment.Center).fillMaxWidth(),
+                                                    fontSize = 10.sp,
+                                                    textAlign = TextAlign.Center,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = customFontFamily
+                                                )
+                                            }
                                         }
                                     }
-                                }
 
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    Text(day, fontSize = 12.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontFamily = customFontFamily)
-                                    Spacer(modifier = Modifier.height(15.dp))
-                                    Divider(modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.0005f)))
-
-                                    timeslots.forEach { _ ->
-                                        Spacer(modifier = Modifier.height(29.dp))
+                                    Column(modifier = Modifier.fillMaxSize()) {
+                                        Text(day, fontSize = 10.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontFamily = customFontFamily)
+                                        Spacer(modifier = Modifier.height(15.dp))
                                         Divider(modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.0005f)))
+
+                                        timeslots.forEach { _ ->
+                                            Spacer(modifier = Modifier.height(29.dp))
+                                            Divider(modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.0005f)))
+                                        }
                                     }
                                 }
                             }
@@ -406,161 +462,318 @@ fun WeeklyScheduleSection() {
             }
         }
     }
+
 }
 
 @Composable
-fun ExamsSection() {
+fun ExamsSection(PastExams : List<StudentExamResultsResponses>) {
     val exams = DummyExams()
     var personalAverage = 0f
     var overallAverage = 0f
 
-    exams.forEach { (personel, overall, _, _) ->
-        personalAverage += personel
-        overallAverage += overall
-    }
-    personalAverage /= exams.size
-    overallAverage /= exams.size
+    if (PastExams.isNotEmpty()){
+        PastExams.forEach{ exams ->
+            exams.subjectResults.forEach{ net ->
+                personalAverage += net.netScore
+            }
 
-    Column(
-        modifier = Modifier.fillMaxWidth().height(425.dp)
-            .padding(10.dp)
-            .background(Color.White, RoundedCornerShape(20.dp))
-    ) {
-        Spacer(modifier = Modifier.height(30.dp))
-        Text("Geçmiş Sınavlar", fontWeight = FontWeight.Bold, fontFamily = customFontFamily, modifier = Modifier
-            .fillMaxWidth()
-            .height(25.dp)
-            .padding(start = 15.dp))
-        LazyRow(
-            modifier = Modifier.height(240.dp).fillMaxWidth()
-                .background(Color(0xFFacc5e9), RoundedCornerShape(20.dp)),
-            verticalAlignment = Alignment.Bottom
+            overallAverage += exams.pastExam.overallAverage
+        }
+
+        personalAverage = personalAverage / PastExams.size.toLong()
+        overallAverage = overallAverage / PastExams.size.toLong()
+    }else{
+        personalAverage = -1f
+        overallAverage = -1f
+    }
+
+
+    Card (
+        modifier = Modifier.fillMaxWidth().height(450.dp)
+        .background(Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = 5.dp
+
+    ){
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            item { Spacer(modifier = Modifier.width(20.dp)) }
-            exams.forEach { (personel, overall, examName, examType) ->
-                item {
-                    Bars(personel, overall, examName, examType)
-                    Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.height(30.dp))
+            Text(
+                text = "Geçmiş Sınavlar",
+                fontWeight = FontWeight.Bold,
+                fontFamily = customFontFamily,
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp,
+                modifier = Modifier
+                .fillMaxWidth()
+                .height(25.dp)
+            )
+
+            Divider(thickness = 3.dp, color = Color.Black, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (PastExams.isNotEmpty()){
+                LazyRow(
+                    modifier = Modifier.height(240.dp).fillMaxWidth().padding(start = 10.dp, end = 10.dp)
+                        .background(Color(0xFFe6eaf8), RoundedCornerShape(20.dp)),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+
+                    item { Spacer(modifier = Modifier.width(20.dp)) }
+                    PastExams.forEach { exam ->
+                        item {
+                            var personal = 0f
+                            exam.subjectResults.forEach{ net ->
+                                personal += net.netScore
+                            }
+
+                            Bars(personal, exam.pastExam.overallAverage, exam.pastExam.name, exam.pastExam.examType)
+                            Spacer(modifier = Modifier.width(20.dp))
+                        }
+                    }
+                }
+            }else {
+                Box (
+                    modifier = Modifier.height(240.dp).fillMaxWidth()
+                        .background(Color(0xFFacc5e9), RoundedCornerShape(20.dp))
+                ){
+                    Text (
+                        text = "Şu an gösterilecek bir sınav kaydı bulunmamaktadır",
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(25.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(30.dp).padding(start = 25.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(30.dp)
-                    .background(color = Color(0xFFE2FFF3), RoundedCornerShape(5.dp))
-            ) {
-                Icon(
-                    painterResource(R.drawable.bag),
-                    contentDescription = null,
-                    modifier = Modifier.align(Alignment.Center).size(18.dp),
-                    tint = Color(0xFF4AB58E)
-                )
-            }
-            Spacer(modifier = Modifier.width(15.dp))
-            Text("Kişisel Ortalama", fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = customFontFamily)
-            Spacer(modifier = Modifier.width(40.dp))
-            Text(formatFloat(personalAverage, 2), color = Color(0xFF27AE60), fontSize = 13.sp, fontFamily = customFontFamily)
-        }
 
-        Spacer(modifier = Modifier.height(5.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(30.dp).padding(start = 25.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(30.dp)
-                    .background(color = Color(0xFFFFF4DE), RoundedCornerShape(5.dp))
+            Spacer(modifier = Modifier.height(25.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().height(30.dp).padding(start = 25.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    painterResource(R.drawable.ticket_star),
-                    contentDescription = null,
-                    modifier = Modifier.align(Alignment.Center).size(18.dp),
-                    tint = Color(0xFFFFA800)
-                )
+                Box(
+                    modifier = Modifier.size(30.dp)
+                        .background(color = Color(0xFF28a745), RoundedCornerShape(5.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.align(Alignment.Center).size(25.dp),
+                        tint = Color(0xFFFFFFFF)
+                    )
+                }
+
+
+                Spacer(modifier = Modifier.width(15.dp))
+                Text("Kişisel Ortalama", fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = customFontFamily)
+                Spacer(modifier = Modifier.width(40.dp))
+                Text( if (personalAverage < 0) "-" else formatFloat(personalAverage, 2), color = Color(0xFF28a745), fontSize = 13.sp, fontFamily = customFontFamily)
             }
-            Spacer(modifier = Modifier.width(15.dp))
-            Text("Genel Ortalama", fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = customFontFamily)
-            Spacer(modifier = Modifier.width(46.dp))
-            Text(formatFloat(overallAverage, 2), color = Color(0xFFFFA412), fontSize = 13.sp, fontFamily = customFontFamily)
+
+            Spacer(modifier = Modifier.height(5.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().height(30.dp).padding(start = 25.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(30.dp)
+                        .background(color = Color(0xFFf76c5e), RoundedCornerShape(5.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Groups,
+                        contentDescription = null,
+                        modifier = Modifier.align(Alignment.Center).size(18.dp),
+                        tint = Color(0xFFFFFFFF)
+                    )
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Text("Genel Ortalama", fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = customFontFamily)
+                Spacer(modifier = Modifier.width(46.dp))
+                Text( if (overallAverage < 0) "-" else  formatFloat(overallAverage, 2), color = Color(0xFFf76c5e), fontSize = 13.sp, fontFamily = customFontFamily)
+            }
         }
     }
+
 }
 
 @Composable
-fun HomeworkSection() {
-    val homeworks = getHomeworkList(DummyHomeworks())
+fun HomeworkSection(homeworks : List<StudentDashboard>) {
+
     val myFontSize = 11.sp
-    Column(
-        modifier = Modifier.fillMaxWidth().height(335.dp)
-            .padding(10.dp)
-            .background(Color.White, RoundedCornerShape(20.dp))
-    ) {
-        Text("Ödevler", fontWeight = FontWeight.Bold, fontFamily = customFontFamily, modifier = Modifier
-            .height(50.dp)
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 25.dp))
 
-        Row(modifier = Modifier.fillMaxWidth().height(25.dp)) {
-            Spacer(modifier = Modifier.width(20.dp))
-            LabelWithSortIcon("Ders adı", myFontSize)
-            Spacer(modifier = Modifier.width(40.dp))
-            LabelWithSortIcon("Konu", myFontSize)
-            Spacer(modifier = Modifier.width(40.dp))
-            LabelWithSortIcon("Bitiş", myFontSize)
-            Spacer(modifier = Modifier.width(10.dp))
-            LabelWithSortIcon("Durum", myFontSize)
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Card (
+        modifier = Modifier.fillMaxWidth().height(380.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = 5.dp
+    ){
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ){
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Ödevler",
+                fontWeight = FontWeight.Bold,
+                fontFamily = customFontFamily,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(25.dp)
+            )
+
+            Divider(thickness = 3.dp, color = Color.Black, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (homeworks.isNotEmpty()){
+                LazyRow (
+                    modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp)
+                ) {
+
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxHeight().width(((150*4)-25).dp)
+                        ){
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(45.dp)
+                            ){
+                                LabelWithSortIcon("Ödev Durumu", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Ders Adı", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Başlık", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Bitiş Tarihi", myFontSize)
+
+
+                            }
+
+                            Card(
+                                modifier = Modifier.padding(start = 1.dp, end = 1.dp).fillMaxWidth().height(60.dp),
+                                backgroundColor = Color.White,
+                                elevation = 5.dp,
+                                shape = RoundedCornerShape(12.dp)
+                            ){
+                                Row (
+                                    modifier = Modifier.fillMaxSize()
+                                ){
+                                    homeworks.forEach { home ->
+
+                                        Box (
+                                            modifier = Modifier.fillMaxHeight().width(125.dp)
+                                        ){
+                                            Card(
+                                                modifier = Modifier.padding(15.dp).fillMaxSize(),
+                                                backgroundColor = if (home.mySubmission != null) Color.Green else Color.Red,
+                                                shape = RoundedCornerShape(12.dp)
+                                            ){
+                                                Box (
+                                                    modifier = Modifier.fillMaxSize()
+                                                ){
+                                                    Text(
+                                                        text = if (home.mySubmission != null) "Teslim" else "Aktif",
+                                                        modifier = Modifier.align(Alignment.Center),
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(25.dp))
+
+                                        HomeworkDisplay(home.courseName)
+                                        Spacer(modifier = Modifier.width(25.dp))
+                                        HomeworkDisplay(home.title)
+                                        Spacer(modifier = Modifier.width(25.dp))
+                                        HomeworkDisplay(home.dueDate)
+
+                                    }
+                                }
+                            }
+
+
+                        }
+
+
+                    }
+
+
+                }
+            }else{
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ){
+                    Text (
+                        "Henüz bir ödev yok",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+
+
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-        homeworks.forEach {
-            HomeworkRow(it)
-            Spacer(modifier = Modifier.height(4.dp))
-        }
+
     }
+
+
 }
 
 @Composable
-fun AnnouncementsSection(isExpanded: Boolean) {
-    val announcements = getAnnouncementList(DummyAnnouncements())
-    Column(
+fun AnnouncementsSection(isExpanded: Boolean, announcements: List<StudentAnnouncementResponse>) {
+
+
+    Card(
         modifier = Modifier.fillMaxWidth().height(350.dp)
-            .padding(10.dp)
-            .background(Color.White, RoundedCornerShape(20.dp))
-    ) {
-        Text(
-            text = "Duyurular",
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.height(50.dp)
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 25.dp),
-            fontFamily = customFontFamily
-        )
-        Divider(color = Color.Black, thickness = 2.dp, modifier = Modifier.padding(horizontal = 10.dp))
-        announcements.forEach {
-            AnnouncementsRow(it, isExpanded)
+            .background(Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = 5.dp
+    ){
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Duyurular",
+                fontWeight = FontWeight.Bold,
+                fontFamily = customFontFamily,
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+            )
+            Divider(color = Color.Black, thickness = 2.dp, modifier = Modifier.padding(horizontal = 10.dp))
+
+            if (announcements.isNotEmpty()){
+                announcements.forEach { announcement ->
+                    AnnouncementsRow(announcement, isExpanded)
+                }
+            }else{
+                Text (
+                    text = "Gelen kutusu boş",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
         }
     }
+
 }
 
 @Composable
 fun LabelWithSortIcon(label: String, fontSize: TextUnit) {
-    Text(label, fontSize = fontSize, modifier = Modifier.alpha(0.7f), fontFamily = customFontFamily)
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.down_arrow),
-            contentDescription = "Sort Icon",
-            modifier = Modifier
-                .size(15.dp)
-                .alpha(0.7f)
-        )
+    Column(
+        modifier = Modifier.height(45.dp).width(125.dp)
+    ){
+        Text(label, fontSize = fontSize, modifier = Modifier.alpha(0.7f), textAlign = TextAlign.Center , fontFamily = customFontFamily)
+        Divider(thickness = 4.dp, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(5.dp))
     }
+
 }
 
 @Composable

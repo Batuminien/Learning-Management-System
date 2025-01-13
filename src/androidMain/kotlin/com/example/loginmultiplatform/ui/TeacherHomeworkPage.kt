@@ -1336,9 +1336,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     }
 
 
-    LaunchedEffect(classStudents){
-        description = classStudents?.entries.toString()
-    }
+
 
 Box(
 modifier = Modifier
