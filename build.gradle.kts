@@ -225,6 +225,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+dependencies {
+    implementation("androidx.compose.runtime:runtime-livedata:1.7.6")
+}
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {

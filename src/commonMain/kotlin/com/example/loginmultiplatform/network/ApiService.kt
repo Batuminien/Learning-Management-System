@@ -6,6 +6,7 @@ import com.example.loginmultiplatform.model.TeacherCourseResponse
 import com.example.loginmultiplatform.model.AttendanceResponse
 import com.example.loginmultiplatform.model.AttendanceStats
 import com.example.loginmultiplatform.model.BulkGradeRequest
+import com.example.loginmultiplatform.model.CoordinatorInfoResponse
 import com.example.loginmultiplatform.model.CourseStatisticsResponse
 import com.example.loginmultiplatform.model.LoginResponse
 import com.example.loginmultiplatform.model.ResponseWrapper
@@ -21,6 +22,8 @@ import com.example.loginmultiplatform.model.StudentExamResultsResponses
 import com.example.loginmultiplatform.model.StudentInfoResponse
 import com.example.loginmultiplatform.model.TeacherInfoResponse
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -139,7 +142,6 @@ interface ApiService {
         @Body newAssignment: TeacherAssignmentRequest
     ) : ResponseWrapper<TeacherAssignmentResponse>
 
-
     @Multipart
     @POST("api/v1/assignments/{assignmentId}/documents")
     suspend fun uploadDocument(
@@ -171,16 +173,15 @@ interface ApiService {
         @Body bulkGrades : BulkGradeRequest
     ) : ResponseWrapper<TeacherAssignmentResponse>
 
-
     @GET("/api/v1/classes/{id}")
     suspend fun getClass(
         @Path("id") classId: Int
     ): ResponseWrapper<StudentClassResponse>
 
-    @GET("/api/v1/profile-photo/{userId}")
+    @GET("/api/v1/profile-photo/{userId}/file")
     suspend fun fetchProfilePhoto (
         @Path("userId") userId: Int
-    ): ResponseWrapper<ProfilePhotoResponse>
+    ): Response<ResponseBody>
 
     @GET("/api/v1/students/{studentId}")
     suspend fun fetchStudentsInfo (
@@ -191,6 +192,11 @@ interface ApiService {
     suspend fun fetchTeacherInfo (
         @Path("teacherId") teacherId: Int
     ): ResponseWrapper<TeacherInfoResponse>
+
+    @GET("/api/v1/coordinators/{coordinatorId}")
+    suspend fun fetchCoordinatorInfo (
+        @Path("coordinatorId") coordinatorId: Int
+    ): ResponseWrapper<CoordinatorInfoResponse>
 
     @Multipart
     @POST("/api/v1/profile-photo")

@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
@@ -15,6 +17,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,12 +32,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
@@ -45,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.loginmultiplatform.ui.components.BottomNavigationBar
@@ -87,22 +95,26 @@ fun formatToReadableDatePp(dateString: String): String {
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?, userId: Int, navController: NavController) {
+actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoViewModel: ProfilePhotoViewModel, userId: Int, navController: NavController) {
 
-    Log.e("ppurl", "ppurl: ${profilePhotoUrl}")
-    val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
     val teacherAttendanceViewModel = TeacherAttendanceViewModel()
     val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
     val teacherInfo by profilePhotoViewModel.teacherInfo.collectAsState()
+    val coordinatorInfo by profilePhotoViewModel.coordinatorInfo.collectAsState()
     val id by loginViewModel.id.collectAsState()
     val role by loginViewModel.role.collectAsState()
     val classes by teacherAttendanceViewModel.allClass.collectAsState()
+    val profilePhoto by profilePhotoViewModel.profilePhoto.observeAsState()
+    val profilePhotoUrl by profilePhotoViewModel.profilePhotoUrl.observeAsState()
 
     LaunchedEffect(id) {
-        if (role == "ROLE_STUDENT") {
-            id?.let { profilePhotoViewModel.fetchStudentInfo(it) }
-        } else if (role == "ROLE_TEACHER") {
-            id?.let { profilePhotoViewModel.fetchTeacherInfo(it) }
+        id?.let {
+            when (role) {
+                "ROLE_STUDENT" -> profilePhotoViewModel.fetchStudentInfo(it)
+                "ROLE_TEACHER" -> profilePhotoViewModel.fetchTeacherInfo(it)
+                "ROLE_COORDINATOR" -> profilePhotoViewModel.fetchCoordinatorInfo(it)
+            }
+            profilePhotoViewModel.fetchProfilePhoto(it) // Profil fotoğrafını indir
         }
     }
 
@@ -113,8 +125,24 @@ actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ProfilePhotoSection(
+            profilePhoto = profilePhoto,
+            profilePhotoViewModel = profilePhotoViewModel,
             profilePhotoUrl = profilePhotoUrl,
-            profilePhotoViewModel = profilePhotoViewModel
+            onPhotoSelected = { file ->
+                val requestBody = file.readBytes().let { bytes ->
+                    RequestBody.create("image/jpeg".toMediaTypeOrNull(), bytes)
+                }
+                val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+                profilePhotoViewModel.uploadPp(filePart) { isSuccess, message ->
+                    if (isSuccess) {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            profilePhotoViewModel.fetchProfilePhoto(userId)
+                        }, 500)
+                    }
+                }
+            },
+            userId = userId
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -218,6 +246,66 @@ actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?,
                     )
                 }
             }
+        } else if (role == "ROLE_COORDINATOR") {
+            // Teacher Info
+            UserInfoRow(label = "Kullanıcı Adı:", value = coordinatorInfo?.username ?: "")
+            UserInfoRow(label = "Email:", value = coordinatorInfo?.email ?: "")
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(thickness = 1.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle(title = "Özlük Bilgileri")
+            Spacer(modifier = Modifier.height(8.dp))
+
+            UserInfoRow(
+                label = "Ad Soyad:",
+                value = (coordinatorInfo?.firstName ?: "") + " " + (coordinatorInfo?.lastName ?: "")
+            )
+            coordinatorInfo?.phone?.let { UserInfoRow(label = "Telefon No:", value = it) } ?: "Bilinmiyor"
+            coordinatorInfo?.tc?.let { UserInfoRow(label = "T.C.:", value = it) } ?: "Bilinmiyor"
+            coordinatorInfo?.birthDate?.let { UserInfoRow(label = "Doğum Tarihi:", value = it) } ?: "Bilinmiyor"
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(thickness = 1.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle(title = "Öğretmen Bilgileri")
+            Spacer(modifier = Modifier.height(8.dp))
+
+            coordinatorInfo?.schoolLevel?.let { UserInfoRow(label = "Koordinatör Alanı:", value = it) } ?: "Bilinmiyor"
+            coordinatorInfo?.coordinatorCourses?.let { teacherCourses ->
+                if (teacherCourses.isNotEmpty()) {
+                    UserInfoRow(label = "Verdiği Dersler: ", value = teacherCourses.joinToString(", ") {
+                        it.courseName
+                    })
+
+                    teacherCourses.forEach { course ->
+                        if (course.classIdsAndNames.isNotEmpty()) {
+                            course.classIdsAndNames.forEach { (_, className) ->
+                                UserInfoRow(
+                                    label = "Sınıf:",
+                                    value = className
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Ders verdiği sınıf bulunamadı.",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal,
+                                fontFamily = customFontFamily,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Verdiği ders bulunamadı.",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = customFontFamily,
+                        color = Color.Gray
+                    )
+                }
+            } ?: "Bilgi bulunamadı."
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -227,40 +315,78 @@ actual fun ProfilePage(loginViewModel: LoginViewModel, profilePhotoUrl: String?,
 
 @Composable
 fun ProfilePhotoSection(
+    profilePhoto: Bitmap?,
     profilePhotoUrl: String?,
-    profilePhotoViewModel: ProfilePhotoViewModel
+    userId: Int,
+    profilePhotoViewModel: ProfilePhotoViewModel,
+    onPhotoSelected: (File) -> Unit
 ) {
-    Box(
-        contentAlignment = Alignment.BottomEnd,
-        modifier = Modifier.size(101.dp)
-    ) {
-        Box(
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(101.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF334BBE)),
-            contentAlignment = Alignment.Center
+                .wrapContentSize()
+                .padding(16.dp)
         ) {
-            if (profilePhotoUrl == "default_url") {
-                Icon(
-                    imageVector = Icons.Rounded.AccountCircle,
-                    contentDescription = "Default Profile Picture",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(110.dp)
-                )
-            } else {
-                AsyncImage(
-                    model = profilePhotoUrl,
-                    contentDescription = "Profile Photo",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+            Box(
+                modifier = Modifier
+                    .size(140.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF334BBE)),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    profilePhoto != null -> {
+                        Image(
+                            bitmap = profilePhoto.asImageBitmap(),
+                            contentDescription = "Profile Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    else -> {
+                        Icon(
+                            imageVector = Icons.Rounded.AccountCircle,
+                            contentDescription = "Default Profile Picture",
+                            tint = Color.White,
+                            modifier = Modifier.size(140.dp)
+                        )
+                    }
+                }
+            }
+
+            //Spacer(modifier = Modifier.height(8.dp))
+
+            UploadProfilePhoto { file ->
+                onPhotoSelected(file)
+                val requestBody = file.readBytes().let { bytes ->
+                    RequestBody.create("image/jpeg".toMediaTypeOrNull(), bytes)
+                }
+                val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+                profilePhotoViewModel.uploadPp(filePart) { isSuccess, message ->
+                    if (isSuccess) {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            profilePhotoViewModel.fetchProfilePhoto(userId)
+                        }, 500)
+                    }
+                    snackbarMessage = message
+                }
             }
         }
 
-        UploadProfilePhoto(profilePhotoViewModel)
-    }
+        LaunchedEffect(snackbarMessage) {
+            snackbarMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                snackbarMessage = null
+            }
+        }
+
+        CustomSnackbar(snackbarHostState)
 }
 
 @Composable
@@ -304,10 +430,11 @@ fun UserInfoRow(
 
 @Composable
 fun UploadProfilePhoto(
-    profilePhotoViewModel: ProfilePhotoViewModel
+    //profilePhotoViewModel: ProfilePhotoViewModel,
+    onPhotoSelected: (File) -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    //val activity = context as? Activity
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -316,18 +443,16 @@ fun UploadProfilePhoto(
             val data = result.data
             when {
                 data?.data != null -> {
-                    val uri = data.data
-                    uri?.let { uploadPhoto(context, it, profilePhotoViewModel) }
+                    //uploadPhoto(context, data.data!!, profilePhotoViewModel)
+                    val uri = data.data!!
+                    val file = createTempFileFromUri(context, uri)
+                    onPhotoSelected(file)
                 }
 
                 data?.extras?.get("data") is Bitmap -> {
-                    val bitmap = data.extras?.get("data") as Bitmap
-                    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpeg")
-                    val outputStream = FileOutputStream(file)
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                    outputStream.flush()
-                    outputStream.close()
-                    uploadPhoto(context, Uri.fromFile(file), profilePhotoViewModel)
+                    val bitmap = data.extras!!.get("data") as Bitmap
+                    val file = createTempFileFromBitmap(context, bitmap)
+                    onPhotoSelected(file)
                 }
             }
         }
@@ -358,7 +483,7 @@ fun UploadProfilePhoto(
         },
         modifier = Modifier
             .size(24.dp)
-            .offset(x = (-8).dp, y = (-8).dp)
+            .offset(x = (40).dp, y = (-20).dp)
             .clip(CircleShape)
             .background(Color(0xFF334BBE))
     ) {
@@ -382,30 +507,21 @@ private fun createChooserIntent(): Intent {
     }
 }
 
-fun uploadPhoto(context: Context, uri: Uri, profilePhotoViewModel: ProfilePhotoViewModel) {
-
-    val contentResolver = context.contentResolver
-    val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
-
-    val (mimeType, fileExtension) = when (bitmap.hasAlpha()) {
-        true -> "image/png" to "png"
-        false -> "image/jpeg" to "jpeg"
+private fun createTempFileFromUri(context: Context, uri: Uri): File {
+    val inputStream = context.contentResolver.openInputStream(uri)
+    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpeg")
+    inputStream?.use { input ->
+        file.outputStream().use { output ->
+            input.copyTo(output)
+        }
     }
+    return file
+}
 
-    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.$fileExtension")
-    val outputStream = FileOutputStream(file)
-
-    val compressFormat = if (mimeType == "image/png") Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
-    bitmap.compress(compressFormat, 100, outputStream)
-
-    outputStream.flush()
-    outputStream.close()
-
-    val requestBody = file.readBytes().let { bytes ->
-        RequestBody.create(mimeType.toMediaTypeOrNull(), bytes)
+private fun createTempFileFromBitmap(context: Context, bitmap: Bitmap): File {
+    val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpeg")
+    file.outputStream().use { outputStream ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
     }
-
-    val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
-
-    profilePhotoViewModel.uploadPp(filePart)
+    return file
 }

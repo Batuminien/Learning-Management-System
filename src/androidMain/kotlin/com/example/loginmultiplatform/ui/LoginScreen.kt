@@ -180,6 +180,8 @@ actual fun LoginScreen(viewModel: LoginViewModel, navController: NavController) 
                         viewModel.login(
                             username = username,
                             password = password,
+                            rememberMe = rememberMe,
+
                             onSuccess = { loginData ->
                                 successMessage = "Login Successful!"
                                 showSuccessDialog = true

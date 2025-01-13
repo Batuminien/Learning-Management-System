@@ -36,12 +36,13 @@ class LoginViewModel : ViewModel() {
     fun login(
         username: String,
         password: String,
+        rememberMe: Boolean,
         onSuccess: (LoginData) -> Unit,
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                val response = userRepository.login(username, password)
+                val response = userRepository.login(username, password, rememberMe)
                 TokenManager.setToken(response.accessToken)
                 if (response.accessToken.isNotBlank() && response.role.isNotEmpty()) {
                     _studentId.value = response.id

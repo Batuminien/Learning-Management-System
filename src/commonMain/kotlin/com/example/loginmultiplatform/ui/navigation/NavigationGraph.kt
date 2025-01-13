@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -52,7 +53,6 @@ fun NavigationGraph(
     val username by loginViewModel.username.collectAsState()
     val role by loginViewModel.role.collectAsState()
     val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
-    val profilePhotoUrl by profilePhotoViewModel.profilePhotoUrl.collectAsState()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -69,18 +69,18 @@ fun NavigationGraph(
     }
 
     val classId = studentInfo?.classId
-    Log.e("Navigation", "Navigating to profile/${userId ?: 0}/${profilePhotoUrl}")
+    //Log.e("Navigation", "Navigating to profile/${userId ?: 0}/${profilePhotoUrl}")
 
     Scaffold(
         topBar = {
             if (showBars) {
-                val encodeUrl = Uri.encode(profilePhotoUrl)
                 TopBar(
                     userName = username,
                     userId = userId ?: -1,
+                    profilePhotoViewModel,
                     onSettingsClick = { },
                     onProfileClick = {
-                        navController.navigate("profile/${userId ?: 0}/${encodeUrl ?: "default_url"}")
+                        navController.navigate("profile/${userId ?: 0}")
                     },
                     navController = navController
                 )
@@ -120,19 +120,16 @@ fun NavigationGraph(
             }
 
             composable(
-                route = "profile/{userId}/{profilePhotoUrl}",
+                route = "profile/{userId}",
                 arguments = listOf(
                     navArgument("userId") { type = NavType.IntType },
-                    navArgument("profilePhotoUrl") { type = NavType.StringType; defaultValue = "default_url" }
                 )
             ) { backStackEntry ->
                 val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                val rawPhotoUrl = backStackEntry.arguments?.getString("profilePhotoUrl") ?: "default_url"
-                val profilePhotoUrl = Uri.decode(rawPhotoUrl)
 
                 ProfilePage(
                     loginViewModel,
-                    profilePhotoUrl,
+                    profilePhotoViewModel,
                     userId,
                     navController
                 )

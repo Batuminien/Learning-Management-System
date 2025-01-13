@@ -1,5 +1,9 @@
 package com.example.loginmultiplatform.repository
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Log
+import com.example.loginmultiplatform.model.CoordinatorInfoResponse
 import com.example.loginmultiplatform.model.ProfilePhotoResponse
 import com.example.loginmultiplatform.network.ApiClient
 import com.example.loginmultiplatform.model.StudentInfoResponse
@@ -8,18 +12,28 @@ import com.example.loginmultiplatform.network.ApiService
 import okhttp3.MultipartBody
 import retrofit2.http.Multipart
 
+fun ByteArray.toBitmap(): Bitmap {
+    return BitmapFactory.decodeByteArray(this, 0, this.size)
+}
+
+
 class ProfilePhotoRepository {
     private val apiService = ApiClient.retrofit.create(ApiService::class.java)
 
     suspend fun fetchProfilePhoto(
         userId: Int
-    ): ProfilePhotoResponse {
+    ): ByteArray {
         val response = apiService.fetchProfilePhoto(userId)
 
-        if (response.success) {
-            return response.data
+        if (response.isSuccessful) {
+            val responseBody = response.body()
+            if (responseBody != null) {
+                return responseBody.bytes()
+            } else {
+                throw Exception("Response body is null")
+            }
         } else {
-            throw Exception(response.message)
+            throw Exception("Failed to fetch profile photo: ${response.message()}")
         }
     }
 
@@ -47,6 +61,18 @@ class ProfilePhotoRepository {
         }
     }
 
+    suspend fun fetchCoordinatorInfo(
+        coordinatorId: Int
+    ): CoordinatorInfoResponse {
+        val response = apiService.fetchCoordinatorInfo(coordinatorId)
+
+        if (response.success) {
+            return response.data
+        } else {
+            throw Exception(response.message)
+        }
+    }
+
     suspend fun uploadPp(
         file: MultipartBody.Part
     ): ProfilePhotoResponse {
@@ -55,7 +81,7 @@ class ProfilePhotoRepository {
         if (response.success) {
             return response.data
         } else {
-            throw Exception(response.message)
+            throw Exception("Upload Failed: ${response.message}")
         }
     }
 }
