@@ -5,7 +5,6 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -86,11 +85,12 @@ public class AssignmentService {
 
             validateAssignmentRequest(dto);
 
-            AppUser teacher = appUserRepository.findById(loggedInUserId)
-                    .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
+            AppUser user = appUserRepository.findById(loggedInUserId)
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-            if (teacher.getRole().equals(Role.ROLE_STUDENT))
+            if (user.getRole().equals(Role.ROLE_STUDENT)) {
                 throw new AccessDeniedException("Students can't create assignments");
+            }
 
             ClassEntity classEntity = classEntityRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new EntityNotFoundException("Class not found"));
@@ -98,12 +98,36 @@ public class AssignmentService {
             Course course = courseRepository.findById(dto.getCourseId())
                     .orElseThrow(() -> new EntityNotFoundException("Course not found"));
 
-            TeacherCourse teacherCourse = teacherCourseRepository.findByTeacherAndCourse(teacher, course)
-                    .orElseThrow(() -> new EntityNotFoundException("Teacher is not assigned to this course"));
+            TeacherCourse teacherCourse = null;
+            AppUser assignedTeacher = user;
 
-            validateTeacherAccess(teacher, classEntity);
+            // If user is admin/coordinator, find the teacher for the course and class
+            if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_COORDINATOR) {
+                // Find a teacher who teaches this course in this class
+                Optional<TeacherCourse> teacherForCourse = teacherCourseRepository.findByCourseAndClass(
+                        course.getId(),
+                        classEntity.getId()
+                );
 
-            Assignment assignment = createAssignmentEntity(dto, teacher, classEntity, course, teacherCourse); // Pass teacherCourse
+                if (teacherForCourse.isPresent()) {
+                    teacherCourse = teacherForCourse.get();
+                    assignedTeacher = teacherCourse.getTeacher();
+                } else {
+                    throw new EntityNotFoundException("No teacher found for this course and class combination");
+                }
+            } else {
+                // For teachers, verify their access
+                teacherCourse = teacherCourseRepository.findByTeacherAndCourse(user, course)
+                        .orElseThrow(() -> new AccessDeniedException("Teacher is not assigned to this course"));
+
+                // Verify the teacher has access to this class
+                if (teacherCourse.getClasses().stream()
+                        .noneMatch(c -> c.getId().equals(classEntity.getId()))) {
+                    throw new AccessDeniedException("Teacher is not assigned to this class");
+                }
+            }
+
+            Assignment assignment = createAssignmentEntity(dto, assignedTeacher, classEntity, course, teacherCourse);
 
             log.info("Assignment created successfully with ID: {}", assignment.getId());
             return assignmentRepository.save(assignment);
@@ -237,40 +261,59 @@ public class AssignmentService {
     @Transactional
     public void deleteAssignment(Long assignmentId, AppUser loggedInUser)
             throws AccessDeniedException {
-        Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
+        try {
+            Assignment assignment = assignmentRepository.findById(assignmentId)
+                    .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
 
-        AppUser user = appUserService.getCurrentUserWithDetails(loggedInUser.getId());
+            // Authorization check - Admin and Coordinator can delete any assignment
+            if (loggedInUser.getRole() != Role.ROLE_ADMIN &&
+                    loggedInUser.getRole() != Role.ROLE_COORDINATOR) {
 
-        // Authorization check
-        if (user.getRole() != Role.ROLE_ADMIN &&
-                loggedInUser.getRole() != Role.ROLE_COORDINATOR &&
-                !assignment.getAssignedBy().getId().equals(loggedInUser.getId())) {
-            throw new AccessDeniedException("You can only delete your own assignments");
-        }
+                // Teachers can only delete their own assignments
+                if (loggedInUser.getRole() == Role.ROLE_TEACHER &&
+                        !assignment.getAssignedBy().getId().equals(loggedInUser.getId())) {
+                    throw new AccessDeniedException("You can only delete your own assignments");
+                }
 
-        // Delete physical files if they exist
-        if (assignment.getTeacherDocument() != null) {
-            try {
-                Files.deleteIfExists(Paths.get(assignment.getTeacherDocument().getFilePath()));
-            } catch (IOException e) {
-                log.error("Could not delete teacher document file: {}", e.getMessage());
-            }
-        }
-
-        // Delete student submission files
-        for (StudentSubmission submission : assignment.getStudentSubmissions()) {
-            if (submission.getDocument() != null) {
-                try {
-                    Files.deleteIfExists(Paths.get(submission.getDocument().getFilePath()));
-                } catch (IOException e) {
-                    log.error("Could not delete student submission file: {}", e.getMessage());
+                // Students cannot delete assignments
+                if (loggedInUser.getRole() == Role.ROLE_STUDENT) {
+                    throw new AccessDeniedException("Students cannot delete assignments");
                 }
             }
-        }
 
-        // The cascade settings will handle all the database relationships
-        assignmentRepository.delete(assignment);
+            // Delete physical files if they exist
+            if (assignment.getTeacherDocument() != null) {
+                try {
+                    Files.deleteIfExists(Paths.get(assignment.getTeacherDocument().getFilePath()));
+                } catch (IOException e) {
+                    log.error("Could not delete teacher document file: {}", e.getMessage());
+                    // Continue with deletion even if file deletion fails
+                }
+            }
+
+            // Delete student submission files
+            for (StudentSubmission submission : assignment.getStudentSubmissions()) {
+                if (submission.getDocument() != null) {
+                    try {
+                        Files.deleteIfExists(Paths.get(submission.getDocument().getFilePath()));
+                    } catch (IOException e) {
+                        log.error("Could not delete student submission file: {}", e.getMessage());
+                        // Continue with deletion even if file deletion fails
+                    }
+                }
+            }
+
+            // Delete the assignment and all related records
+            assignmentRepository.delete(assignment);
+            log.info("Assignment {} deleted successfully", assignmentId);
+
+        } catch (EntityNotFoundException | AccessDeniedException e) {
+            log.error("Error deleting assignment {}: {}", assignmentId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error deleting assignment {}: {}", assignmentId, e.getMessage());
+            throw new RuntimeException("Failed to delete assignment: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -466,7 +509,21 @@ public class AssignmentService {
             AppUser teacher,
             ClassEntity classEntity,
             Course course,
-            TeacherCourse teacherCourse) { // Add teacherCourse parameter
+            TeacherCourse teacherCourse) {
+
+        // Create initial student submissions for all students in the class
+        List<StudentSubmission> initialSubmissions = classEntity.getStudents().stream()
+                .map(student -> StudentSubmission.builder()
+                        .student(student)
+                        .status(AssignmentStatus.PENDING)
+                        .document(null)
+                        .submissionDate(null)
+                        .comment(null)
+                        .grade(null)
+                        .feedback(null)
+                        .build())
+                .collect(Collectors.toList());
+
         return Assignment.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -475,10 +532,10 @@ public class AssignmentService {
                 .lastModifiedBy(teacher)
                 .classEntity(classEntity)
                 .course(course)
-                .teacherCourse(teacherCourse) // Set the teacherCourse
+                .teacherCourse(teacherCourse)
                 .date(LocalDate.now())
                 .lastModified(LocalDate.now())
-                .studentSubmissions(new ArrayList<>())
+                .studentSubmissions(initialSubmissions)
                 .build();
     }
 }

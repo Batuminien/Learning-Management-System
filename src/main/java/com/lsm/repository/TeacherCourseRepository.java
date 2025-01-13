@@ -1,6 +1,5 @@
 package com.lsm.repository;
 
-import com.lsm.model.entity.ClassEntity;
 import com.lsm.model.entity.Course;
 import com.lsm.model.entity.TeacherCourse;
 import com.lsm.model.entity.base.AppUser;
@@ -18,4 +17,10 @@ public interface TeacherCourseRepository extends JpaRepository<TeacherCourse, Lo
     boolean existsByClassAndCourse(@Param("classId") Long classId, @Param("courseId") Long courseId);
     boolean existsByTeacherId(Long teacherId);
     boolean existsByIdAndTeacherId(Long id, Long teacherId);
+    @Query("SELECT tc FROM TeacherCourse tc " +
+            "JOIN tc.classes c " +
+            "WHERE tc.course.id = :courseId " +
+            "AND c.id = :classId")
+    Optional<TeacherCourse> findByCourseAndClass(@Param("courseId") Long courseId,
+                                                 @Param("classId") Long classId);
 }

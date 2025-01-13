@@ -1,6 +1,7 @@
 package com.lsm.controller;
 
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.lsm.model.DTOs.AnnouncementDTO;
 import com.lsm.model.entity.base.AppUser;
 import com.lsm.repository.DeviceTokenRepository;
@@ -22,10 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.nio.file.AccessDeniedException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -456,6 +455,23 @@ public class AnnouncementController {
         }
     }
 
+    @PostMapping("/test-notification")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    public ResponseEntity<?> testNotification(@RequestParam String token) {
+        try {
+            notificationService.sendNotification(
+                    token,
+                    "Test Notification",
+                    "This is a test notification " + LocalDateTime.now()
+            );
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (FirebaseMessagingException e) {
+            log.error("Test notification failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private void sendNotification(AppUser loggedInUser, Long announcementId)
             throws FirebaseMessagingException, AccessDeniedException {
         AnnouncementDTO announcement = announcementService.getAnnouncementById(loggedInUser, announcementId);
@@ -463,16 +479,35 @@ public class AnnouncementController {
         // Collect unique device tokens from all classes
         Set<String> deviceTokens = new HashSet<>();
         for (Long classId : announcement.getClassIds()) {
-            deviceTokens.addAll(deviceTokenRepository.findTokensByClassId(classId));
+            List<String> tokens = deviceTokenRepository.findTokensByClassId(classId);
+            log.debug("Found {} tokens for class {}", tokens.size(), classId);
+            deviceTokens.addAll(tokens);
         }
 
-        // Send notifications to all collected device tokens
+        log.info("Sending notifications to {} unique devices", deviceTokens.size());
+
+        List<String> invalidTokens = new ArrayList<>();
         for (String token : deviceTokens) {
-            notificationService.sendNotification(
-                    token,
-                    "New Announcement",
-                    announcement.getTitle()
-            );
+            try {
+                notificationService.sendNotification(
+                        token,
+                        "New Announcement",
+                        announcement.getTitle()
+                );
+            } catch (FirebaseMessagingException e) {
+                if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED ||
+                        e.getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT) {
+                    invalidTokens.add(token);
+                }
+            }
+        }
+
+        // Clean up invalid tokens
+        if (!invalidTokens.isEmpty()) {
+            log.info("Removing {} invalid tokens", invalidTokens.size());
+            for (String token : invalidTokens) {
+                deviceTokenRepository.deleteByDeviceToken(token);
+            }
         }
     }
 }
