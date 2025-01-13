@@ -7,5 +7,8 @@ data class StudentAnnouncementResponse(
     val classIds: List<Int>,
     val createdAt: String,
     val readAt: String,
-    val read: Boolean
+    val read: Boolean,
+    val createdById: Int,
+    val createdByName: String,
+    val creatorRole: String,
 )
