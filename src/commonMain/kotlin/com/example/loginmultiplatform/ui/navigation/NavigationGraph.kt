@@ -28,11 +28,12 @@ import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import com.example.loginmultiplatform.viewmodel.StudentPastExamResultsViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
-@SuppressLint("UnusedMaterialScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterialScaffoldPaddingParameter", "NewApi")
 @Composable
 fun NavigationGraph(
     loginViewModel: LoginViewModel,
@@ -44,6 +45,7 @@ fun NavigationGraph(
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
     val teacherAnnouncementViewModel = AdministratorAnnouncementsViewModel()
     val teacherAssignmentViewModel = TeacherAssignmentViewModel()
+    val studentPastExamResultsViewModel = StudentPastExamResultsViewModel()
     val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
 
     val userId by loginViewModel.id.collectAsState()
@@ -163,6 +165,12 @@ fun NavigationGraph(
                             it1
                         )
                     }
+                }
+            }
+
+            composable("past_exams_screen") {
+                if (role == "ROLE_STUDENT" && userId != null && classId != null) {
+                    StudentPastExamPage(loginViewModel, navController, studentPastExamResultsViewModel)
                 }
             }
         }

@@ -17,6 +17,7 @@ import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.ProfilePhotoResponse
+import com.example.loginmultiplatform.model.StudentExamResultsResponses
 import com.example.loginmultiplatform.model.StudentInfoResponse
 import com.example.loginmultiplatform.model.TeacherInfoResponse
 import okhttp3.MultipartBody
@@ -196,6 +197,11 @@ interface ApiService {
     suspend fun uploadPp(
         @Part file: MultipartBody.Part
     ): ResponseWrapper<ProfilePhotoResponse>
+
+    @GET("api/v1/past-exams/student/{studentId}")
+    suspend fun fetchStudentPastExamResults(
+        @Path("studentId") studentId: Long
+    ) : ResponseWrapper<List<StudentExamResultsResponses>>
 
 }
 

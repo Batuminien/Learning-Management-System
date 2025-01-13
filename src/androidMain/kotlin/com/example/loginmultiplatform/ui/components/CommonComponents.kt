@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.LibraryBooks
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -216,7 +217,8 @@ actual fun BottomNavigationBar(pagerState: PagerState?, navController: NavContro
         Triple("Duyurular", Icons.Rounded.Campaign, "announcements_screen"),
         Triple("Yoklama", Icons.Rounded.EventNote, "attendance_screen"),
         Triple("Ana Menü", Icons.Rounded.Home, "dashboard_page"),
-        Triple("Ödev", Icons.Rounded.AutoStories, "homework_screen")
+        Triple("Ödev", Icons.Rounded.AutoStories, "homework_screen"),
+        Triple("Sınavlar", Icons.Rounded.LibraryBooks, "past_exams_screen")
     )
     //val coroutineScope = rememberCoroutineScope()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
