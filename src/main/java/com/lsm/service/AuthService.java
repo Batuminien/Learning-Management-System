@@ -70,6 +70,7 @@ public class AuthService {
                 .token(generateSecureToken())
                 .user(savedUser)
                 .expiryDate(Instant.now().plusSeconds(24 * 60 * 60))
+                .createdAt(Instant.now())
                 .used(false)
                 .build();
         passwordResetTokenRepository.save(verificationToken);

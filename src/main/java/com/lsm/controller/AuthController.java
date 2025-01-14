@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -26,6 +27,7 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Validated
+@Slf4j
 @Tag(name = "Authentication", description = "APIs for user authentication and registration")
 public class AuthController {
     private final AuthService authService;
@@ -103,24 +105,27 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse_<RegisterResponseDTO>> register(
             @Valid @RequestBody RegisterRequestDTO registerRequest) {
-
         try {
             AppUser newUser = authService.registerUser(registerRequest);
-
             RegisterResponseDTO response = userMapper.toRegisterResponse(newUser);
-
             return ResponseEntity
                     .status(HttpStatus.CREATED)
                     .body(new ApiResponse_<>(true, "Registration successful", response));
-
         } catch (DuplicateResourceException e) {
+            log.error("Registration failed - duplicate resource: {}", e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
                     .body(new ApiResponse_<>(false, e.getMessage(), null));
         } catch (InvalidPasswordException e) {
+            log.error("Registration failed - invalid password: {}", e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse_<>(false, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Unexpected error during registration", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse_<>(false, "An unexpected error occurred", null));
         }
     }
 
