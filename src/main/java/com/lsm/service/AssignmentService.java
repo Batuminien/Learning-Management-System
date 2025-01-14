@@ -390,7 +390,22 @@ public class AssignmentService {
         if (studentSubmission.getGrade() != null)
             throw new IllegalStateException("Cannot un-submit graded assignments");
 
-        assignment.getStudentSubmissions().remove(studentSubmission);
+        // Delete the document file if it exists
+        if (studentSubmission.getDocument() != null) {
+            try {
+                Files.deleteIfExists(Paths.get(studentSubmission.getDocument().getFilePath()));
+            } catch (IOException e) {
+                log.error("Could not delete submission file: {}", e.getMessage());
+                // Continue with un-submit even if file deletion fails
+            }
+        }
+
+        // Reset submission properties instead of removing it
+        studentSubmission.setDocument(null);
+        studentSubmission.setSubmissionDate(null);
+        studentSubmission.setComment(null);
+        studentSubmission.setStatus(AssignmentStatus.PENDING);
+
         return assignmentRepository.save(assignment);
     }
 
