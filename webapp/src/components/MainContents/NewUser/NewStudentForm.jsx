@@ -65,9 +65,11 @@ const NewStudentForm = ({onCreationSuccess, onSubmit, onCreationError}) => {
             lastName  : surname.charAt(0).toUpperCase() + surname.slice(1),
             email : mailAddress,
             role : 'ROLE_STUDENT',
+            schoolLevel : 'HIGH_SCHOOL',
             username : name + '.' + surname,
             password : generateRandomPassword(),
         }
+        console.log(registerPayload);
         try {
             const creationResponse = await authService.register(registerPayload);
             console.log(creationResponse);
@@ -89,7 +91,7 @@ const NewStudentForm = ({onCreationSuccess, onSubmit, onCreationError}) => {
             const additionalInfoResponse = await updateStudentInfo(creationResponse.data.userId ,updatePayload, user.accessToken);
             onCreationSuccess(registerPayload.password);
         }catch(error) {
-            console.log(error.response.data.message);
+            console.log(error);
             onCreationError(error.response.data.message);
         }
     }

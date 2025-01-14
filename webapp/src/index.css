@@ -356,3 +356,26 @@ ul li {
 .student-result-table {
     width: 100%;
 }
+
+.summary {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    max-height: 42dvh;
+}
+
+.summary-title {
+    font-family: var(--title-font);
+    font-weight: var(--title-weight);
+    color: var(--title);
+    border-bottom: 2px solid var(--title);
+}
+
+.summary-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    overflow-y: scroll;
+}
+

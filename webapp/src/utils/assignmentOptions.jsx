@@ -15,18 +15,16 @@ const assignmentOptions = {
             status : 'PENDING',
             index : 0,
             compare : (assignment) =>
-                        // (!assignment.mySubmission && ((new Date(assignment.dueDate)) >= (new Date()))) ||
-                        ((new Date(assignment.dueDate)) >= (new Date())) &&
-                        (!assignment.mySubmission)
+                        (((new Date(assignment.dueDate)) >= (new Date())) &&
+                        (assignment.mySubmission.status === 'PENDING'))
         },
         {
             title: 'Gönderilmiş',
             status : 'SUBMITTED',
             index : 1,
             compare : (assignment) =>
-                        assignment.mySubmission &&
-                        // assignment.mySubmission.status === 'SUBMITTED' &&
-                        ((new Date(assignment.dueDate)) >= (new Date()))
+                        ((new Date(assignment.dueDate)) >= (new Date()) &&
+                        (assignment.mySubmission.status === 'SUBMITTED'))
         },
         {
             title: 'Geçmiş Ödevler',

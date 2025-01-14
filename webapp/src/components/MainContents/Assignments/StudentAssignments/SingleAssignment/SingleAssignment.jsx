@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp } from '../../../../../../public/icons/Icons';
 
 const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
     const { user } = useContext(AuthContext);
-
+    
     const [isExpanded, setIsExpanded] = useState(false);
     const [submitError, setSubmitError] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -126,7 +126,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                         <>
                             <div className='unit-body-section'>
                                 <label className='unit-section-title'>Eklenen döküman</label>
-                                {(assignment.mySubmission && assignment.mySubmission.document) ? (
+                                {(assignment.mySubmission.document) ? (
                                     <Document 
                                     file={assignment.mySubmission.document}
                                     />
@@ -136,7 +136,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                             </div>
                             <div className='unit-body-section'>
                                 <label className='unit-section-title'>Teslim notu</label>
-                                {(assignment.mySubmission && assignment.mySubmission.comment) ?(
+                                {(assignment.mySubmission.comment) ?(
                                     <p className='unit-section-text'>{assignment.mySubmission.comment}</p>
                                 ) : (
                                     <i>Not eklenmedi.</i>
@@ -153,7 +153,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                         <>
                             <div className='unit-body-section'>
                                 <label className='unit-section-title'>Ödev sonucu</label>
-                                {(assignment.mySubmission && assignment.mySubmission.grade) ? (
+                                {(assignment.mySubmission.grade) ? (
                                     <span className='assignment-grade'>{assignment.mySubmission.grade}/100</span>
                                 ) : (
                                     <i>Daha sonuçlandırılmadı</i>
@@ -161,7 +161,7 @@ const SingleAssigment = ({ assignment, refreshAssignments, status }) => {
                             </div>
                             <div className='unit-body-section'>
                                 <label className='unit-section-title'>Geri dönüş</label>
-                                {(assignment.mySubmission && assignment.mySubmission.feedback) ? (
+                                {(assignment.mySubmission.feedback) ? (
                                     <p className='unit-section-text'>{assignment.mySubmission.feedback}</p>
                                 ) : (
                                     <i> Geri dönüş yapılmadı.</i>

@@ -28,13 +28,13 @@ export const getAnnouncementsOf = async (classID, accessToken) => {
     return response;
 }
 
-export const markAsRead = async (announcementID, accessToken) => {
+export const markAsRead = async (announcementID) => {
     const response = await axios.post(
         `${announcementURL}/${announcementID}/read`,
         {},
         {
             headers : {
-                Authorization : `Bearer ${accessToken}`,
+                Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`,
             },
         }
     );
@@ -54,12 +54,12 @@ export const markAsUnread = async (announcementID, accessToken) => {
     return response;
 }
 
-export const getAnnouncementsByUser = async (accessToken) => {
+export const getAnnouncementsByUser = async () => {
     const response = await axios.get(
         `${announcementURL}/my-announcements`,
         {
             headers : {
-                Authorization : `Bearer ${accessToken}`
+                Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`
             }
         }
     );

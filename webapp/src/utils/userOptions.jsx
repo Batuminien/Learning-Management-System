@@ -16,10 +16,13 @@ import { PiClipboardTextBold } from "react-icons/pi";
 import Announcements from "../components/MainContents/Announcements/Announcement";
 import StudentDashBoard from "../components/MainContents/Dashboard/StudentDashboard";
 import PastExams from "../components/MainContents/PastExams/PastExams";
+import AdminDashboard from "../components/MainContents/Dashboard/AdminDashboard";
+import TeacherDashboard from "../components/MainContents/Dashboard/TeacherDashboard";
+import CoordinatorDashboard from "../components/MainContents/Dashboard/CoordinatorDashboard";
 
 const userOptionsMap = {
     ROLE_ADMIN: [
-        { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
+        { title: 'Ana Menü', component: AdminDashboard, iconSource : PiHouseBold },
         { title: 'Öğrenci Bul', component: null, iconSource : PiStudentBold },
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
@@ -29,7 +32,7 @@ const userOptionsMap = {
         { title: 'Ayarlar', component: Settings, iconSource : PiGearBold}
     ],
     ROLE_TEACHER: [
-        { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
+        { title: 'Ana Menü', component: TeacherDashboard, iconSource : PiHouseBold },
         { title: 'Öğrenci Bul', component: null, iconSource : PiStudentBold },
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },
@@ -38,7 +41,7 @@ const userOptionsMap = {
         { title: 'Ayarlar', component: Settings, iconSource : PiGearBold}
     ],
     ROLE_COORDINATOR: [
-        { title: 'Ana Menü', component: null, iconSource : PiHouseBold },
+        { title: 'Ana Menü', component: CoordinatorDashboard, iconSource : PiHouseBold },
         { title: 'Öğrenci Bul', component: null, iconSource : PiStudentBold },
         { title: 'Ödev Takibi', component: Assignments, iconSource : PiBookOpenBold },
         { title: 'Yoklama', component: Attendance, iconSource : PiClipboardTextBold },

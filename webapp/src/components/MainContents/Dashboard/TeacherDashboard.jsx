@@ -1,8 +1,9 @@
-import AnnouncementSummary from './AnnouncementSummary';
+import AnnouncementSummary from "./AnnouncementSummary";
 
 
 
-const StudentDashBoard = () => {
+
+const TeacherDashboard = () => {
 
 
 
@@ -22,4 +23,4 @@ const StudentDashBoard = () => {
         </div>
     );
 }
-export default StudentDashBoard;
+export default TeacherDashboard;

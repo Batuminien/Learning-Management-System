@@ -1,12 +1,7 @@
-import AnnouncementSummary from './AnnouncementSummary';
+import AnnouncementSummary from "./AnnouncementSummary";
 
 
-
-const StudentDashBoard = () => {
-
-
-
-
+const AdminDashboard = () => {
 
     return(
         <div className="dashboard-template">
@@ -22,4 +17,4 @@ const StudentDashBoard = () => {
         </div>
     );
 }
-export default StudentDashBoard;
+export default AdminDashboard;
