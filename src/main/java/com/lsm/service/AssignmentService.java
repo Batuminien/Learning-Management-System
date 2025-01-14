@@ -413,32 +413,30 @@ public class AssignmentService {
     public StudentSubmission submitAssignment(Long assignmentId, SubmitAssignmentDTO submitDTO, AppUser currentUser)
             throws IllegalStateException, IOException {
         AppUser user = appUserService.getCurrentUserWithDetails(currentUser.getId());
-
         Assignment assignment = findById(assignmentId);
 
         if (LocalDate.now().isAfter(assignment.getDueDate()))
             throw new IllegalStateException("Assignment deadline has passed");
 
-        Optional<StudentSubmission> optionalSubmission = assignment.getStudentSubmissions().stream()
+        // Find existing submission
+        StudentSubmission existingSubmission = assignment.getStudentSubmissions().stream()
                 .filter(studentSubmission -> studentSubmission.getStudent().getId().equals(user.getId()))
-                .findFirst();
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("No submission found for this student"));
 
-        if (optionalSubmission.isPresent()) {
-            StudentSubmission theStudentSubmission = optionalSubmission.get();
-            if (theStudentSubmission.getStatus() == AssignmentStatus.SUBMITTED)
-                throw new IllegalStateException("You have already submitted the assignment");
-            if (theStudentSubmission.getGrade() != null || theStudentSubmission.getStatus() == AssignmentStatus.GRADED)
-                throw new IllegalStateException("The assignment has already been graded");
+        // Validate submission state
+        if (existingSubmission.getStatus() == AssignmentStatus.SUBMITTED)
+            throw new IllegalStateException("You have already submitted the assignment");
+        if (existingSubmission.getGrade() != null || existingSubmission.getStatus() == AssignmentStatus.GRADED)
+            throw new IllegalStateException("The assignment has already been graded");
 
-            // Only try to delete the existing document if it exists
-            if (theStudentSubmission.getDocument() != null) {
-                Files.deleteIfExists(Paths.get(theStudentSubmission.getDocument().getFilePath()));
-                theStudentSubmission.setDocument(null);
-                assignmentRepository.save(assignment);
-            }
+        // Delete existing document if present
+        if (existingSubmission.getDocument() != null) {
+            Files.deleteIfExists(Paths.get(existingSubmission.getDocument().getFilePath()));
+            existingSubmission.setDocument(null);
         }
 
-        // Rest of the method remains the same...
+        // Validate enrollment
         ClassEntity classEntity = user.getStudentDetails().getClassEntity();
         if (classEntity == null) {
             throw new EntityNotFoundException("Student is not assigned to any class");
@@ -453,14 +451,12 @@ public class AssignmentService {
             throw new AccessDeniedException("You can only submit your own assignments");
         }
 
-        StudentSubmission studentSubmission = studentSubmissionService.submitAssignment(
-                assignmentId,
+        // Update existing submission instead of creating new one
+        return studentSubmissionService.updateSubmission(
+                existingSubmission,
                 submitDTO,
                 user
         );
-        assignment.getStudentSubmissions().add(studentSubmission);
-        assignmentRepository.save(assignment);
-        return studentSubmission;
     }
 
     public Assignment findById(Long id) {

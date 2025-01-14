@@ -66,6 +66,27 @@ public class StudentSubmissionService {
         return submissionRepository.save(submission);
     }
 
+    @Transactional
+    public StudentSubmission updateSubmission(StudentSubmission submission, SubmitAssignmentDTO submitDTO, AppUser student)
+            throws IOException {
+        // Handle document upload
+        if (submitDTO.getDocument() != null && !submitDTO.getDocument().isEmpty()) {
+            AssignmentDocument document = fileStorageService.handleDocumentUpload(
+                    submitDTO.getDocument(),
+                    submission.getAssignment(),
+                    student
+            );
+            submission.setDocument(document);
+        }
+
+        // Update submission details
+        submission.setStatus(AssignmentStatus.SUBMITTED);
+        submission.setSubmissionDate(LocalDateTime.now());
+        submission.setComment(submitDTO.getSubmissionComment());
+
+        return submissionRepository.save(submission);
+    }
+
     private void validateSubmissionDeadline(Assignment assignment) {
         if (LocalDate.now().isAfter(assignment.getDueDate())) {
             throw new IllegalStateException("Assignment deadline has passed");
