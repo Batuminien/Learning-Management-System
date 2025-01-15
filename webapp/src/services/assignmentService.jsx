@@ -113,7 +113,8 @@ export const unsubmitStudentAssignment = async (assignmentID, accessToken) => {
     return response.data;
 }
 
-export const getAssignments = async (userRole, userID, filter, accessToken) => {
+export const getAssignments = async (userRole, userID, filter = {classId : null, courseId : null, dueDate : ''}) => {
+    const accessToken = JSON.parse(sessionStorage.getItem('accessToken'));
     if(userRole === 'ROLE_STUDENT') {
         return await getAssignmentsForStudent(userID,accessToken);
     } else if(userRole === 'ROLE_TEACHER') {
@@ -135,7 +136,7 @@ export const getAssignmentsForStudent = async (studentID, accessToken) => {
     return response.data;
 }
 
-export const getAssignmentsForTeacher = async (teacherID, filter, accessToken) => {
+export const getAssignmentsForTeacher = async (teacherID, filter , accessToken) => {
     const {classId, courseId, dueDate} = filter;
     const response = await axios.get(
         `${BASE_URL}/api/v1/assignments/teacher/${teacherID}`,

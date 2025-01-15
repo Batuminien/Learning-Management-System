@@ -17,7 +17,6 @@ const AnnouncementSummary = () => {
                 setLoading(true);
                 const response = await getAnnouncementsByUser();
                 const newAnnouncements = response.data.data.filter(announcement => (!announcement.read) && announcement.createdById !== user.id);
-                console.log(newAnnouncements);
                 setUnreadAnnouncements(newAnnouncements.reverse());
             }catch(error){
                 console.log(error);

@@ -45,6 +45,8 @@
     --wrongAnswer : #4183D2;
     --blankAnswer : #BE51AA;
     --netScore : #BCD0EC;
+    --personal-average : #FFCF00;
+    --general-average : #4AB58E;
 }
 
 * {
@@ -379,3 +381,61 @@ ul li {
     overflow-y: scroll;
 }
 
+.average-info {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    margin-top: 32px;
+    padding-left: 12px;
+}
+
+.single-average {
+    display: flex;
+    column-gap: 12px;
+    align-items: center;
+}
+
+.icon-container {
+    padding: 6px;
+    border-radius: 6px;
+}
+
+.personal-average {
+    color: #FFA800;
+    background-color: #FFF4DE;
+}
+
+.general-average {
+    color: #4AB58E;
+    background-color: #E2FFF3;
+}
+
+.assignment-status {
+    margin-left: auto;
+    background-color: red;
+    padding: 8px;
+    border-radius: 20px;
+}
+
+.submitted {
+    background-color: #A6E7D8;
+    color: #3EAB91;
+    border: 2px solid #00B087;
+}
+
+.non-submitted {
+    background-color: #FFC5C5;
+    color: #DF0404;
+    border: 2px solid #DF0404;
+}
+
+.assignment-summary-info {
+    width: 85%;
+    display: flex;
+    align-items: center;
+    column-gap: 32px;
+}
+
+.assignment-summary-info > * {
+    flex: 1;
+}

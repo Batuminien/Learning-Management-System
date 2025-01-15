@@ -83,9 +83,6 @@ const ExamResultChart = ({subjectResults = []}) => {
             {options ? (
                 <div className="exam-result-chart">
                     <ReactECharts option={options}/>
-                    <table>
-                        
-                    </table>
                 </div>
             ) : (<Loading/>)}
         </>

@@ -7,7 +7,7 @@ import { generateRandomPassword, isValidEmail, isValidName, isValidPhoneNumber, 
 import authService from "../../../services/authService";
 import { addTeacherToCourse } from "../../../services/coursesService";
 
-const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
+const NewTeacherForm = ({onSubmit, onCreationSuccess, onCreationError}) => {
     const { user } = useContext(AuthContext);
 
     const [firstName, setFirstName] = useState('');
@@ -63,12 +63,15 @@ const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
             try{
                 const courseResponse = await addTeacherToCourse(teacherCourse.id, response.data.userId, teacherClasses.map(singleClass => singleClass.value));
                 console.log(courseResponse);
+                onCreationSuccess(registerPayload.password);
+
             }catch(error){
-                console.log(error);
+                throw error;
             }
 
         }catch(error){
             console.log(error);
+            onCreationError(' ');
         }
 
     }

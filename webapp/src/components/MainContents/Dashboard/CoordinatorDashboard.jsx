@@ -1,4 +1,5 @@
 import AnnouncementSummary from "./AnnouncementSummary";
+import AssignmentSummary from "./AssignmentSummary";
 
 
 
@@ -17,9 +18,16 @@ const CoordinatorDashboard = () => {
                     <AnnouncementSummary/>
                 </div>
             </div>
+            
             <div className="unit-container"></div>
             <div className="unit-container"></div>
-            <div className="unit-container"></div>
+            
+            <div className="unit-container summary">
+                <h2 className="summary-title">Ödevler</h2>
+                <div className="summary-content">
+                    <AssignmentSummary/>
+                </div>
+            </div>
         </div>
     );
 }
