@@ -72,6 +72,7 @@ const SingleOfficerExam = ({exam}) => {
                                 student={student}
                                 index={index}
                                 onChange={handleResultChange}
+                                key={student.id}
                             />
                         </div>
                     ))}

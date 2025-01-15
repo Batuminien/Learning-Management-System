@@ -53,3 +53,16 @@ export const getCoursesGivenBy = async (userRole, accessToken, ID = null) => {
   if(userRole === 'ROLE_TEACHER') return await getTeacherCourses(ID, accessToken);
   else if(userRole === 'ROLE_ADMIN' || userRole === 'ROLE_COORDINATOR') return await getAllCourses(accessToken);
 }
+
+export const addTeacherToCourse = async (courseID, teacherID, classIDs) => {
+  const response = await axios.put(
+    `${BASE_URL}/api/v1/courses/${courseID}/teacher/${teacherID}`,
+    classIDs,
+    {
+      headers : {
+        Authorization : `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`
+      }
+    }
+  );
+  return response;
+}

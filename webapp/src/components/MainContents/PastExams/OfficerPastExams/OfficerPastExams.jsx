@@ -4,6 +4,12 @@ import PreviousExams from "./PreviousExams";
 import { useState } from "react";
 import Navigator from "../../../common/Navigator/Navigator";
 
+export const examTypeOptions = [
+    {label : 'TYT', value : 'TYT'},
+    {label : 'AYT', value : 'AYT'},
+    {label : 'YDT', value : 'YDT'}
+];
+
 const OfficerPastExams = ({user}) => {
     const examOptions = [
         {title : 'Eski Sınavlar', component : PreviousExams, iconSource : PiExamBold},

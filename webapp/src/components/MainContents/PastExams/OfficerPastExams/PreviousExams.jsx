@@ -7,6 +7,7 @@ import Warning from '../../../common/IconComponents/Warning';
 import Loading from '../../../common/Loading/Loading';
 import NoResult from '../../../common/IconComponents/NoResult';
 import SingleOfficerExam from './SingleOfficerExam';
+import { examTypeOptions } from './OfficerPastExams';
 
 const PreviousExams = () => {
     const [warning, setWarning] = useState(false);
@@ -40,11 +41,7 @@ const PreviousExams = () => {
         fetchExams();
     }, []);
 
-    const examTypeOptions = [
-        {label : 'TYT', value : 'TYT'},
-        {label : 'AYT', value : 'AYT'},
-        {label : 'YDT', value : 'YDT'}
-    ];
+    
 
     const handleSearch = () => {
         setSearchError(false);
@@ -106,7 +103,7 @@ const PreviousExams = () => {
                 filtering ? (<Loading/>) : (
                 searchedExams.length === 0 ? (<NoResult/>) : (
                     searchedExams.map(exam => (
-                        <SingleOfficerExam exam={exam}/>
+                        <SingleOfficerExam key={exam.id} exam={exam}/>
                     ))
                 ))
             )}

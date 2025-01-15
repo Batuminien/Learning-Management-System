@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import useAuth from "../../../../hooks/useAuth";
 import { ArrowDown, ArrowUp } from "../../../../../public/icons/Icons";
+import ExamResultChart from "../ExamResultChart";
 
 const SingleStudentResultInfo = ({student, index, onChange}) => {
     const { user } = useAuth();
@@ -103,6 +104,7 @@ const SingleStudentResultInfo = ({student, index, onChange}) => {
                                 ))}
                             </tbody>
                         </table>
+                        <ExamResultChart subjectResults={student.subjectResults}/>
                     </>
                 )}
                 <br />

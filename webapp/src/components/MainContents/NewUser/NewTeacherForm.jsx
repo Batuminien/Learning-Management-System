@@ -3,10 +3,9 @@ import InputField from "../../common/InputField";
 import DateInput from "../../common/DateInput";
 import { AuthContext } from "../../../contexts/AuthContext";
 import CourseClassMatching from "./CourseClassMatching";
-import { isValidEmail, isValidName, isValidPhoneNumber, isValidTC } from "./NewUserUtils";
-
-
-
+import { generateRandomPassword, isValidEmail, isValidName, isValidPhoneNumber, isValidTC } from "./NewUserUtils";
+import authService from "../../../services/authService";
+import { addTeacherToCourse } from "../../../services/coursesService";
 
 const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
     const { user } = useContext(AuthContext);
@@ -29,19 +28,14 @@ const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [phoneNumberError, setPhoneNumberError] = useState('');
 
-    const [teacherCourse, setTeacherCourse] = useState({});
+    const [teacherCourse, setTeacherCourse] = useState({name : '', id : null});
     const [courseError, setCourseError] = useState('');
+    const [classError, setClassError] = useState('');
     const [teacherClasses, setTeacherClasses] = useState([]);
-
-    const handleClassSelection = (course, selections) => {
-        console.log('the course is : ', course);
-        console.log('selected classes : ', selections);
-        setTeacherCourse(course);
-        setTeacherClasses(selections);
-    }
 
     const createTeacher = async () => {
         onSubmit();
+        console.log(teacherClasses);
         let hasError = false;
         if(!isValidName(firstName)) {setFirstNameError('Geçersiz ad'), hasError=true}
         if(!isValidName(lastName)) {setLastNameError('Geçersiz soyad'), hasError=true}
@@ -49,8 +43,34 @@ const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
         if(!isValidEmail(mail)) {setMailError('Geçersiz e-posta adresi'), hasError=true}
         if(!isValidPhoneNumber(phoneNumber)) {setPhoneNumberError('Numara 0 ile başlamalı ve 11 hane olmalıdır')}
         if(birthDate === '') {setBirthDateError('Doğum tarihi seçiniz'), hasError=true}
-        if(teacherCourse.name === '') {setCourseError('Lütfen ders ve sınıf seçimi yapınız.'), hasError=true}
+        if(teacherCourse.name === '') {setCourseError('Lütfen ders seçimi yapınız.'), hasError=true}
+        if(teacherClasses.length === 0) {setClassError('Lütfen sınıf seçimi yapınız'), hasError= true}
         if(hasError) return;
+
+        try{
+            const registerPayload = {
+                firstName : firstName.charAt(0).toUpperCase() + firstName.slice(1),
+                lastName : lastName.charAt(0).toUpperCase() + lastName.slice(1),
+                email : mail,
+                role : 'ROLE_TEACHER',
+                schoolLevel : 'HIGH_SCHOOL',
+                username : firstName + '.' + lastName,
+                password : generateRandomPassword(),
+            }
+            console.log(registerPayload);
+            const response = await authService.register(registerPayload);
+            console.log(response);
+            try{
+                const courseResponse = await addTeacherToCourse(teacherCourse.id, response.data.userId, teacherClasses.map(singleClass => singleClass.value));
+                console.log(courseResponse);
+            }catch(error){
+                console.log(error);
+            }
+
+        }catch(error){
+            console.log(error);
+        }
+
     }
 
     return(
@@ -96,8 +116,10 @@ const NewTeacherForm = ({onSubmit, onCreationsuccess, onCreationError}) => {
             </div>
             <div className="form-title">Dersler</div>
             <CourseClassMatching
-                onSelection={(course ,selections) => handleClassSelection(course, selections)}
+                onCourseSelection={(course) => {setTeacherCourse(course), setCourseError('')}}
+                onClassSelection={(classes) => {setTeacherClasses(classes), setClassError('')}}
                 courseError={courseError}
+                classError={classError}
             />
             <button type='submit' className='save-btn btn' onClick={createTeacher}>Kaydet</button>
         </div>

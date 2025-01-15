@@ -12,7 +12,7 @@ const PastHomeworksOfficer = () => {
 
     const handleSearchResults = (response) => {
         setAssignments([]);
-        // response = response.filter(assignment => new Date() > new Date(assignment.dueDate));
+        response = response.filter(assignment => new Date() > new Date(assignment.dueDate));
         setIsSearched(true);
         setAssignments(response);
     }

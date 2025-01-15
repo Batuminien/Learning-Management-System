@@ -6,7 +6,7 @@ import { getAllClasses } from "../../../services/classesService";
 import React from 'react';
 import Select from 'react-select';
 
-const CourseClassMatching = ({onSelection, courseError = ''}) => {
+const CourseClassMatching = ({onCourseSelection, onClassSelection, courseError = '', classError = ''}) => {
     const { user } = useContext(AuthContext);
 
     const [courses, setCourses] = useState([]);
@@ -18,7 +18,6 @@ const CourseClassMatching = ({onSelection, courseError = ''}) => {
 
     const [selectedClassesOfCourse, setSelectedClassesOfCourse] = useState([]);
     const [selectedNonClassesOfCourse, setSelectedNonClassesOfCourse] = useState([]);
-    const [classSelectionError, setClassSelectionError] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,6 +42,8 @@ const CourseClassMatching = ({onSelection, courseError = ''}) => {
         if(newCourseName === '') {
             setSelectedClassesOfCourse([]);
             setSelectedNonClassesOfCourse([]);
+            onCourseSelection({name : '', id : null});
+            return;
         }
 
         const classListOfCourse = courses.find(course => course.id === newCourseID).classEntityIds;
@@ -55,77 +56,68 @@ const CourseClassMatching = ({onSelection, courseError = ''}) => {
             .filter((singleClass) => !classListOfCourse.includes(singleClass.id))
             .map(singleClass => ({label : singleClass.name, value : singleClass.id}));
         setNonClassesOfSelectedCourse(nonClassesOfCourse);
+        onCourseSelection(newSelectedCourse);
     }
 
-    const handleClassSelection = () => {
-        setClassSelectionError('');
-        // console.log('selected course is : ', selectedCourse.name);
-        // console.log('selected classes that DO take the selected course : ', selectedClassesOfCourse);
-        // console.log('selected classes that do NOT take the selected course : ', selectedNonClassesOfCourse);
-        if(selectedClassesOfCourse.length === 0 && selectedNonClassesOfCourse.length === 0) {
-            setClassSelectionError('hey sınıf seç ibne');
-            return;
-        }
-        onSelection(selectedCourse, [selectedClassesOfCourse, selectedNonClassesOfCourse]);
+    const handleClassChange = (selected, flag) => {
+        flag 
+            ? (setSelectedNonClassesOfCourse(selected), onClassSelection([...selectedClassesOfCourse, ...selected]))
+            : (setSelectedClassesOfCourse(selected), onClassSelection([...selected, ...selectedNonClassesOfCourse]))
     }
 
     return(
         <>
             {courses.length !== 0 && (
                 <>
-                    <div className="input-fields input-container">
-                        <select
-                            className='input'
-                            value={selectedCourse.name}
-                            onChange={handleCourseChange}
-                            >
-                            <option value='' data-key={null}>Ders Seçiniz</option>
-                            {courses.map((course) => (
-                                <option
-                                value={course.name}
-                                key={course.id}
-                                data-key={course.id}
+                    <div className="input-fields">
+                        <div className="input-container">
+                            <select
+                                className='input'
+                                value={selectedCourse.name}
+                                onChange={handleCourseChange}
                                 >
-                                    {course.name}
-                                </option>
-                            ))}
-                        </select>
-                        {courseError && <p className='error-message'>{courseError}</p>}
-                    </div>
-                    
-
-                        <div className="input-fields">
-                            <div className="input-container">
-                                <label className="label">Bu dersi alan sınıflar</label>
-                                <Select
-                                    className="input"
-                                    isMulti
-                                    isDisabled={selectedCourse.name === ''}
-                                    placeholder={'Sınıfları seçiniz'}
-                                    options={classesOfSelectedCourse}
-                                    onChange={(selected) => setSelectedClassesOfCourse(selected)}
-                                    value={selectedClassesOfCourse}
-                                />
-                            </div>
-
-                            <div className="input-container">
-                                <label className="label">Bu dersi almayan sınıflar</label>
-                                <Select
-                                    className="input"
-                                    isMulti
-                                    isDisabled={selectedCourse.name === ''}
-                                    placeholder={'Sınıfları seçiniz'}
-                                    options={nonClassesOfSelectedCourse}
-                                    onChange={(selected) => setSelectedNonClassesOfCourse(selected)}
-                                    value={selectedNonClassesOfCourse}
-                                />
-                            </div>
-                            <div style={{display : 'flex', flexDirection : 'column' , justifyContent : 'center', marginLeft : '6px'}}>
-                                <label htmlFor="" style={{visibility : 'hidden'}}>f</label>
-                                <button className="btn" onClick={handleClassSelection}>Onayla</button>
-                            </div>
-                            {classSelectionError && <p className="error-message">{classSelectionError}</p>} 
+                                <option value='' data-key={null}>Ders Seçiniz</option>
+                                {courses.map((course) => (
+                                    <option
+                                    value={course.name}
+                                    key={course.id}
+                                    data-key={course.id}
+                                    >
+                                        {course.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {courseError && <p className='error-message'>{courseError}</p>}
                         </div>
+                    </div>
+
+                    <div className="input-fields">
+                        <div className="input-container">
+                            <label className="label">Bu dersi alan sınıflar</label>
+                            <Select
+                                className="input"
+                                isMulti
+                                isDisabled={selectedCourse.name === ''}
+                                placeholder={'Sınıfları seçiniz'}
+                                options={classesOfSelectedCourse}
+                                onChange={(selected) => {handleClassChange(selected, 0)}}
+                                value={selectedClassesOfCourse}
+                            />
+                            {classError && <p className="error-message">{classError}</p>} 
+                        </div>
+                        <div className="input-container">
+                            <label className="label">Bu dersi almayan sınıflar</label>
+                            <Select
+                                className="input"
+                                isMulti
+                                isDisabled={selectedCourse.name === ''}
+                                placeholder={'Sınıfları seçiniz'}
+                                options={nonClassesOfSelectedCourse}
+                                onChange={(selected) => {handleClassChange(selected, 1)}}
+                                value={selectedNonClassesOfCourse}
+                            />
+                        </div>
+                    </div>
                 </>
             )}
         </>
