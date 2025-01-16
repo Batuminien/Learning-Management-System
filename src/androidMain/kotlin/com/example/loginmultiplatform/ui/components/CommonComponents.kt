@@ -34,10 +34,12 @@ import androidx.compose.material.icons.rounded.LibraryBooks
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
@@ -64,19 +66,23 @@ val customFontFamily = FontFamily(
 )
 
 @Composable
-actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, onProfileClick: () -> Unit, navController: NavController) {
+actual fun TopBar(
+    userName: String?,
+    userId: Int,
+    viewModel: ProfilePhotoViewModel,
+    onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    navController: NavController
+) {
 
-    val viewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
     var expanded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val profilePhoto by viewModel.profilePhoto.observeAsState()
 
     LaunchedEffect(userId) {
         if(userId != -1) {
             viewModel.fetchProfilePhoto(userId)
         }
     }
-
-    val profilePhotoUrl by viewModel.profilePhotoUrl.collectAsState()
 
     Row(
         modifier = Modifier
@@ -170,28 +176,12 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
             IconButton(
                 onClick = { onProfileClick() }
             ) {
-                if (profilePhotoUrl != "default_url" && profilePhotoUrl != null) {
-                    val fullUrl = "https://learnovify.com/$profilePhotoUrl"
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(fullUrl)
-                            .crossfade(true)
-                            .listener(
-                                onSuccess = { _, _ ->
-                                    Log.d("ProfilePhoto", "Image loaded successfully: $profilePhotoUrl")
-                                },
-                                onError = { _, throwable ->
-                                    Log.e("ProfilePhoto", "Error loading image: ${throwable}")
-                                }
-                            )
-                            .build(),
-                        placeholder = painterResource(R.drawable.pp), // Placeholder resmi
-                        error = painterResource(R.drawable.logo), // Hata durumu resmi
-                        contentDescription = "Profile Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
+                if (profilePhoto != null) {
+                    Image(
+                        bitmap = profilePhoto!!.asImageBitmap(),
+                        contentDescription = "Profile Photo",
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     Icon(
@@ -201,7 +191,7 @@ actual fun TopBar(userName: String?, userId: Int, onSettingsClick: () -> Unit, o
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF334BBE))
+                            .background(Color(0xFF334BBE)),
                     )
                 }
             }

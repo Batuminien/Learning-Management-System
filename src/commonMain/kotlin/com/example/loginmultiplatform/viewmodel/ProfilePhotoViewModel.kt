@@ -1,8 +1,14 @@
 package com.example.loginmultiplatform.viewmodel
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.loginmultiplatform.model.CoordinatorInfoResponse
 import com.example.loginmultiplatform.model.LoginData
 import com.example.loginmultiplatform.model.StudentInfoResponse
 import com.example.loginmultiplatform.model.TeacherInfoResponse
@@ -17,8 +23,14 @@ import okhttp3.MultipartBody
 class ProfilePhotoViewModel : ViewModel() {
     private val repository = ProfilePhotoRepository()
 
-    private val _profilePhotoUrl = MutableStateFlow<String?>(null)
-    val profilePhotoUrl: StateFlow<String?> = _profilePhotoUrl
+    private val _profilePhoto = MutableLiveData<Bitmap?>()
+    val profilePhoto: LiveData<Bitmap?> = _profilePhoto
+
+    private val _profilePhotoUrl = MutableLiveData<String?>()
+    val profilePhotoUrl: LiveData<String?> = _profilePhotoUrl
+
+    private val _coordinatorInfo = MutableStateFlow<CoordinatorInfoResponse?>(null)
+    val coordinatorInfo: StateFlow<CoordinatorInfoResponse?> = _coordinatorInfo
 
     private val _studentInfo = MutableStateFlow<StudentInfoResponse?>(null)
     val studentInfo: StateFlow<StudentInfoResponse?> = _studentInfo
@@ -29,11 +41,12 @@ class ProfilePhotoViewModel : ViewModel() {
     fun fetchProfilePhoto(userId: Int) {
         viewModelScope.launch {
             try {
-                val photoData = repository.fetchProfilePhoto(userId)
-                _profilePhotoUrl.value = photoData.photoUrl
+                val photoBytes = repository.fetchProfilePhoto(userId)
+                val bitmap = BitmapFactory.decodeByteArray(photoBytes, 0, photoBytes.size)
+                _profilePhoto.postValue(bitmap)
             } catch (e: Exception) {
                 e.printStackTrace()
-                _profilePhotoUrl.value = "default_url"
+                _profilePhoto.postValue(null)
             }
         }
     }
@@ -62,14 +75,34 @@ class ProfilePhotoViewModel : ViewModel() {
         }
     }
 
-    fun uploadPp(file: MultipartBody.Part) {
+    fun fetchCoordinatorInfo(coordinatorId: Int) {
+        viewModelScope.launch {
+            try {
+                val coordinatorInfos = repository.fetchCoordinatorInfo(coordinatorId)
+                _coordinatorInfo.value = coordinatorInfos
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _coordinatorInfo.value = null
+            }
+        }
+    }
+
+    fun uploadPp(file: MultipartBody.Part, onUploadComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             try {
                 val response = repository.uploadPp(file)
-                _profilePhotoUrl.value = response.photoUrl
+
+                if(response != null && response.photoUrl.isNotEmpty()) {
+                    val newProfilePhotoUrl = response.photoUrl
+                    _profilePhotoUrl.postValue(newProfilePhotoUrl)
+                    onUploadComplete(true, "Fotoğraf başarılı bir şekilde güncellendi!")
+                } else {
+                    onUploadComplete(false, "Failed to upload profile photo: Invalid response.")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _profilePhotoUrl.value = "default_url"
+                onUploadComplete(false, "Fotoğraf yüklenirken hata oluştu!")
+                _profilePhotoUrl.value = null
             }
         }
     }

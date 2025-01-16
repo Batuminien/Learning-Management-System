@@ -10,8 +10,8 @@ class UserRepository {
 
     //suspend fun login(email: String, password: String) = apiService.login(LoginRequest(email, password))
 
-    suspend fun login(username: String, password: String): LoginData {
-        val response = apiService.login(LoginRequest(username, password))
+    suspend fun login(username: String, password: String, rememberMe: Boolean): LoginData {
+        val response = apiService.login(LoginRequest(username, password, rememberMe))
         if (response.success) {
             return response.data
         } else {
