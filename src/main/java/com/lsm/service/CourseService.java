@@ -16,6 +16,7 @@ import com.lsm.repository.CourseRepository;
 import com.lsm.exception.DuplicateResourceException;
 import com.lsm.exception.ResourceNotFoundException;
 
+import com.lsm.repository.TeacherCourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +43,7 @@ public class CourseService {
     private final ClassEntityRepository classEntityRepository;
     private final AppUserRepository appUserRepository;
     private final AppUserService appUserService;
+    private final TeacherCourseRepository teacherCourseRepository;
 
     @Cacheable(value = "courses", key = "#id", unless = "#result == null")
     public CourseDTO getCourseById(AppUser loggedInUser, Long id) {
@@ -253,10 +255,14 @@ public class CourseService {
         AppUser teacher = appUserRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
 
-        if (teacher.getRole() == Role.ROLE_STUDENT) {
-            throw new IllegalArgumentException("User is a student");
+        if (teacher.getRole() != Role.ROLE_TEACHER) {
+            throw new IllegalArgumentException("User is not a teacher");
         }
 
+        // Remove existing teacher-course relationship if it exists
+        course.getTeacherCourses().removeIf(tc -> tc.getTeacher().getId().equals(teacherId));
+
+        // Create and properly initialize the TeacherCourse entity
         Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
         if (classes.size() != classIds.size()) {
             throw new ResourceNotFoundException("One or more classes not found");
@@ -268,8 +274,18 @@ public class CourseService {
                 .classes(classes)
                 .build();
 
+        // Set up bidirectional relationship
         course.getTeacherCourses().add(teacherCourse);
-        return mapToDTO(courseRepository.save(course));
+        teacher.getTeacherDetails().getTeacherCourses().add(teacherCourse);
+
+        // First save TeacherCourse
+        teacherCourseRepository.save(teacherCourse);  // Add this line
+
+        // Then save the course
+        Course savedCourse = courseRepository.save(course);
+        log.info("Successfully assigned teacher {} to course {}", teacherId, courseId);
+
+        return mapToDTO(savedCourse);
     }
 
     @CacheEvict(value = {"coursesByTeacher", "courses"}, allEntries = true)
@@ -277,8 +293,17 @@ public class CourseService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
 
-        course.getTeacherCourses().removeIf(tc ->
-                tc.getTeacher().getId().equals(teacherId));
+        TeacherCourse teacherCourseToRemove = course.getTeacherCourses().stream()
+                .filter(tc -> tc.getTeacher().getId().equals(teacherId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher not assigned to this course"));
+
+        // Remove from both sides
+        course.getTeacherCourses().remove(teacherCourseToRemove);
+        AppUser teacher = teacherCourseToRemove.getTeacher();
+        if (teacher != null && teacher.getTeacherDetails() != null) {
+            teacher.getTeacherDetails().getTeacherCourses().remove(teacherCourseToRemove);
+        }
 
         return mapToDTO(courseRepository.save(course));
     }
@@ -291,19 +316,25 @@ public class CourseService {
         AppUser newTeacher = appUserRepository.findById(newTeacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + newTeacherId));
 
-        if (newTeacher.getRole() == Role.ROLE_STUDENT) {
-            throw new IllegalArgumentException("User is a student");
+        if (newTeacher.getRole() != Role.ROLE_TEACHER) {
+            throw new IllegalArgumentException("User is not a teacher");
         }
+
+        // Remove old teacher course relationships properly
+        Set<TeacherCourse> oldTeacherCourses = new HashSet<>(course.getTeacherCourses());
+        for (TeacherCourse tc : oldTeacherCourses) {
+            AppUser oldTeacher = tc.getTeacher();
+            if (oldTeacher != null && oldTeacher.getTeacherDetails() != null) {
+                oldTeacher.getTeacherDetails().getTeacherCourses().remove(tc);
+            }
+        }
+        course.getTeacherCourses().clear();
 
         Set<ClassEntity> classes = new HashSet<>(classEntityRepository.findAllByIdIn(classIds));
         if (classes.size() != classIds.size()) {
             throw new ResourceNotFoundException("One or more classes not found");
         }
 
-        // Remove old teacher course relationship if exists
-        course.getTeacherCourses().clear();
-
-        // Create new teacher course relationship
         TeacherCourse teacherCourse = TeacherCourse.builder()
                 .teacher(newTeacher)
                 .course(course)
@@ -311,6 +342,8 @@ public class CourseService {
                 .build();
 
         course.getTeacherCourses().add(teacherCourse);
+        newTeacher.getTeacherDetails().getTeacherCourses().add(teacherCourse);
+
         return mapToDTO(courseRepository.save(course));
     }
 
