@@ -195,6 +195,7 @@ class TeacherAssignmentViewModel : ViewModel(){
 
     fun fetchTeacherClasses() {
         viewModelScope.launch {
+            println("Şu an çalıştırıldı")
             _isLoading.value = true
             _errorMessage.value = null
 

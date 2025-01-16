@@ -31,4 +31,17 @@ class StudentAnnouncementRepository {
             throw Exception(response.message)
         }
     }
+
+    suspend fun getAnnouncementsUserId(
+        userId: Int
+    ): List<StudentAnnouncementResponse> {
+        val response = apiService.getAnnouncementByUserId(userId)
+
+        if (response.success) {
+            return response.data
+        } else {
+            throw Exception(response.message)
+        }
+    }
+
 }

@@ -125,6 +125,22 @@ interface ApiService {
         @Body announcementBody: StudentAnnouncementResponse
     ): ResponseWrapper<StudentAnnouncementResponse>
 
+    @GET("/api/v1/announcements/user/{userId}")
+    suspend fun getAnnouncementByUserId (
+        @Path("userId") userId : Int
+    ) : ResponseWrapper<List<StudentAnnouncementResponse>>
+
+    @GET("/api/v1/courses/teacher/{teacherId}")
+    suspend fun getCoursesByTeacher (
+        @Path("teacherId") teacherId: Int
+    ) : ResponseWrapper<List<TeacherCourseResponse>>
+
+    @GET("/api/v1/courses/{courseId}/teacher/{teacherId}/classes")
+    suspend fun getTeacherCourseClass (
+        @Path("courseId") courseId: Int,
+        @Path("teacherId") teacherId: Int
+    ) : ResponseWrapper<List<TeacherClassResponse>>
+
     @GET("/api/v1/courses/class/{classId}")
     suspend fun fetchClassCourses (
         @Path("classId") classId: Int,
@@ -213,6 +229,11 @@ interface ApiService {
     @GET("/api/v1/schedules/student/{studentId}")
     suspend fun getStudentSchedule (
         @Path("studentId") studentId: Long
+    ) : ResponseWrapper<List<CourseSchedule>>
+
+    @GET("/api/v1/schedules/teacher/{teacherId}")
+    suspend fun getTeacherSchedule (
+        @Path("teacherId") teacherId: Long
     ) : ResponseWrapper<List<CourseSchedule>>
 
 

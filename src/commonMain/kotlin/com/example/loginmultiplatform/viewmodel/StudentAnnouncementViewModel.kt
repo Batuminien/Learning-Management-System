@@ -15,6 +15,9 @@ class StudentAnnouncementViewModel : ViewModel() {
     private val _announcement = MutableStateFlow<List<StudentAnnouncementResponse>>(emptyList())
     val announcement: StateFlow<List<StudentAnnouncementResponse>> = _announcement
 
+    private val _announcementUser = MutableStateFlow<List<StudentAnnouncementResponse>>(emptyList())
+    val announcementUser : StateFlow<List<StudentAnnouncementResponse>> = _announcementUser
+
     private val _classId = MutableStateFlow<Int?>(null)
     val classId: StateFlow<Int?> = _classId
 
@@ -48,6 +51,23 @@ class StudentAnnouncementViewModel : ViewModel() {
             try {
                 val response = repository.fetchStudentClass(studentId)
                 _classId.value = response.id
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Unknown error occured"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+
+    fun getAnnouncementByUserId(userId: Int) {
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        viewModelScope.launch {
+            try {
+                val announcementResponse = repository.getAnnouncementsUserId(userId)
+                _announcementUser.value = announcementResponse
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Unknown error occured"
             } finally {

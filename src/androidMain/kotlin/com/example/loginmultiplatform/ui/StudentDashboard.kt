@@ -39,11 +39,14 @@ import com.example.loginmultiplatform.model.StudentAnnouncementResponse
 import com.example.loginmultiplatform.model.StudentDashboard
 import com.example.loginmultiplatform.model.StudentExamResultsResponses
 import com.example.loginmultiplatform.model.StudentSubmission
+import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.CourseScheduleViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
 import com.example.loginmultiplatform.viewmodel.StudentPastExamResultsViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
@@ -104,8 +107,8 @@ fun DashboardPage(username: String?, studentId: Int? , classId: Int?) {
                     contentPadding = PaddingValues(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item { WeeklyScheduleSection(courseSchedule) }
-                    item { ExamsSection(PastExams) }
+                    item { WeeklyScheduleSection(courseSchedule, "ROLE_STUDENT") }
+                    item { ExamsSection(PastExams, "ROLE_STUDENT") }
                     item { HomeworkSection(homeworks) }
                     item { AnnouncementsSection(isExpended, announcements) }
                 }
@@ -176,6 +179,27 @@ fun DummyExams() = listOf(
 )
 
 //========================= Utility Functions =========================//
+
+@SuppressLint("NewApi")
+fun compareDates(dateString: String) : Int {
+    // Define the date format
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    // Parse the string date into LocalDate
+    val parsedDate = LocalDate.parse(dateString, formatter)
+
+    // Get the current date
+    val currentDate = LocalDate.now()
+
+    // Compare the dates
+    when {
+        parsedDate.isBefore(currentDate) -> return -1
+        parsedDate.isAfter(currentDate) -> return 1
+        else -> return -1
+    }
+}
+
+
 fun timeToFloat(timeString: String): Float {
     val parts = timeString.split(":")
     val hours = parts[0].toInt()
@@ -368,7 +392,7 @@ fun Bars(personal: Float, overall: Float, examName: String, examType: String) {
 
 //========================= Sections as Composables =========================//
 @Composable
-fun WeeklyScheduleSection(courseSchedule: List<CourseSchedule>) {
+fun WeeklyScheduleSection(courseSchedule: List<CourseSchedule>, role : String) {
     //"MONDAY" "TUESDAY" "WEDNESDAY" "THURSDAY" "FRIDAY" "SATURDAY" "SUNDAY"
     val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
     val timeslots = (10..18)
@@ -433,7 +457,7 @@ fun WeeklyScheduleSection(courseSchedule: List<CourseSchedule>) {
                                                     .background(Color(0xFF6d5bfc).copy(alpha = 0.8f), RoundedCornerShape(10.dp))
                                             ) {
                                                 Text(
-                                                    text = schedule.teacherCourseName,
+                                                    text = schedule.teacherCourseName + if (role == "ROLE_TEACHER") "\n${schedule.className}" else if (role == "ROLE_STUDENT") "\n${schedule.teacherName}"  else "",
                                                     modifier = Modifier.align(Alignment.Center).fillMaxWidth(),
                                                     fontSize = 10.sp,
                                                     textAlign = TextAlign.Center,
@@ -466,7 +490,7 @@ fun WeeklyScheduleSection(courseSchedule: List<CourseSchedule>) {
 }
 
 @Composable
-fun ExamsSection(PastExams : List<StudentExamResultsResponses>) {
+fun ExamsSection(PastExams : List<StudentExamResultsResponses>, role : String) {
     val exams = DummyExams()
     var personalAverage = 0f
     var overallAverage = 0f
@@ -492,7 +516,7 @@ fun ExamsSection(PastExams : List<StudentExamResultsResponses>) {
         modifier = Modifier.fillMaxWidth().height(450.dp)
         .background(Color.White),
         shape = RoundedCornerShape(12.dp),
-        elevation = 5.dp
+        elevation = if(role == "ROLE_STUDENT" ) 5.dp else 0.dp
 
     ){
         Column(
@@ -592,6 +616,129 @@ fun ExamsSection(PastExams : List<StudentExamResultsResponses>) {
                 Text( if (overallAverage < 0) "-" else  formatFloat(overallAverage, 2), color = Color(0xFFf76c5e), fontSize = 13.sp, fontFamily = customFontFamily)
             }
         }
+    }
+
+}
+
+@Composable
+fun HomeworkSectionTeacher(homeworks : List<TeacherAssignmentResponse>) {
+    val myFontSize = 11.sp
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Card (
+        modifier = Modifier.fillMaxWidth().height(380.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = 5.dp
+    ){
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ){
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Ödevler",
+                fontWeight = FontWeight.Bold,
+                fontFamily = customFontFamily,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(25.dp)
+            )
+
+            Divider(thickness = 3.dp, color = Color.Black, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (homeworks.isNotEmpty()){
+                LazyRow (
+                    modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp)
+                ) {
+
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxHeight().width(((150*4)-25).dp)
+                        ){
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(45.dp)
+                            ){
+                                LabelWithSortIcon("Ödev Durumu", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Ders Adı", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Başlık", myFontSize)
+                                Spacer(modifier = Modifier.width(25.dp))
+                                LabelWithSortIcon("Bitiş Tarihi", myFontSize)
+
+
+                            }
+
+                            Card(
+                                modifier = Modifier.padding(start = 1.dp, end = 1.dp).fillMaxWidth().height(60.dp),
+                                backgroundColor = Color.White,
+                                elevation = 5.dp,
+                                shape = RoundedCornerShape(12.dp)
+                            ){
+                                Row (
+                                    modifier = Modifier.fillMaxSize()
+                                ){
+                                    homeworks.forEach { home ->
+
+                                        Box (
+                                            modifier = Modifier.fillMaxHeight().width(125.dp)
+                                        ){
+                                            Card(
+                                                modifier = Modifier.padding(15.dp).fillMaxSize(),
+                                                backgroundColor = if (compareDates(home.dueDate) < 0) Color.Green else Color.Red,
+                                                shape = RoundedCornerShape(12.dp)
+                                            ){
+                                                Box (
+                                                    modifier = Modifier.fillMaxSize()
+                                                ){
+                                                    Text(
+                                                        text = if (compareDates(home.dueDate) < 0) "Aktif" else "Geç",
+                                                        modifier = Modifier.align(Alignment.Center),
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(25.dp))
+
+                                        HomeworkDisplay(home.courseName)
+                                        Spacer(modifier = Modifier.width(25.dp))
+                                        HomeworkDisplay(home.title)
+                                        Spacer(modifier = Modifier.width(25.dp))
+                                        HomeworkDisplay(home.dueDate)
+
+                                    }
+                                }
+                            }
+
+
+                        }
+
+
+                    }
+
+
+                }
+            }else{
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ){
+                    Text (
+                        "Henüz bir ödev yok",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+
+
+        }
+
+
     }
 
 }
