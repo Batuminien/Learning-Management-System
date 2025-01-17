@@ -2,24 +2,17 @@ package com.example.loginmultiplatform.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.loginmultiplatform.ui.components.BottomNavigationBar
-import com.example.loginmultiplatform.ui.components.TopBar
 import com.example.loginmultiplatform.viewmodel.AdministratorAnnouncementsViewModel
 import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
@@ -27,47 +20,18 @@ import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 import kotlinx.coroutines.launch
-
-import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ButtonDefaults.buttonColors
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import com.example.loginmultiplatform.R
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.*
-import kotlin.math.pow
-import kotlin.math.round
-import com.example.loginmultiplatform.model.CourseSchedule
-import com.example.loginmultiplatform.model.StudentAnnouncementResponse
-import com.example.loginmultiplatform.model.StudentClassResponse
-import com.example.loginmultiplatform.model.StudentDashboard
 import com.example.loginmultiplatform.model.StudentExamResultsResponses
-import com.example.loginmultiplatform.model.StudentSubmission
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
-import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.viewmodel.CourseScheduleViewModel
 import com.example.loginmultiplatform.viewmodel.StudentPastExamResultsViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.serialization.descriptors.StructureKind
+
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -249,7 +213,7 @@ fun TeacherDashboardPage(username: String, teacherId : Int) {
                                             .clickable {
 
 
-                                                selectedCourse = option.name
+                                                selectedClassAssignment = option.name
                                                 classIdAssignment = option.id
 
                                                 teacherAssignmentViewModel.fetchTeacherAssignments(teacherId, classIdAssignment, courseId, "", true)
@@ -296,7 +260,7 @@ fun TeacherDashboardPage(username: String, teacherId : Int) {
                             )
 
                         }
-                        item { TeacherAssignmentSection(openBottomSheet = { scope.launch { bottomSheetState.show() } }, selectedCourse, selectedClassAssignment, homeworks, choosed) }
+                        item { TeacherAssignmentSection(fetchAllAssignment = {teacherAssignmentViewModel.fetchTeacherAssignments(teacherId, null, null , "", true) } ,openBottomSheet = { scope.launch { bottomSheetState.show() } }, selectedCourse, selectedClassAssignment, homeworks, choosed) }
                         item { AnnouncementsSection(isExpended, announcements) }
                     }
 
@@ -313,9 +277,9 @@ fun TeacherDashboardPage(username: String, teacherId : Int) {
 }
 
 @Composable
-fun TeacherAssignmentSection(openBottomSheet: () -> Unit ,selectedCourse : String, selectedClass : String, homeworks : List<TeacherAssignmentResponse>, choosed: MutableState<String>){
+fun TeacherAssignmentSection(fetchAllAssignment: () -> Unit , openBottomSheet: () -> Unit ,selectedCourse : String, selectedClass : String, homeworks : List<TeacherAssignmentResponse>, choosed: MutableState<String>){
     Card(
-        modifier = Modifier.fillMaxWidth().height(680.dp),
+        modifier = Modifier.fillMaxWidth().height(740.dp),
         elevation = 5.dp,
         shape = RoundedCornerShape(12.dp)
     ){
@@ -392,8 +356,11 @@ fun TeacherAssignmentSection(openBottomSheet: () -> Unit ,selectedCourse : Strin
                     Button(
                         onClick = {
                             //TODO
-                            choosed.value = "Assignment"
-                            openBottomSheet()
+                            if ( selectedCourse != ""){
+                                choosed.value = "Assignment"
+                                openBottomSheet()
+                            }
+
                         },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxSize().padding(end = 12.dp, top = 6.dp, bottom = 6.dp),
@@ -406,7 +373,7 @@ fun TeacherAssignmentSection(openBottomSheet: () -> Unit ,selectedCourse : Strin
                             verticalAlignment = Alignment.CenterVertically
                         ){
                             Text (
-                                text = if (selectedClass == "" ) "Öğrenci Seçiniz" else selectedClass
+                                text = if (selectedClass == "" ) "Sınıf Seçiniz" else selectedClass
 
                             )
                         }
@@ -417,6 +384,26 @@ fun TeacherAssignmentSection(openBottomSheet: () -> Unit ,selectedCourse : Strin
 
 
             Spacer (modifier = Modifier.height(15.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth().height(80.dp).padding(12.dp).clickable{
+                    fetchAllAssignment()
+                },
+                elevation = 5.dp,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tüm ödevlerim",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
 
             HomeworkSectionTeacher(homeworks)
         }

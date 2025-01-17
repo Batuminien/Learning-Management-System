@@ -193,8 +193,8 @@ fun compareDates(dateString: String) : Int {
 
     // Compare the dates
     when {
-        parsedDate.isBefore(currentDate) -> return -1
-        parsedDate.isAfter(currentDate) -> return 1
+        parsedDate.isBefore(currentDate) -> return 1
+        parsedDate.isAfter(currentDate) -> return -1
         else -> return -1
     }
 }
@@ -627,7 +627,7 @@ fun HomeworkSectionTeacher(homeworks : List<TeacherAssignmentResponse>) {
     Spacer(modifier = Modifier.height(20.dp))
 
     Card (
-        modifier = Modifier.fillMaxWidth().height(380.dp),
+        modifier = Modifier.fillMaxWidth().height(460.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = 5.dp
     ){
@@ -673,16 +673,19 @@ fun HomeworkSectionTeacher(homeworks : List<TeacherAssignmentResponse>) {
 
                             }
 
-                            Card(
-                                modifier = Modifier.padding(start = 1.dp, end = 1.dp).fillMaxWidth().height(60.dp),
-                                backgroundColor = Color.White,
-                                elevation = 5.dp,
-                                shape = RoundedCornerShape(12.dp)
-                            ){
-                                Row (
-                                    modifier = Modifier.fillMaxSize()
+                            homeworks.forEach { home ->
+                                Card(
+                                    modifier = Modifier.padding(start = 1.dp, end = 1.dp).fillMaxWidth().height(60.dp),
+                                    backgroundColor = Color.White,
+                                    elevation = 5.dp,
+                                    shape = RoundedCornerShape(12.dp)
                                 ){
-                                    homeworks.forEach { home ->
+                                    Row (
+                                        modifier = Modifier.fillMaxSize()
+                                    ){
+
+
+
 
                                         Box (
                                             modifier = Modifier.fillMaxHeight().width(125.dp)
@@ -711,9 +714,15 @@ fun HomeworkSectionTeacher(homeworks : List<TeacherAssignmentResponse>) {
                                         Spacer(modifier = Modifier.width(25.dp))
                                         HomeworkDisplay(home.dueDate)
 
+
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(30.dp))
+
                             }
+
+
 
 
                         }
@@ -797,30 +806,33 @@ fun HomeworkSection(homeworks : List<StudentDashboard>) {
 
                             }
 
-                            Card(
-                                modifier = Modifier.padding(start = 1.dp, end = 1.dp).fillMaxWidth().height(60.dp),
-                                backgroundColor = Color.White,
-                                elevation = 5.dp,
-                                shape = RoundedCornerShape(12.dp)
-                            ){
-                                Row (
-                                    modifier = Modifier.fillMaxSize()
-                                ){
-                                    homeworks.forEach { home ->
+                            homeworks.forEach { home ->
 
-                                        Box (
+                                Card(
+                                    modifier = Modifier.padding(start = 1.dp, end = 1.dp)
+                                        .fillMaxWidth().height(60.dp),
+                                    backgroundColor = Color.White,
+                                    elevation = 5.dp,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+
+
+                                        Box(
                                             modifier = Modifier.fillMaxHeight().width(125.dp)
-                                        ){
+                                        ) {
                                             Card(
                                                 modifier = Modifier.padding(15.dp).fillMaxSize(),
-                                                backgroundColor = if (home.mySubmission != null) Color.Green else Color.Red,
+                                                backgroundColor = if (home.mySubmission!!.status == "SUBMITTED") Color.Green else Color.Red,
                                                 shape = RoundedCornerShape(12.dp)
-                                            ){
-                                                Box (
+                                            ) {
+                                                Box(
                                                     modifier = Modifier.fillMaxSize()
-                                                ){
+                                                ) {
                                                     Text(
-                                                        text = if (home.mySubmission != null) "Teslim" else "Aktif",
+                                                        text = if (home.mySubmission.status == "SUBMITTED") "Teslim" else "Aktif",
                                                         modifier = Modifier.align(Alignment.Center),
                                                         fontSize = 13.sp
                                                     )
@@ -835,11 +847,13 @@ fun HomeworkSection(homeworks : List<StudentDashboard>) {
                                         Spacer(modifier = Modifier.width(25.dp))
                                         HomeworkDisplay(home.dueDate)
 
+
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(30.dp))
+
                             }
-
-
                         }
 
 

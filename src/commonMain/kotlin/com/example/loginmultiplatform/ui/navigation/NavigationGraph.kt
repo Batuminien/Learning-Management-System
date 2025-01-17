@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
+//import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -29,6 +29,7 @@ import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.LoginViewModel
 import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 import com.example.loginmultiplatform.viewmodel.StudentAnnouncementViewModel
+import com.example.loginmultiplatform.viewmodel.StudentAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.StudentPastExamResultsViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAssignmentViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
@@ -46,6 +47,7 @@ fun NavigationGraph(
     val studentAnnouncementViewModel = StudentAnnouncementViewModel()
     val teacherAnnouncementViewModel = AdministratorAnnouncementsViewModel()
     val teacherAssignmentViewModel = TeacherAssignmentViewModel()
+    val studentAssignmentViewModel = StudentAssignmentViewModel()
     val studentPastExamResultsViewModel = StudentPastExamResultsViewModel()
     val profilePhotoViewModel: ProfilePhotoViewModel = remember { ProfilePhotoViewModel() }
 
@@ -163,6 +165,8 @@ fun NavigationGraph(
                             it1
                         )
                     }
+                }else if (role == "ROLE_STUDENT") {
+                    StudentHomeworkPage(studentAssignmentViewModel, userId)
                 }
             }
 

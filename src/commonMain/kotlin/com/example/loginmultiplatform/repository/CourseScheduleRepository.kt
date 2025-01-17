@@ -4,6 +4,7 @@ import com.example.loginmultiplatform.model.CourseSchedule
 import com.example.loginmultiplatform.model.ResponseWrapper
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherCourseResponse
+import com.example.loginmultiplatform.model.TeacherInfoResponse
 import com.example.loginmultiplatform.network.ApiClient
 import com.example.loginmultiplatform.network.ApiService
 
@@ -53,4 +54,14 @@ class CourseScheduleRepository {
     }
 
 
+
+    suspend fun getTeachers() : ResponseWrapper<List<TeacherInfoResponse>>{
+        val response = apiService.getAllTeachers()
+
+        if (response.success) {
+            return response
+        } else {
+            throw Exception(response.message)
+        }
+    }
 }

@@ -19,6 +19,8 @@ import com.example.loginmultiplatform.model.TeacherAttendanceRequest
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherAssignmentResponse
 import com.example.loginmultiplatform.model.ProfilePhotoResponse
+import com.example.loginmultiplatform.model.StudentAssignmentRequest
+import com.example.loginmultiplatform.model.StudentAssignmentResponse
 import com.example.loginmultiplatform.model.StudentDashboard
 import com.example.loginmultiplatform.model.StudentExamResultsResponses
 import com.example.loginmultiplatform.model.StudentInfoResponse
@@ -180,8 +182,8 @@ interface ApiService {
     @GET("/api/v1/assignments/teacher/{teacherId}")
     suspend fun fetchTeacherAssignments (
         @Path("teacherId") teacherId: Int,
-        @Query("classId") classId: Int,
-        @Query("courseId") courseId: Int,
+        @Query("classId") classId: Int?,
+        @Query("courseId") courseId: Int?,
         @Query("dueDate") dueDate: String
     ): ResponseWrapper<List<TeacherAssignmentResponse>>
 
@@ -243,6 +245,35 @@ interface ApiService {
     ) : ResponseWrapper<List<CourseSchedule>>
 
 
+
+    @GET("/api/v1/teachers")
+    suspend fun getAllTeachers () : ResponseWrapper<List<TeacherInfoResponse>>
+
+
+
+
+    // Student homework
+
+    @GET("/api/v1/assignments/student/{studentId}")
+    suspend fun fetchStudentAssignments (
+        @Path("studentId") studentId: Int
+    ): ResponseWrapper<List<StudentAssignmentResponse>>
+
+    @PATCH("/api/v1/assignments/{assignmentId}/submit")
+    suspend fun submitAssignment (
+        @Path("assignmentId") assignmentId: Int,
+        @Body submission: StudentAssignmentRequest
+    ) : ResponseWrapper<StudentAssignmentResponse>
+
+    @PATCH("/api/v1/assignments/{assignmentId}/unsubmit")
+    suspend fun unSubmitAssignment (
+        @Path("assignmentId") assignmentId: Int
+    ) : ResponseWrapper<TeacherAssignmentResponse>
+
+    @GET("/api/v1/assignments/documents/{documentId}")
+    suspend fun downloadTeacherDocument (
+        @Path("documentId") documentId: Int
+    ) : String
 
 }
 

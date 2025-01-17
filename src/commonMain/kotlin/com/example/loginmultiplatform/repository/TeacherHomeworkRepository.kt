@@ -81,7 +81,7 @@ class TeacherHomeworkRepository {
     }
 
 
-    suspend fun fetchTeacherAssignments(teacherId : Int, classId : Int, courseId : Int, dueDate: String) : ResponseWrapper<List<TeacherAssignmentResponse>>{
+    suspend fun fetchTeacherAssignments(teacherId : Int, classId : Int?, courseId : Int?, dueDate: String) : ResponseWrapper<List<TeacherAssignmentResponse>>{
 
         val response = apiService.fetchTeacherAssignments(teacherId, classId, courseId, dueDate)
 

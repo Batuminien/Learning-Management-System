@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.loginmultiplatform.model.CourseSchedule
 import com.example.loginmultiplatform.model.TeacherClassResponse
 import com.example.loginmultiplatform.model.TeacherCourseResponse
+import com.example.loginmultiplatform.model.TeacherInfoResponse
 import com.example.loginmultiplatform.repository.CourseScheduleRepository
 import com.example.loginmultiplatform.repository.StudentPastExamResultRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,10 @@ class CourseScheduleViewModel : ViewModel(){
 
     private val _courseSchedule = MutableStateFlow<List<CourseSchedule>>(emptyList())
     val courseSchedule : StateFlow<List<CourseSchedule>>  = _courseSchedule
+
+    private val _allTeachers = MutableStateFlow<List<TeacherInfoResponse>>(emptyList())
+    val allTeachers : StateFlow<List<TeacherInfoResponse>>  = _allTeachers
+
 
 
     private val _courses = MutableStateFlow<List<TeacherCourseResponse>>(emptyList())
@@ -135,6 +140,36 @@ class CourseScheduleViewModel : ViewModel(){
         }
 
     }
+
+
+
+
+    fun getAllTeachers (){
+
+        viewModelScope.launch {
+            _errorMessage.value = null
+
+            try{
+
+                val schedule =  repository.getTeachers()
+
+                if (schedule.success){
+                    _allTeachers.value = schedule.data
+                    println("ders programını çekme başarılı")
+                }else{
+                    _errorMessage.value = schedule.message
+                }
+            }catch( h : HttpException){
+                _errorMessage.value = "Bir hata var : ${h.message()}"
+
+            }catch (e : Exception ){
+                _errorMessage.value = "Http dışı bir hata var : ${e.message}"
+                println("Bir hata var ama çözemedim : ${e.message}")
+            }
+        }
+
+    }
+
 
 
 

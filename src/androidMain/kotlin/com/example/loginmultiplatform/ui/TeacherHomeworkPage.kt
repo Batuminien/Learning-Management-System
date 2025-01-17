@@ -1056,7 +1056,8 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     LaunchedEffect(Unit) {
         teacherViewModel.fetchTeacherClasses()
-
+        teacherId?.let { teacherViewModel.fetchTeacherCourses(it) }
+        teacherId?.let { teacherViewModel.fetchTeacherCoursesSearch(it) }
     }
 
 
@@ -1082,28 +1083,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     val context = LocalPlatformContext.current
 
-    LaunchedEffect(selectedClass){
-        try{
-            if (selectedClass != "Sınıf Seçiniz"){
-                teacherId?.let { teacherViewModel.fetchTeacherCourses(it) }
-                Toast.makeText(
-                    context,
-                    "Dersler yükleniyor",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
 
-        }catch ( e : Exception){
-            Toast.makeText(
-                context,
-                e.toString(),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-
-
-    }
 
 
 
@@ -1196,21 +1176,7 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     var selectedDateLastPast by remember { mutableStateOf("gg.aa.yyyy") }
 
 
-    LaunchedEffect(selectedClassSearch){
-        try{
-            teacherId?.let { teacherViewModel.fetchTeacherCoursesSearch(it) }
 
-
-        }catch (e : Exception){
-            Toast.makeText(
-                context,
-                e.toString(),
-                Toast.LENGTH_SHORT
-            ).show()
-
-        }
-
-    }
 
     var homeworkSearched by remember { mutableStateOf(false) }
     var refreshLazyColumn by remember { mutableStateOf(false) }
@@ -1219,56 +1185,57 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
 
     var mode =  remember { mutableStateOf(true) }
     LaunchedEffect(searchHomework){
-        if (teacherId != null ) {
+
+        if (teacherId != null && searchHomework) {
             println("Exploooosion")
             println(selectedCourseSearchId)
             println(selectedClassSearchId)
             println(selectedDateLastSearch)
-            if (  (selectedClassSearchId != -1 && selectedCourseSearchId != -1) || (selectedClassPastId != -1 && selectedCoursePastId != -1) ) {
 
-                if ( if (mode.value) selectedDateLastSearch == "gg.aa.yyyy" else selectedDateLastPast == "gg.aa.yyyy"){
-                    if (mode.value){
-                        teacherViewModel.fetchTeacherAssignments(
-                            teacherId,
-                            selectedClassSearchId,
-                            selectedCourseSearchId,
-                            "",
-                            mode.value
-                        )
-                    }else {
-                        teacherViewModel.fetchTeacherAssignments(
-                            teacherId,
-                            selectedCoursePastId,
-                            selectedCoursePastId,
-                            "",
-                            mode.value
-                        )
-                    }
 
-                }else{
-                    if (mode.value){
-                        teacherViewModel.fetchTeacherAssignments(
-                            teacherId,
-                            selectedClassSearchId ,
-                            selectedCourseSearchId ,
-                            selectedDateLastSearch,
-                            mode.value
-                        )
-                    }else {
-                        teacherViewModel.fetchTeacherAssignments(
-                            teacherId,
-                            selectedClassPastId,
-                            selectedCoursePastId,
-                            selectedDateLastPast,
-                            mode.value
-                        )
-                    }
-
+            if ( if (mode.value) selectedDateLastSearch == "gg.aa.yyyy" else selectedDateLastPast == "gg.aa.yyyy"){
+                if (mode.value){
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        if (selectedClassSearchId == -1) null else selectedClassSearchId,
+                        if (selectedCourseSearchId == -1) null else selectedCourseSearchId,
+                        "",
+                        mode.value
+                    )
+                }else {
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        if (selectedClassPastId == -1 ) null else selectedClassPastId,
+                        if (selectedCoursePastId == -1 ) null else selectedCoursePastId ,
+                        "",
+                        mode.value
+                    )
                 }
-                homeworkSearched = true
-                refreshLazyColumn = false
+
+            }else{
+                if (mode.value){
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        if (selectedClassSearchId == -1) null else selectedClassSearchId,
+                        if (selectedCourseSearchId == -1) null else selectedCourseSearchId,
+                        selectedDateLastSearch,
+                        mode.value
+                    )
+                }else {
+                    teacherViewModel.fetchTeacherAssignments(
+                        teacherId,
+                        if (selectedClassPastId == -1 ) null else selectedClassPastId,
+                        if (selectedCoursePastId == -1 ) null else selectedCoursePastId ,
+                        selectedDateLastPast,
+                        mode.value
+                    )
+                }
 
             }
+            homeworkSearched = true
+            refreshLazyColumn = false
+            searchHomework = false
+
         }
     }
 
@@ -1294,7 +1261,10 @@ fun TeacherHomeworkPage (title: String, teacherViewModel : TeacherAssignmentView
     var changeStatus = remember { mutableStateOf(false) }
     LaunchedEffect(changeStatus.value){
 
-        searchHomework = !searchHomework
+        if (changeStatus.value ){
+            searchHomework = true
+        }
+        
         changeStatus.value = false
         println("Bir şeyler oldu")
     }
@@ -1807,7 +1777,7 @@ if (content_of_assignment.value == 0){
             LazyColumn {
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth().height( 80.dp).
+                        modifier = Modifier.fillMaxWidth().height( 80.dp).padding(6.dp).
                         clickable{
                             searchExpand = !searchExpand
                         },
@@ -1844,7 +1814,7 @@ if (content_of_assignment.value == 0){
                                     onClick = {
                                         searchExpand = !searchExpand
                                         mode.value = true
-                                        searchHomework = !searchHomework
+                                        searchHomework = true
 
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -1928,31 +1898,31 @@ if (content_of_assignment.value == 0){
                                 modifier = Modifier
                                     .offset(y = 120.dp)
                                     .fillMaxWidth()
-                                    .clickable { if (selectedClassSearch != "Sınıf Seçiniz") courseexpanded.value = !courseexpanded.value }
+                                    .clickable { if (selectedCourseSearch != "Ders Seçiniz") classexpanded.value = !classexpanded.value }
                                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                     .padding(12.dp)
 
                             ) {
-                                selectedCourseSearch?.let { Text(text = it, color = Color.Black) }
+                                selectedClassSearch?.let { Text(text = it, color = Color.Black) }
                             }
 
 
 
-                            if (courseexpanded.value){
+                            if (classexpanded.value){
                                 LazyColumn (
                                     modifier = Modifier.fillMaxWidth().height(130.dp ).
                                     background(Color.Transparent).
                                     offset(y = 165.dp)
                                 ){
-                                    coursesSearch.forEach { option ->
+                                    classes.forEach { option ->
                                         item {
                                             Row (
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedCourseSearch = option.name
-                                                        selectedCourseSearchId = option.id
-                                                        courseexpanded.value = false
+                                                        selectedClassSearch = option.name
+                                                        selectedClassSearchId = option.id
+                                                        classexpanded.value = false
                                                         print("Clicked\n")
                                                     }
                                                 ).background(color = Color.White)
@@ -1972,43 +1942,98 @@ if (content_of_assignment.value == 0){
 
 
                             Text (
-                                text = "   Ders Adı",
+                                text = "   Sınıf Adı",
                                 modifier = Modifier.offset(y = 100.dp).fillMaxWidth().height(20.dp)
                             )
 
 
 
+                            /*Card(
+                                modifier = Modifier.fillMaxWidth().height(80.dp).padding(12.dp),
+                                elevation = 5.dp,
+                                shape = RoundedCornerShape(8.dp)
+                            ){
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
 
+                                    ){
+                                    Spacer(modifier = Modifier.width(25.dp))
+                                    Text(
+                                        text = "Sınıf :",
+                                        modifier = Modifier.fillMaxWidth(0.3f)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            choosed.value = "Class"
+                                            openBottomSheet()
+
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxSize().padding(end = 12.dp, top = 6.dp, bottom = 6.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = Color.White
+                                        )
+                                    ){
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ){
+                                            Text (
+                                                text = if (selectedClass == "" ) "Sınıf Seçiniz" else selectedClass
+
+                                            )
+                                        }
+
+                                    }
+                                }
+                            }
+*/
+
+
+                            Card(
+                                modifier = Modifier
+                                    .offset(y = 20.dp)
+                                    .height(80.dp)
+                                    .fillMaxWidth()
+                                    .clickable { courseexpanded.value = !courseexpanded.value }
+                                    .background(Color.White)
+                                    .padding(12.dp),
+
+                                shape = RoundedCornerShape(8.dp)
+                            ){
+
+                            }
 
                             Box(
                                 modifier = Modifier
                                     .offset(y = 20.dp)
                                     .fillMaxWidth()
-                                    .clickable { classexpanded.value = !classexpanded.value }
+                                    .clickable { courseexpanded.value = !courseexpanded.value }
                                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                     .padding(12.dp)
 
                             ) {
-                                Text(text = selectedClassSearch, color = Color.Black)
+                                Text(text = selectedCourseSearch ?: "Ders seçiniz", color = Color.Black)
                             }
 
 
 
-                            if (classexpanded.value){
+                            if (courseexpanded.value){
                                 LazyColumn (
                                     modifier = Modifier.fillMaxWidth().height( 130.dp ).
                                     background(Color.Transparent).
                                     offset(y = 65.dp)
                                 ){
-                                    classes.forEach { option ->
+                                    coursesSearch.forEach { option ->
                                         item {
                                             Row (
                                                 modifier = Modifier.fillMaxWidth().height(40.dp).
                                                 clickable(
                                                     onClick = {
-                                                        selectedClassSearch = option.name
-                                                        selectedClassSearchId = option.id
-                                                        classexpanded.value = false
+                                                        selectedCourseSearch = option.name
+                                                        selectedCourseSearchId = option.id
+                                                        courseexpanded.value = false
                                                         print("Clicked\n")
                                                     }
                                                 ).background(color = Color.White)
@@ -2026,7 +2051,7 @@ if (content_of_assignment.value == 0){
 
 
                             Text (
-                                text = "   Sınıf Adı",
+                                text = "   Ders Adı",
                                 modifier = Modifier.fillMaxWidth().height(20.dp)
                             )
                         }
@@ -2120,7 +2145,7 @@ if (content_of_assignment.value == 0){
                                     onClick = {
                                         pastExpand = !pastExpand
                                         mode.value = false
-                                        searchHomework = !searchHomework
+                                        searchHomework = true
                                         teacherViewModel.getClassStudents(selectedClassPastId)
                                     },
                                     colors = ButtonDefaults.buttonColors(

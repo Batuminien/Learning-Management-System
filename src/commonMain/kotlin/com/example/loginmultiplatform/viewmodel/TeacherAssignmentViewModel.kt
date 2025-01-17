@@ -80,7 +80,7 @@ class TeacherAssignmentViewModel : ViewModel(){
     private val _saveError = MutableStateFlow<String?>(null)
 
 
-    fun fetchTeacherAssignments (teacherId: Int, classId: Int, courseId : Int, dueDate :String, mode : Boolean){
+    fun fetchTeacherAssignments (teacherId: Int, classId: Int?, courseId : Int?, dueDate :String, mode : Boolean){
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
