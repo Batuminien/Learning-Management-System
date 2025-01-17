@@ -97,3 +97,5 @@ VALUES
     (nextval('courses_seq'), 'Geography-9', 'Basic geography', 'COG-9', 4),
     (nextval('courses_seq'), 'Geography-10', 'World geography', 'COG-10', 4),
     (nextval('courses_seq'), 'AYT Geography', 'Advanced geography concepts', 'COG-11', 4);
+
+SELECT COUNT(*) FROM app_users WHERE role = 'ROLE_TEACHER';
