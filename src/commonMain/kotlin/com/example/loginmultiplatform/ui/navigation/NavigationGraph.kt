@@ -56,6 +56,7 @@ fun NavigationGraph(
     val username by loginViewModel.username.collectAsState()
     val role by loginViewModel.role.collectAsState()
     val studentInfo by profilePhotoViewModel.studentInfo.collectAsState()
+    val courses by attendanceViewModel.teacherCourses.collectAsState()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -67,11 +68,13 @@ fun NavigationGraph(
         userId?.let {
             profilePhotoViewModel.fetchStudentInfo(it)
             profilePhotoViewModel.fetchProfilePhoto(it)
+            attendanceViewModel.fetchTeacherCourses(it)
         }
 
     }
 
     val classId = studentInfo?.classId
+    val courseId = courses.firstOrNull()?.id
     //Log.e("Navigation", "Navigating to profile/${userId ?: 0}/${profilePhotoUrl}")
 
     Scaffold(
@@ -79,6 +82,7 @@ fun NavigationGraph(
             if (showBars) {
                 TopBar(
                     userName = username,
+                    userRole = role,
                     userId = userId ?: -1,
                     profilePhotoViewModel,
                     onSettingsClick = { },
@@ -150,7 +154,7 @@ fun NavigationGraph(
                 if (role == "ROLE_STUDENT" && userId != null && classId != null) {
                     AttendanceScreen(attendanceViewModel, navController, userId!!, classId!!)
                 } else if (role == "ROLE_TEACHER") {
-                    TeacherAttendanceScreen(attendanceViewModel, teacherAttendanceViewModel, navController, userId)
+                    TeacherAttendanceScreen(attendanceViewModel, teacherAttendanceViewModel, navController, userId, courseId)
                 } else if (role == "ROLE_COORDINATOR") {
                     CoordinatorAttendanceScreen(attendanceViewModel, teacherAttendanceViewModel, navController)
                 } else if (role == "ROLE_ADMIN") {

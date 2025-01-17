@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.LibraryBooks
+import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,6 +69,7 @@ val customFontFamily = FontFamily(
 @Composable
 actual fun TopBar(
     userName: String?,
+    userRole: String?,
     userId: Int,
     viewModel: ProfilePhotoViewModel,
     onSettingsClick: () -> Unit,
@@ -104,6 +106,20 @@ actual fun TopBar(
                     modifier = Modifier.size(28.dp)
                 )
             }
+
+            /*if (userRole == "ROLE_ADMIN") {
+                IconButton(
+                    modifier = Modifier.padding(start = 50.dp),
+                    onClick = { }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PersonAdd,
+                        contentDescription = "Add user",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }*/
 
             DropdownMenu(
                 expanded = expanded,

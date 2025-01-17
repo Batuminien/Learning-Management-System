@@ -115,8 +115,9 @@ fun mapAttendanceStatusforFrontend(status: String): String {
 }
 
 @Composable
-actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teacherViewModel: TeacherAttendanceViewModel, navController: NavController, teacherId: Int?) {
+actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teacherViewModel: TeacherAttendanceViewModel, navController: NavController, teacherId: Int?, courseId: Int?) {
 
+    Log.e("courseıd", "courseId: ${courseId}")
     val classes by teacherViewModel.teacherClasses.collectAsState()
     val courses by teacherViewModel.courseId.collectAsState() //List<TeacherCourseResponse>
     val stats by teacherViewModel.courseStats.collectAsState() //List<CourseStatisticsResponse>
@@ -124,6 +125,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     val attendanceMap by studentViewModel.attendanceMap.collectAsState()
     val attendanceStatsMap by studentViewModel.attendanceStatsMap.collectAsState()
     val studentCoursesMap by studentViewModel.studentCoursesMap.collectAsState()
+    //val teacherCourses by studentViewModel.teacherCourses.collectAsState()
 
 
     var showStudentId by remember { mutableStateOf<Int?>(null) }
@@ -158,8 +160,8 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
-    val startDate = "2024-01-01"
-    val endDate = "2024-12-31"
+    val startDate = "2022-01-01"
+    val endDate = "2026-12-31"
 
     //öğrenci yoklama durumları için map
     val attendanceOptions = listOf("Katıldı", "Katılmadı", "Geç Geldi", "Mazeretli")
@@ -186,7 +188,7 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
                     studentViewModel.fetchAttendanceStats(studentId.toInt(), classItem.id)
                     studentViewModel.fetchStudentCourses(studentId.toInt())
                 } catch(e: Exception) {
-                    Log.e("TeacherAttendanceScreen", "Error fetching attendance: ${e.message}")
+                    //Log.e("TeacherAttendanceScreen", "Error fetching attendance: ${e.message}")
                 }
             }
         }
@@ -234,6 +236,8 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
         }
     }
 
+    //val teacherCourseId = teacherCourses.firstOrNull()?.teacherCourses?.firstOrNull()?.courseId
+
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(16.dp)
@@ -280,11 +284,12 @@ actual fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel ,teache
 
     if(showStudentId != null) {
 
-        StudentAttendanceDetailDialog(
-            studentId = showStudentId!!,
-            onDismiss = { showStudentId = null },
-            stats = stats,
-        )
+            StudentAttendanceDetailDialog(
+                studentId = showStudentId!!,
+                onDismiss = { showStudentId = null },
+                stats = stats
+                //teacherCourseId = teacherCourseId,
+            )
     }
 }
 
@@ -713,7 +718,7 @@ fun ExpendableClassCard(
 fun StudentAttendanceDetailDialog(
     studentId: Int,
     onDismiss: () -> Unit,
-    stats: List<CourseStatisticsResponse>,
+    stats: List<CourseStatisticsResponse>
     ) {
 
     // Öğrenci detaylarını gösteren dialog
@@ -764,65 +769,69 @@ fun StudentAttendanceDetailDialog(
                             color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Son Yoklama Verisi",
-                            fontFamily = customFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF334BBE),
-                            style = MaterialTheme.typography.subtitle1
-                        )
-                        Divider(modifier = Modifier.fillMaxWidth())
-                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Text(
+                    "Son Yoklama Verisi",
+                    fontFamily = customFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF334BBE),
+                    style = MaterialTheme.typography.subtitle1
+                )
+                Divider(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
 
-                        if(stat.recentAttendance.isNullOrEmpty()) {
-                            Text(
-                                "Son yoklama verisi bulunamadı.",
-                                fontFamily = customFontFamily,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.Black
-                            )
-                        } else {
-                            Column {
-                                stat.recentAttendance.forEach { recentAttendance ->
-                                    var date = formatToReadableDateTeacherSecond(recentAttendance.date)
-                                    Text(
-                                        "Tarih: ${date}",
+                if(stats.all { it.recentAttendance.isNullOrEmpty() }) {
+                    Text(
+                        "Son yoklama verisi bulunamadı.",
+                        fontFamily = customFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                } else {
+                    Column {
+                        stats.forEach { stat ->
+                            stat.recentAttendance.forEach { recentAttendance ->
+                                var date = formatToReadableDateTeacherSecond(recentAttendance.date)
+                                Text(
+                                    "Tarih: ${date}",
+                                    fontFamily = customFontFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                                when (recentAttendance.status) {
+                                    "ABSENT" -> Text(
+                                        "Durum: Katılmadı",
                                         fontFamily = customFontFamily,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Black
                                     )
-                                    when (recentAttendance.status) {
-                                        "ABSENT" -> Text(
-                                            "Durum: Katılmadı",
-                                            fontFamily = customFontFamily,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                        "LATE" -> Text(
-                                            "Durum: Geç Geldi",
-                                            fontFamily = customFontFamily,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                        "EXCUSED" -> Text(
-                                            "Durum: Mazeretli",
-                                            fontFamily = customFontFamily,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                    }
-                                    Text(
-                                        "Açıklama: ${recentAttendance.comment ?: "-"}",
+
+                                    "LATE" -> Text(
+                                        "Durum: Geç Geldi",
                                         fontFamily = customFontFamily,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Black
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    "EXCUSED" -> Text(
+                                        "Durum: Mazeretli",
+                                        fontFamily = customFontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.Black
+                                    )
                                 }
+                                Text(
+                                    "Açıklama: ${recentAttendance.comment ?: "-"}",
+                                    fontFamily = customFontFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
                 }
             }
         },

@@ -190,6 +190,15 @@ fun AnnouncementCard(
                     fontFamily = customFontFamily
                 )
             }
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Oluşturan Kişi: ${announcement.createdByName}",
+                    style = MaterialTheme.typography.caption,
+                    fontFamily = customFontFamily,
+                    color = textColor
+                )
+            }
         }
     }
 }

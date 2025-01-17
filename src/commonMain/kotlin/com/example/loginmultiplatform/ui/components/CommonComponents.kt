@@ -7,7 +7,7 @@ import androidx.navigation.NavController
 import com.example.loginmultiplatform.viewmodel.ProfilePhotoViewModel
 
 @Composable
-expect fun TopBar(userName: String?, userId: Int, viewModel: ProfilePhotoViewModel, onSettingsClick: () -> Unit, onProfileClick: () -> Unit, navController: NavController)
+expect fun TopBar(userName: String?, userRole: String?, userId: Int, viewModel: ProfilePhotoViewModel, onSettingsClick: () -> Unit, onProfileClick: () -> Unit, navController: NavController)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
