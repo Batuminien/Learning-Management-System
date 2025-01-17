@@ -6,4 +6,4 @@ import com.example.loginmultiplatform.viewmodel.AttendanceViewModel
 import com.example.loginmultiplatform.viewmodel.TeacherAttendanceViewModel
 
 @Composable
-expect fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel, teacherViewModel: TeacherAttendanceViewModel = TeacherAttendanceViewModel() ,navController: NavController, teacherId: Int?)
+expect fun TeacherAttendanceScreen(studentViewModel: AttendanceViewModel, teacherViewModel: TeacherAttendanceViewModel = TeacherAttendanceViewModel() ,navController: NavController, teacherId: Int?, courseId: Int?)
