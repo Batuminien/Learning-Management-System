@@ -4,6 +4,7 @@ import com.lsm.mapper.UserMapper;
 import com.lsm.model.DTOs.UserResponseDTO;
 import com.lsm.model.DTOs.UserUpdateRequestDTO;
 import com.lsm.model.entity.base.AppUser;
+import com.lsm.model.entity.enums.Role;
 import com.lsm.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -79,6 +80,28 @@ public class UserController {
                     null
             ));
         }
+    }
+
+    @Operation(summary = "Get current user profile", description = "Get the profile of the currently authenticated user")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse_<UserResponseDTO>> getCurrentUser() {
+        AppUser currentUser = userService.getCurrentUser();
+        UserResponseDTO response;
+
+        // Return different response types based on user role
+        if (currentUser.getRole() == Role.ROLE_STUDENT) {
+            response = userMapper.toStudentResponse(currentUser);
+        } else if (currentUser.getRole() == Role.ROLE_TEACHER || currentUser.getRole() == Role.ROLE_COORDINATOR) {
+            response = userMapper.toTeacherResponse(currentUser);
+        } else {
+            response = userMapper.toUserResponse(currentUser);
+        }
+
+        return ResponseEntity.ok(new ApiResponse_<>(
+                true,
+                "User profile retrieved successfully",
+                response
+        ));
     }
 
     @Operation(summary = "Confirm admin deletion")

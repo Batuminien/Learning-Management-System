@@ -411,11 +411,11 @@ public class TrialExamService {
                 if (student == null) {
                     if (tc != null) {
                         if (tc.length() == 11)
-                            studentByTc = appUserRepository.getByStudentDetails_Tc(tc).orElse(null);
+                            studentByTc = appUserRepository.findByStudentDetails_Tc(tc).orElse(null);
                     }
                     if (phone != null) {
                         if (phone.length() == 11)
-                            studentByPhone = appUserRepository.getByStudentDetails_phone(phone).orElse(null);
+                            studentByPhone = appUserRepository.findByStudentDetails_Phone(phone).orElse(null);
                     }
 
                     if (studentByTc == null && studentByPhone == null) {

@@ -12,6 +12,8 @@ import com.lsm.exception.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +56,7 @@ public class UserService {
     }
 
     public AppUser getUserById(Long id) {
-        return userRepository.findUserWithAllDetails(id)
+        return userRepository.findUserWithAllDetailsById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
@@ -122,6 +124,14 @@ public class UserService {
         }
 
         return userRepository.save(student);
+    }
+
+    public AppUser getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        return userRepository.findUserWithAllDetailsByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
     }
 
     @Transactional

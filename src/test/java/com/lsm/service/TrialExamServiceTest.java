@@ -199,13 +199,13 @@ public class TrialExamServiceTest {
                     return Optional.ofNullable(userByName.get(name));
                 });
 
-        when(appUserRepository.getByStudentDetails_Tc(anyString()))
+        when(appUserRepository.findByStudentDetails_Tc(anyString()))
                 .thenAnswer(invocation -> {
                     String tc = invocation.getArgument(0);
                     return Optional.ofNullable(userByTC.get(tc));
                 });
 
-        when(appUserRepository.getByStudentDetails_phone(anyString()))
+        when(appUserRepository.findByStudentDetails_Phone(anyString()))
                 .thenAnswer(invocation -> {
                     String phone = invocation.getArgument(0);
                     return Optional.ofNullable(userByPhone.get(phone));

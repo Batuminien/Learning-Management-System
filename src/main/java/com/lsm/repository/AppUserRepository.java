@@ -20,6 +20,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByUsernameOrEmail(String username, String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
+
     @Query("""
     SELECT DISTINCT dt.deviceToken
     FROM DeviceToken dt
@@ -48,18 +49,25 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     LEFT JOIN FETCH sd.classEntity
     WHERE u.id = :userId
     """)
-    Optional<AppUser> findUserWithAllDetails(@Param("userId") Long userId);
+    Optional<AppUser> findUserWithAllDetailsById(@Param("userId") Long userId);
+
+    @Query("SELECT u FROM AppUser u " +
+            "LEFT JOIN FETCH u.studentDetails " +
+            "LEFT JOIN FETCH u.teacherDetails td " +
+            "LEFT JOIN FETCH td.teacherCourses tc " +
+            "LEFT JOIN FETCH tc.course " +
+            "LEFT JOIN FETCH tc.classes " +
+            "LEFT JOIN FETCH u.profilePhoto " +
+            "WHERE u.username = :username")
+    Optional<AppUser> findUserWithAllDetailsByUsername(@Param("username") String username);
 
     Page<AppUser> findAllByRole(Role role, Pageable pageable);
 
-    boolean findByStudentDetails_Tc(String studentDetailsTc);
+    Optional<AppUser> findByStudentDetails_Tc(String studentDetailsTc);
+    Optional<AppUser> findByTeacherDetails_Tc(String teacherDetailsTc);
 
-    boolean findByTeacherDetails_Tc(String teacherDetailsTc);
-
-    @Query("SELECT u FROM AppUser  u WHERE CONCAT(u.name, ' ', u.surname) LIKE %:fullName%")
+    @Query("SELECT u FROM AppUser u WHERE CONCAT(u.name, ' ', u.surname) LIKE %:fullName%")
     Optional<AppUser> findByNamePlusSurname(@Param("fullName") String fullName);
 
-    Optional<AppUser> getByStudentDetails_Tc(String studentDetailsTc);
-
-    Optional<AppUser> getByStudentDetails_phone(String studentDetailsTc);
+    Optional<AppUser> findByStudentDetails_Phone(String phone);
 }
