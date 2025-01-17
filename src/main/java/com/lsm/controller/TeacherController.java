@@ -38,7 +38,7 @@ public class TeacherController {
 
     @Operation(summary = "Get all teachers")
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_COORDINATOR')")
     public ResponseEntity<ApiResponse_<List<TeacherResponseDTO>>> getAllTeachers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
